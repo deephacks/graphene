@@ -124,15 +124,13 @@ public class UniqueIds {
 
     protected int getSchemaIdFromStorage(String name) {
         byte[] nameBytes = name.getBytes(UTF_8);
-        schemas.get(getNameKey(nameBytes));
-        Optional <byte[]> optionalId = schemas.get(getNameKey(nameBytes));
+        byte[] nameKey = getNameKey(nameBytes);
+        Optional <byte[]> optionalId = schemas.get(nameKey);
         if (optionalId.isPresent()) {
             return Long.valueOf(Bytes.getLong(optionalId.get())).intValue();
         }
         byte[] key = SCHEMA_DATABASE_NAME.getBytes(UTF_8);
-
         long id = graphene.get().getSequence(key).get().get(graphene.get().getTx(), 1);
-        byte[] nameKey = getNameKey(nameBytes);
         byte[] idKey = getIdKey(id);
         schemas.put(nameKey, Bytes.fromLong(id));
         schemas.put(idKey, nameBytes);
@@ -178,5 +176,16 @@ public class UniqueIds {
         instanceNameCache.clear();
         schemaIdCache.clear();
         schemaNameCache.clear();
+    }
+
+    public void deleteAll() {
+        schemas.deleteAll();
+        schemaIdCache.clear();
+        schemaNameCache.clear();
+
+        instances.deleteAll();
+        instanceIdCache.clear();
+        instanceNameCache.clear();
+
     }
 }

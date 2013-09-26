@@ -321,31 +321,18 @@ public class TestData {
             this.stringValues = stringValues;
         }
 
+        @Override
+        public String toString() {
+            return "A{" + id + "}";
+        }
     }
 
     public static class B extends A {
-        private A a;
-        private List<A> aValues;
 
         public B(String id) {
             super(id);
         }
 
-        public A getA() {
-            return a;
-        }
-
-        public void setA(A a) {
-            this.a = a;
-        }
-
-        public List<A> getaValues() {
-            return aValues;
-        }
-
-        public void setaValues(List<A> aValues) {
-            this.aValues = aValues;
-        }
     }
 
     public static class C extends A {

@@ -1,6 +1,7 @@
 package org.deephacks.graphene.internal;
 
 import com.google.common.base.Optional;
+import com.sleepycat.je.Cursor;
 import com.sleepycat.je.Database;
 import com.sleepycat.je.DatabaseEntry;
 import com.sleepycat.je.LockMode;
@@ -34,5 +35,19 @@ public class DatabaseWrapper {
             return false;
         }
         return true;
+    }
+
+    public void deleteAll() {
+        try(Cursor cursor = db.get().openCursor(graphene.get().getTx(), null)) {
+            DatabaseEntry firstKey = new DatabaseEntry(RowKey.getMinId().getKey());
+
+            if (cursor.getSearchKeyRange(firstKey, new DatabaseEntry(), LockMode.DEFAULT) == OperationStatus.SUCCESS) {
+                cursor.delete();
+            }
+
+            while (cursor.getNextNoDup(firstKey, new DatabaseEntry(), LockMode.DEFAULT) == OperationStatus.SUCCESS) {
+                cursor.delete();
+            }
+        }
     }
 }

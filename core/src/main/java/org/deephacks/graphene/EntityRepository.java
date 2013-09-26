@@ -16,6 +16,7 @@ package org.deephacks.graphene;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.sleepycat.je.Cursor;
+import com.sleepycat.je.CursorConfig;
 import com.sleepycat.je.Database;
 import com.sleepycat.je.DatabaseEntry;
 import com.sleepycat.je.LockMode;
@@ -45,7 +46,7 @@ public class EntityRepository {
         byte[] dataKey = getSerializer(entityClass).serializeRowKey(new RowKey(entityClass, key));
         DatabaseEntry entryKey = new DatabaseEntry(dataKey);
         DatabaseEntry entryValue = new DatabaseEntry();
-        if (OperationStatus.SUCCESS == db.get().get(getTx(), entryKey, entryValue, LockMode.DEFAULT)) {
+        if (OperationStatus.SUCCESS == db.get().get(getTx(), entryKey, entryValue, LockMode.READ_COMMITTED)) {
             byte[][] kv = new byte[][]{ entryKey.getData(), entryValue.getData()};
             return Optional.fromNullable((E) getSerializer(entityClass).deserializeEntity(kv));
         }
@@ -124,7 +125,9 @@ public class EntityRepository {
     }
 
     Cursor openCursor() {
-        return db.get().openCursor(getTx(), null);
+        CursorConfig config = new CursorConfig();
+        config.setReadCommitted(true);
+        return db.get().openCursor(getTx(), config);
     }
 
     public Transaction getTx() {
@@ -135,14 +138,13 @@ public class EntityRepository {
         graphene.get().commit();
     }
 
-    public void abort() {
+    public void rollback() {
         graphene.get().abort();
     }
 
     private Serializer getSerializer(Class<?> entityClass){
         return graphene.get().getSerializer(entityClass);
     }
-
 
 
     public static class KeyCreator implements SecondaryMultiKeyCreator {
