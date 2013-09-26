@@ -21,8 +21,6 @@ import com.sleepycat.je.Database;
 import com.sleepycat.je.DatabaseEntry;
 import com.sleepycat.je.LockMode;
 import com.sleepycat.je.OperationStatus;
-import com.sleepycat.je.SecondaryDatabase;
-import com.sleepycat.je.SecondaryMultiKeyCreator;
 import com.sleepycat.je.Transaction;
 import org.deephacks.graphene.Query.DefaultQuery;
 import org.deephacks.graphene.internal.EntityClassWrapper;
@@ -31,11 +29,14 @@ import org.deephacks.graphene.internal.RowKey;
 import org.deephacks.graphene.internal.Serializer;
 import org.deephacks.graphene.internal.UniqueIds;
 import org.deephacks.graphene.internal.ValueSerialization.ValueReader;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
-import java.util.Set;
 
 public class EntityRepository {
+    private final Logger logger = LoggerFactory.getLogger(EntityRepository.class);
+
     private final Handle<Graphene> graphene = Graphene.get();
     private final Handle<Database> db;
     private final Handle<Database> foreign;
@@ -185,10 +186,12 @@ public class EntityRepository {
 
     public void deleteAll() {
         try(Cursor cursor = openForeignCursor()) {
+            logger.debug("Deleting foreign keys");
             DatabaseEntry firstKey = new DatabaseEntry(RowKey.getMinId().getKey());
             deleteAll(cursor, firstKey);
         }
         try(Cursor cursor = openPrimaryCursor()) {
+            logger.debug("Deleting primary keys");
             DatabaseEntry firstKey = new DatabaseEntry(RowKey.getMinId().getKey());
             deleteAll(cursor, firstKey);
         }
@@ -196,15 +199,13 @@ public class EntityRepository {
 
     private void deleteAll(Cursor cursor, DatabaseEntry firstKey) {
         if (cursor.getSearchKeyRange(firstKey, new DatabaseEntry(), LockMode.DEFAULT) == OperationStatus.SUCCESS) {
+            logger.debug("Deleting " + new RowKey(firstKey.getData()));
             cursor.delete();
         }
         while (cursor.getNextNoDup(firstKey, new DatabaseEntry(), LockMode.DEFAULT) == OperationStatus.SUCCESS) {
+            logger.debug("Deleting " + new RowKey(firstKey.getData()));
             cursor.delete();
         }
-    }
-
-    public <E> long count(Class<E> entityClass) {
-        return db.get().count();
     }
 
     public long countAll() {
@@ -237,47 +238,5 @@ public class EntityRepository {
 
     private Serializer getSerializer(Class<?> entityClass){
         return graphene.get().getSerializer(entityClass);
-    }
-
-
-    public static class KeyCreator implements SecondaryMultiKeyCreator {
-        // private static final SchemaManager schemaManager = SchemaManager.lookup();
-        private static final UniqueIds uniqueIds = new UniqueIds();
-
-        public KeyCreator() {
-        }
-
-        @Override
-        public void createSecondaryKeys(SecondaryDatabase secondary, DatabaseEntry key, DatabaseEntry data, Set<DatabaseEntry> results) {
-            /*
-            RowKey rowKey = new RowKey(key.getData());
-            if(!rowKey.getCls().isPresent()) {
-                return;
-            }
-            EntityClassWrapper cls = EntityClassWrapper.get(rowKey.getCls().get());
-            if (cls.getReferences().isEmpty()) {
-                return;
-            }
-            ValueReader reader = new ValueReader(data.getData());
-            int[][] header = reader.getHeader();
-            for (EntityFieldWrapper field : cls.getReferences().values()) {
-                int refId = uniqueIds.getSchemaId(field.getName());
-                Object value = reader.getValue(refId, header);
-                if (value == null) {
-                    continue;
-                }
-                if (value instanceof Collection) {
-                    for (Object id : (Collection) value) {
-                        RowKey refKey = new RowKey(field.getType(), id);
-                        results.add(new DatabaseEntry(refKey.getKey()));
-                    }
-                } else {
-                    RowKey refKey = new RowKey(field.getType(), value);
-                    results.add(new DatabaseEntry(refKey.getKey()));
-                }
-            }
-            */
-        }
-
     }
 }

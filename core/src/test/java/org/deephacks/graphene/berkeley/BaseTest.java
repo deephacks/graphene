@@ -2,14 +2,80 @@ package org.deephacks.graphene.berkeley;
 
 import com.google.common.collect.Lists;
 import org.deephacks.graphene.Entity;
+import org.deephacks.graphene.EntityRepository;
+import org.deephacks.graphene.Graphene;
 import org.deephacks.graphene.Id;
+import org.deephacks.graphene.internal.UniqueIds;
+import org.junit.Before;
 
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-public class TestData {
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
+
+public class BaseTest {
+    protected static final EntityRepository repository = new EntityRepository();
+
+    static {
+        ShutdownHook.install(new Thread("ShutdownHook") {
+            @Override
+            public void run() {
+                try {
+                    Graphene.get().get().close();
+                } catch (Exception e) {
+                    throw new RuntimeException();
+                }
+            }
+        });
+    }
+
+    @Before
+    public void before() {
+        repository.deleteAll();
+        UniqueIds ids = new UniqueIds();
+        ids.deleteAll();
+        repository.commit();
+        assertThat(repository.countAll(), is(0L));
+    }
+
+    static class ShutdownHook {
+
+        static void install(final Thread threadToJoin) {
+            Thread thread = new ShutdownHookThread(threadToJoin);
+            Runtime.getRuntime().addShutdownHook(thread);
+        }
+
+        private static class ShutdownHookThread extends Thread {
+            private final Thread threadToJoin;
+
+            private ShutdownHookThread(final Thread threadToJoin) {
+                super("ShutdownHook: " + threadToJoin.getName());
+                this.threadToJoin = threadToJoin;
+            }
+
+            @Override
+            public void run() {
+                shutdown(threadToJoin, 30000);
+            }
+        }
+
+        public static void shutdown(final Thread t, final long joinwait) {
+            if (t == null)
+                return;
+            t.start();
+            while (t.isAlive()) {
+                try {
+                    t.join(joinwait);
+                } catch (InterruptedException e) {
+                }
+            }
+        }
+    }
+
+
 
     public static <T extends A> T defaultValues(String id, Class<T> cls) {
         final A a;
@@ -63,29 +129,29 @@ public class TestData {
 
     public static LinkedHashMap<String, A> defaultReferences() {
         LinkedHashMap<String, A> map = new LinkedHashMap<>();
-        A a1 = TestData.defaultValues("a1", A.class);
+        A a1 = defaultValues("a1", A.class);
         map.put("a1", a1);
-        A a2 = TestData.defaultValues("a2", A.class);
+        A a2 = defaultValues("a2", A.class);
         map.put("a2", a2);
-        A a3 = TestData.defaultValues("a3", A.class);
+        A a3 = defaultValues("a3", A.class);
         map.put("a3", a3);
 
-        B b1 = TestData.defaultValues("b1", B.class);
+        B b1 = defaultValues("b1", B.class);
         b1.setA(a1);
         b1.setAvalues(Arrays.asList(a2, a3));
         map.put("b1", b1);
 
-        B b2 = TestData.defaultValues("b2", B.class);
+        B b2 = defaultValues("b2", B.class);
         b2.setA(a1);
         b2.setAvalues(Arrays.asList(a2, a3));
         map.put("b2", b2);
 
-        C c1 = TestData.defaultValues("c1", C.class);
+        C c1 = defaultValues("c1", C.class);
         c1.setB(b1);
         c1.setBvalues(Arrays.asList(b1, b2));
         map.put("c1", c1);
 
-        C c2 = TestData.defaultValues("c2", C.class);
+        C c2 = defaultValues("c2", C.class);
         c2.setB(b1);
         c2.setBvalues(Arrays.asList(b1, b2));
         map.put("c2", c2);
@@ -418,4 +484,5 @@ public class TestData {
             this.bValues = bValues;
         }
     }
+
 }

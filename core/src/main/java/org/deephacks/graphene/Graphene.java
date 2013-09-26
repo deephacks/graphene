@@ -14,6 +14,8 @@ import org.deephacks.graphene.internal.FastKeyComparator;
 import org.deephacks.graphene.internal.Serializer;
 import org.deephacks.graphene.internal.Serializer.UnsafeSerializer;
 import org.deephacks.graphene.internal.UniqueIds;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.util.Arrays;
@@ -21,6 +23,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class Graphene {
+    private static final Logger logger = LoggerFactory.getLogger(Graphene.class);
+
     private static final Handle<Graphene> INSTANCE = new Handle<>();
 
     public static final String TMP_DIR = System.getProperty("java.io.tmpdir");
@@ -108,19 +112,19 @@ public class Graphene {
         return INSTANCE;
     }
 
-    static void init() {
-        INSTANCE.get().getPrimary();
-        INSTANCE.get().getForeign();
-        INSTANCE.get().getSchemas();
-        INSTANCE.get().getInstances();
-    }
-
     public static Handle<Graphene> get() {
         if (INSTANCE.get() != null) {
             return INSTANCE;
         }
         INSTANCE.set(new Graphene());
         return INSTANCE;
+    }
+
+    static void init() {
+        INSTANCE.get().getPrimary();
+        INSTANCE.get().getForeign();
+        INSTANCE.get().getSchemas();
+        INSTANCE.get().getInstances();
     }
 
     public Environment getEnv() {
@@ -130,6 +134,7 @@ public class Graphene {
     public Handle<Database> getPrimary() {
         Preconditions.checkArgument(getPrimaryConfig().getTransactional(), "Primary must be transactional");
         if (primary.get() == null) {
+            logger.info("Opening primary database " + primaryName);
             primary.set(env.openDatabase(null, primaryName, primaryConfig));
         }
         return primary;
@@ -148,8 +153,9 @@ public class Graphene {
     }
 
     public Handle<Database> getForeign() {
-        Preconditions.checkArgument(getForeignConfig().getTransactional(), "Secondary must be transactional");
+        Preconditions.checkArgument(getForeignConfig().getTransactional(), "Foreign must be transactional");
         if (foreign.get() == null) {
+            logger.info("Opening foreign database " + foreignName);
             Database db = env.openDatabase(null, foreignName, foreignConfig);
             foreign.set(db);
         }
@@ -164,7 +170,6 @@ public class Graphene {
             foreignConfig.setKeyPrefixing(true);
             foreignConfig.setBtreeComparator(new FastKeyComparator());
             foreignConfig.setSortedDuplicates(true);
-
         }
         return foreignConfig;
     }
@@ -194,6 +199,7 @@ public class Graphene {
             config.setTransactional(true);
             config.setAllowCreate(true);
             config.setSortedDuplicates(false);
+            logger.info("Opening schemas database " + schemaName);
             schemas.set(env.openDatabase(null, schemaName, config));
         }
         return schemas;
@@ -205,6 +211,7 @@ public class Graphene {
             config.setTransactional(true);
             config.setAllowCreate(true);
             config.setSortedDuplicates(false);
+            logger.info("Opening instances database " + instanceName);
             instances.set(env.openDatabase(null, instanceName, config));
         }
         return instances;
@@ -271,6 +278,7 @@ public class Graphene {
         foreign.set(null);
         schemas.set(null);
         instances.set(null);
+        logger.info("Graphene closed successfully.");
     }
 
     public void closeAndDelete() {

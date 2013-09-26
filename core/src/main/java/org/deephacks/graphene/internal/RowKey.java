@@ -101,7 +101,7 @@ public class RowKey implements Comparable<RowKey>, Serializable {
     @Override
     public String toString() {
         try {
-            return getCls().get() + "@"+ getInstance();
+            return getCls().get().getName() + "@" + getInstance();
         } catch (Exception e) {
             return Arrays.toString(key);
         }

@@ -1,37 +1,21 @@
 package org.deephacks.graphene.berkeley;
 
 import com.google.common.collect.Lists;
-import org.deephacks.graphene.berkeley.TestData.A;
-import org.deephacks.graphene.berkeley.TestData.B;
-import org.deephacks.graphene.berkeley.TestData.C;
-import org.deephacks.graphene.EntityRepository;
 import org.deephacks.graphene.ResultSet;
-import org.deephacks.graphene.internal.UniqueIds;
-import org.junit.Before;
 import org.junit.Test;
 
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.*;
 
-public class TxTest {
-    private final EntityRepository repository = new EntityRepository();
-
-    @Before
-    public void before() {
-        repository.deleteAll();
-        UniqueIds ids = new UniqueIds();
-        ids.deleteAll();
-        repository.commit();
-        assertThat(repository.countAll(), is(0L));
-    }
+public class TxTest extends BaseTest {
 
     /**
      * Test that put can be rolled back from a get.
      */
     @Test
     public void test_put_get_rollback() {
-        assertFalse(repository.get(TestData.defaultValues("a1", A.class), A.class).isPresent());
-        assertTrue(repository.put(TestData.defaultValues("a1", A.class)));
+        assertFalse(repository.get(defaultValues("a1", A.class), A.class).isPresent());
+        assertTrue(repository.put(defaultValues("a1", A.class)));
         repository.rollback();
         assertFalse(repository.get("a1", A.class).isPresent());
     }
@@ -44,9 +28,9 @@ public class TxTest {
         int numInstances = 10;
         // reverse order which instances are inserted to check that sorted order is respected
         for (int i = numInstances; i > 0; i--) {
-            repository.put(TestData.defaultValues("a" + i, A.class));
-            repository.put(TestData.defaultValues("b" + i, B.class));
-            repository.put(TestData.defaultValues("c" + i, C.class));
+            repository.put(defaultValues("a" + i, A.class));
+            repository.put(defaultValues("b" + i, B.class));
+            repository.put(defaultValues("c" + i, C.class));
         }
 
         try (ResultSet<A> result = repository.select(A.class).retrieve()) {
@@ -78,11 +62,11 @@ public class TxTest {
         int numInstances = 10;
         // reverse order which instances are inserted to check that sorted order is respected
         for (int i = numInstances; i > 0; i--) {
-            repository.put(TestData.defaultValues("a" + i, A.class));
+            repository.put(defaultValues("a" + i, A.class));
         }
         repository.commit();
 
-        assertTrue(repository.put(TestData.defaultValues("a100", A.class)));
+        assertTrue(repository.put(defaultValues("a100", A.class)));
         assertTrue(repository.get("a100", A.class).isPresent());
         assertTrue(repository.delete("a1", A.class).isPresent());
         assertFalse(repository.get("a1", A.class).isPresent());

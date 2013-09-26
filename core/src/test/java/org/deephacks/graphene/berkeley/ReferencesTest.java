@@ -1,34 +1,17 @@
 package org.deephacks.graphene.berkeley;
 
 import com.google.common.base.Optional;
-import org.deephacks.graphene.berkeley.TestData.A;
-import org.deephacks.graphene.berkeley.TestData.B;
-import org.deephacks.graphene.berkeley.TestData.C;
 import org.deephacks.graphene.DeleteConstraintException;
-import org.deephacks.graphene.EntityRepository;
 import org.deephacks.graphene.ForeignConstraintException;
-import org.deephacks.graphene.internal.UniqueIds;
-import org.junit.Before;
 import org.junit.Test;
 
 import java.util.LinkedHashMap;
 
-import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.*;
 import static org.unitils.reflectionassert.ReflectionAssert.assertReflectionEquals;
 import static org.unitils.reflectionassert.ReflectionComparatorMode.LENIENT_ORDER;
 
-public class ReferencesTest {
-    private final EntityRepository repository = new EntityRepository();
-
-    @Before
-    public void before() {
-        repository.deleteAll();
-        UniqueIds ids = new UniqueIds();
-        ids.deleteAll();
-        repository.commit();
-        assertThat(repository.countAll(), is(0L));
-    }
+public class ReferencesTest extends BaseTest {
 
     /**
      * Test that references (single and collection) are fetched eagerly
@@ -36,7 +19,7 @@ public class ReferencesTest {
      */
     @Test
     public void test_references_with_multiple_levels() {
-        LinkedHashMap<String,A> map = TestData.defaultReferences();
+        LinkedHashMap<String,A> map = defaultReferences();
         for (A a : map.values()) {
             repository.put(a);
             repository.commit();
@@ -58,7 +41,7 @@ public class ReferencesTest {
      */
     @Test
     public void test_missing_references() {
-        LinkedHashMap<String,A> map = TestData.defaultReferences();
+        LinkedHashMap<String,A> map = defaultReferences();
         try {
             repository.put(map.get("b2"));
             fail("Should violate constraint");
@@ -73,7 +56,7 @@ public class ReferencesTest {
      */
     @Test
     public void test_referential_integrity() {
-        LinkedHashMap<String,A> map = TestData.defaultReferences();
+        LinkedHashMap<String,A> map = defaultReferences();
         for (A a : map.values()) {
             repository.put(a);
             repository.commit();

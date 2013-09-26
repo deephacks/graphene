@@ -2,33 +2,16 @@ package org.deephacks.graphene.berkeley;
 
 
 import com.google.common.base.Optional;
-import org.deephacks.graphene.berkeley.TestData.A;
-import org.deephacks.graphene.berkeley.TestData.B;
-import org.deephacks.graphene.berkeley.TestData.C;
-import org.deephacks.graphene.EntityRepository;
-import org.deephacks.graphene.internal.UniqueIds;
-import org.junit.Before;
 import org.junit.Test;
 
 import java.util.UUID;
 
-import static org.deephacks.graphene.berkeley.TestData.defaultValues;
-import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.*;
 import static org.unitils.reflectionassert.ReflectionAssert.assertReflectionEquals;
 import static org.unitils.reflectionassert.ReflectionComparatorMode.LENIENT_ORDER;
 
-public class BasicTest {
-    private final EntityRepository repository = new EntityRepository();
+public class BasicTest extends BaseTest {
 
-    @Before
-    public void before() {
-        repository.deleteAll();
-        UniqueIds ids = new UniqueIds();
-        ids.deleteAll();
-        repository.commit();
-        assertThat(repository.countAll(), is(0L));
-    }
     /**
      * Test that it is possible to put, get and delete instances of
      * different types.
