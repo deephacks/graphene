@@ -1,7 +1,6 @@
-package org.deephacks.graphene.berkeley;
+package org.deephacks.graphene;
 
 import com.google.common.collect.Lists;
-import org.deephacks.graphene.ResultSet;
 import org.junit.Test;
 
 import java.util.ArrayList;

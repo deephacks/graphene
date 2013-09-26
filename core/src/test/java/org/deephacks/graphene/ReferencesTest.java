@@ -1,8 +1,6 @@
-package org.deephacks.graphene.berkeley;
+package org.deephacks.graphene;
 
 import com.google.common.base.Optional;
-import org.deephacks.graphene.DeleteConstraintException;
-import org.deephacks.graphene.ForeignConstraintException;
 import org.junit.Test;
 
 import java.util.LinkedHashMap;

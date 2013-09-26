@@ -1,4 +1,4 @@
-package org.deephacks.graphene.berkeley;
+package org.deephacks.graphene;
 
 import com.sleepycat.je.Database;
 import com.sleepycat.je.DatabaseConfig;

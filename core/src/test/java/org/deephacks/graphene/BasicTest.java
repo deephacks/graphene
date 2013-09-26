@@ -1,4 +1,4 @@
-package org.deephacks.graphene.berkeley;
+package org.deephacks.graphene;
 
 
 import com.google.common.base.Optional;
