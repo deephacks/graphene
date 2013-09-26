@@ -88,7 +88,7 @@ public abstract class Query<T> {
 
         @Override
         public ResultSet<E> retrieve() {
-            Cursor cursor = repository.openCursor();
+            Cursor cursor = repository.openPrimaryCursor();
             return new DefaultResultSet<>(entityClass, firstResult, lastResult, maxResults, criteria, cursor);
         }
     }

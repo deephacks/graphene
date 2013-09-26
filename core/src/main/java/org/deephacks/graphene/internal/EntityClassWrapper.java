@@ -20,8 +20,10 @@ public class EntityClassWrapper {
     protected EntityFieldWrapper id;
     protected Map<String, EntityFieldWrapper> fields = new HashMap<>();
     protected Map<String, EntityFieldWrapper> references = new HashMap<>();
+    protected final Class<?> cls;
 
     protected EntityClassWrapper(Class<?> cls) {
+        this.cls = cls;
         Map<String, Field> map = Reflections.findFields(cls);
         for (String fieldName : map.keySet()) {
             fields.put(fieldName, new EntityFieldWrapper(map.get(fieldName), false));

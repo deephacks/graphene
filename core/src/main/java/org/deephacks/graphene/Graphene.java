@@ -6,13 +6,10 @@ import com.sleepycat.je.DatabaseConfig;
 import com.sleepycat.je.DatabaseEntry;
 import com.sleepycat.je.Environment;
 import com.sleepycat.je.EnvironmentConfig;
-import com.sleepycat.je.ForeignKeyDeleteAction;
 import com.sleepycat.je.SecondaryConfig;
-import com.sleepycat.je.SecondaryDatabase;
 import com.sleepycat.je.Sequence;
 import com.sleepycat.je.SequenceConfig;
 import com.sleepycat.je.Transaction;
-import org.deephacks.graphene.EntityRepository.KeyCreator;
 import org.deephacks.graphene.internal.FastKeyComparator;
 import org.deephacks.graphene.internal.Serializer;
 import org.deephacks.graphene.internal.Serializer.UnsafeSerializer;
@@ -38,9 +35,9 @@ public class Graphene {
     private DatabaseConfig primaryConfig;
     private String primaryName = "graphene.primary";
 
-    private static final Handle<SecondaryDatabase> secondary = new Handle<>();
-    private SecondaryConfig secondaryConfig;
-    private String secondaryName = "graphene.secondary";
+    private static final Handle<Database> foreign = new Handle<>();
+    private DatabaseConfig foreignConfig;
+    private String foreignName = "graphene.foreign";
 
     private static final Handle<Database> schemas = new Handle<>();
     private static final String schemaName = "graphene.schema";
@@ -62,26 +59,26 @@ public class Graphene {
         env = new Environment(DEFAULT_ENV_FILE, envConfig);
     }
 
-    private Graphene(Environment env, String primaryName, String secondaryName) {
+    private Graphene(Environment env, String primaryName, String foreignName) {
         Preconditions.checkNotNull(env);
         Preconditions.checkNotNull(primaryName);
-        Preconditions.checkNotNull(secondaryName);
+        Preconditions.checkNotNull(foreignName);
         Preconditions.checkArgument(env.getConfig().getTransactional(), "Environment must be transactional");
         this.env = env;
         this.primaryName = primaryName;
-        this.secondaryName = secondaryName;
+        this.foreignName = foreignName;
     }
 
-    private Graphene(Environment env, String primaryName, DatabaseConfig primaryConfig, String secondaryName, SecondaryConfig secondaryConfig) {
+    private Graphene(Environment env, String primaryName, DatabaseConfig primaryConfig, String foreignName, DatabaseConfig foreignConfig) {
         Preconditions.checkNotNull(env);
         Preconditions.checkNotNull(primaryName);
-        Preconditions.checkNotNull(secondaryName);
+        Preconditions.checkNotNull(foreignName);
         Preconditions.checkArgument(env.getConfig().getTransactional(), "Environment must be transactional");
         this.env = env;
         this.primaryConfig = primaryConfig;
         this.primaryName = primaryName;
-        this.secondaryConfig = secondaryConfig;
-        this.secondaryName = secondaryName;
+        this.foreignConfig = foreignConfig;
+        this.foreignName = foreignName;
     }
 
     public static Handle<Graphene> create() {
@@ -113,7 +110,7 @@ public class Graphene {
 
     static void init() {
         INSTANCE.get().getPrimary();
-        INSTANCE.get().getSecondary();
+        INSTANCE.get().getForeign();
         INSTANCE.get().getSchemas();
         INSTANCE.get().getInstances();
     }
@@ -150,29 +147,26 @@ public class Graphene {
         return primaryConfig;
     }
 
-    public Handle<SecondaryDatabase> getSecondary() {
-        Preconditions.checkArgument(getSecondaryConfig().getTransactional(), "Secondary must be transactional");
-        if (secondary.get() == null) {
-            SecondaryDatabase db = env.openSecondaryDatabase(null, secondaryName, getPrimary().get(), secondaryConfig);
-            secondary.set(db);
+    public Handle<Database> getForeign() {
+        Preconditions.checkArgument(getForeignConfig().getTransactional(), "Secondary must be transactional");
+        if (foreign.get() == null) {
+            Database db = env.openDatabase(null, foreignName, foreignConfig);
+            foreign.set(db);
         }
-        return secondary;
+        return foreign;
     }
 
-    public SecondaryConfig getSecondaryConfig() {
-        if (secondaryConfig == null) {
-            secondaryConfig = new SecondaryConfig();
-            secondaryConfig.setAllowCreate(true);
-            secondaryConfig.setTransactional(true);
-            secondaryConfig.setKeyPrefixing(true);
-            secondaryConfig.setBtreeComparator(new FastKeyComparator());
-            secondaryConfig.setSortedDuplicates(true);
-            secondaryConfig.setMultiKeyCreator(new KeyCreator());
+    public DatabaseConfig getForeignConfig() {
+        if (foreignConfig == null) {
+            foreignConfig = new SecondaryConfig();
+            foreignConfig.setAllowCreate(true);
+            foreignConfig.setTransactional(true);
+            foreignConfig.setKeyPrefixing(true);
+            foreignConfig.setBtreeComparator(new FastKeyComparator());
+            foreignConfig.setSortedDuplicates(true);
 
-            secondaryConfig.setForeignKeyDeleteAction(ForeignKeyDeleteAction.ABORT);
-            secondaryConfig.setForeignKeyDatabase(getPrimary().get());
         }
-        return secondaryConfig;
+        return foreignConfig;
     }
 
 
@@ -242,7 +236,7 @@ public class Graphene {
 
     public void commit() {
         Transaction tx = TX.get();
-        if (tx == null) {
+        if (tx == null || !tx.isValid()) {
             return;
         }
         TX.set(null);
@@ -251,7 +245,7 @@ public class Graphene {
 
     public void abort() {
         Transaction tx = TX.get();
-        if (tx == null) {
+        if (tx == null || !tx.isValid()) {
             return;
         }
         TX.set(null);
@@ -268,13 +262,13 @@ public class Graphene {
         }
         getSchemas().get().close();
         getInstances().get().close();
-        getSecondary().get().close();
+        getForeign().get().close();
         getPrimary().get().close();
         INSTANCE.set(null);
         primaryConfig = null;
-        secondaryConfig = null;
+        foreignConfig = null;
         primary.set(null);
-        secondary.set(null);
+        foreign.set(null);
         schemas.set(null);
         instances.set(null);
     }
@@ -284,7 +278,7 @@ public class Graphene {
         close();
         remove(schemaName);
         remove(instanceName);
-        remove(secondaryName);
+        remove(foreignName);
         remove(primaryName);
     }
 

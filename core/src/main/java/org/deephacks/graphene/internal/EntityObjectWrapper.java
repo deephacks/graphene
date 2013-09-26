@@ -20,7 +20,7 @@ public class EntityObjectWrapper {
 
     protected EntityObjectWrapper(RowKey rowKey) {
         this.rowKey = rowKey;
-        this.classWrapper = EntityClassWrapper.get(rowKey.getCls());
+        this.classWrapper = EntityClassWrapper.get(rowKey.getCls().get());
     }
 
     public RowKey getRowKey() {

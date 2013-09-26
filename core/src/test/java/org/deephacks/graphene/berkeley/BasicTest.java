@@ -1,10 +1,10 @@
-package org.deephacks.confit.internal.berkeley;
+package org.deephacks.graphene.berkeley;
 
 
 import com.google.common.base.Optional;
-import org.deephacks.confit.internal.berkeley.TestData.A;
-import org.deephacks.confit.internal.berkeley.TestData.B;
-import org.deephacks.confit.internal.berkeley.TestData.C;
+import org.deephacks.graphene.berkeley.TestData.A;
+import org.deephacks.graphene.berkeley.TestData.B;
+import org.deephacks.graphene.berkeley.TestData.C;
 import org.deephacks.graphene.EntityRepository;
 import org.deephacks.graphene.internal.UniqueIds;
 import org.junit.Before;
@@ -12,7 +12,7 @@ import org.junit.Test;
 
 import java.util.UUID;
 
-import static org.deephacks.confit.internal.berkeley.TestData.defaultValues;
+import static org.deephacks.graphene.berkeley.TestData.defaultValues;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.*;
 import static org.unitils.reflectionassert.ReflectionAssert.assertReflectionEquals;
@@ -82,7 +82,6 @@ public class BasicTest {
     public void test_delete_non_existin_instances() {
         final Optional<A> a = repository.delete(UUID.randomUUID().toString(), A.class);
         assertFalse(a.isPresent());
-
     }
 
 

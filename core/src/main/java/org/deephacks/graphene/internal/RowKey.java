@@ -1,6 +1,7 @@
 package org.deephacks.graphene.internal;
 
 
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 
 import java.io.Serializable;
@@ -29,17 +30,17 @@ public class RowKey implements Comparable<RowKey>, Serializable {
         this.key = toKey(schemaId, instanceId);
     }
 
-    public Class<?> getCls() {
+    public Optional<Class<?>> getCls() {
         if (cls != null) {
-            return cls;
+            return Optional.<Class<?>>of(cls);
         }
-        String className = ids.getSchemaName(getClassId());
         try {
+            String className = ids.getSchemaName(getClassId());
             cls = Class.forName(className);
-        } catch (ClassNotFoundException e) {
-            throw new IllegalStateException(e);
+            return Optional.<Class<?>>of(cls);
+        } catch (Exception e) {
+            return Optional.absent();
         }
-        return cls;
     }
 
     public byte[] getKey() {
@@ -99,6 +100,10 @@ public class RowKey implements Comparable<RowKey>, Serializable {
 
     @Override
     public String toString() {
-        return Arrays.toString(key);
+        try {
+            return getCls().get() + "@"+ getInstance();
+        } catch (Exception e) {
+            return Arrays.toString(key);
+        }
     }
 }

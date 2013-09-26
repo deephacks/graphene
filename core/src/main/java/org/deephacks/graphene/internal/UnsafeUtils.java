@@ -42,7 +42,7 @@ public class UnsafeUtils {
         UnsafeEntityObjectWrapper(RowKey rowKey) {
             super(rowKey);
             try {
-                object = unsafe.allocateInstance(rowKey.getCls());
+                object = unsafe.allocateInstance(rowKey.getCls().get());
             } catch (InstantiationException e) {
                 throw new IllegalStateException(e);
             }

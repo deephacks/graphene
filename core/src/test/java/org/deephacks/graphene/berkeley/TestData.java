@@ -1,4 +1,4 @@
-package org.deephacks.confit.internal.berkeley;
+package org.deephacks.graphene.berkeley;
 
 import com.google.common.collect.Lists;
 import org.deephacks.graphene.Entity;

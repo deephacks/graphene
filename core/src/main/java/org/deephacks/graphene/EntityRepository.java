@@ -25,20 +25,25 @@ import com.sleepycat.je.SecondaryDatabase;
 import com.sleepycat.je.SecondaryMultiKeyCreator;
 import com.sleepycat.je.Transaction;
 import org.deephacks.graphene.Query.DefaultQuery;
+import org.deephacks.graphene.internal.EntityClassWrapper;
+import org.deephacks.graphene.internal.EntityClassWrapper.EntityFieldWrapper;
 import org.deephacks.graphene.internal.RowKey;
 import org.deephacks.graphene.internal.Serializer;
 import org.deephacks.graphene.internal.UniqueIds;
+import org.deephacks.graphene.internal.ValueSerialization.ValueReader;
 
+import java.util.Collection;
 import java.util.Set;
 
 public class EntityRepository {
     private final Handle<Graphene> graphene = Graphene.get();
     private final Handle<Database> db;
-    private final Handle<SecondaryDatabase> secondary;
+    private final Handle<Database> foreign;
+    private final UniqueIds ids = new UniqueIds();
 
     public EntityRepository() {
         this.db = graphene.get().getPrimary();
-        this.secondary = graphene.get().getSecondary();
+        this.foreign = graphene.get().getForeign();
 
     }
 
@@ -62,7 +67,55 @@ public class EntityRepository {
         }
         DatabaseEntry key = new DatabaseEntry(data[0]);
         DatabaseEntry value = new DatabaseEntry(data[1]);
-        return OperationStatus.SUCCESS == db.get().put(getTx(), key, value);
+        if (OperationStatus.SUCCESS != db.get().put(getTx(), key, value)) {
+            return false;
+        }
+        ValueReader reader = new ValueReader(data[1]);
+        RowKey rowKey = new RowKey(data[0]);
+        EntityClassWrapper cls = EntityClassWrapper.get(rowKey.getCls().get());
+        int[][] header = reader.getHeader();
+        for (EntityFieldWrapper field : cls.getReferences().values()) {
+            int refId = ids.getSchemaId(field.getName());
+            Object refValue = reader.getValue(refId, header);
+            if (refValue == null) {
+                continue;
+            }
+            if (refValue instanceof Collection) {
+                for (Object id : (Collection) refValue) {
+                    RowKey refKey = new RowKey(field.getType(), id);
+                    if (!exists(refKey)) {
+                        rollback();
+                        throw new ForeignConstraintException("Missing reference " + refKey);
+                    } else {
+                        if (OperationStatus.SUCCESS != foreign.get().put(getTx(), new DatabaseEntry(refKey.getKey()), new DatabaseEntry(rowKey.getKey()))) {
+                            rollback();
+                            throw new ForeignConstraintException("Could not create foreign key.");
+                        }
+                    }
+                }
+            } else {
+                RowKey refKey = new RowKey(field.getType(), refValue);
+                if (!exists(refKey)) {
+                    throw new ForeignConstraintException(refKey.getCls().get() + " " + refKey.getInstance());
+                } else {
+                    if (OperationStatus.SUCCESS != foreign.get().put(getTx(), new DatabaseEntry(refKey.getKey()), new DatabaseEntry(rowKey.getKey()))) {
+                        throw new ForeignConstraintException("Could not create foreign key");
+                    }
+                }
+            }
+        }
+        return true;
+    }
+
+    private boolean exists(RowKey refKey) {
+        try(Cursor cursor = db.get().openCursor(getTx(), null)) {
+            DatabaseEntry key = new DatabaseEntry(refKey.getKey());
+            OperationStatus status = cursor.getSearchKey(key, new DatabaseEntry(), LockMode.DEFAULT);
+            if (OperationStatus.SUCCESS == status) {
+                return true;
+            }
+            return false;
+        }
     }
 
     public <E> boolean putNoOverwrite(E entity) {
@@ -83,14 +136,35 @@ public class EntityRepository {
             if(!optional.isPresent()) {
                 return Optional.absent();
             }
+
             byte[] dataKey = getSerializer(entityClass).serializeRowKey(new RowKey(entityClass, key));
+            Optional<RowKey> ref = getForeignKey(dataKey);
+            if (ref.isPresent()) {
+                rollback();
+                throw new DeleteConstraintException(ref.get() + " has foreign key on instance.");
+            }
+
             OperationStatus status = db.get().delete(getTx(), new DatabaseEntry(dataKey));
             if (status == OperationStatus.NOTFOUND) {
+                rollback();
                 return Optional.absent();
             }
             return Optional.fromNullable(optional.get());
         } catch (com.sleepycat.je.DeleteConstraintException e) {
+            rollback();
             throw new DeleteConstraintException(e);
+        }
+    }
+
+    private Optional<RowKey> getForeignKey(byte[] key) {
+        try (Cursor cursor = foreign.get().openCursor(getTx(), null)){
+            DatabaseEntry dbKey = new DatabaseEntry(key);
+            DatabaseEntry foreignKey = new DatabaseEntry();
+            OperationStatus status = cursor.getSearchKey(dbKey, foreignKey, LockMode.DEFAULT);
+            if (OperationStatus.SUCCESS == status) {
+                return Optional.fromNullable(new RowKey(foreignKey.getData()));
+            }
+            return Optional.absent();
         }
     }
 
@@ -102,17 +176,30 @@ public class EntityRepository {
         return new DefaultQuery<>(entityClass, this);
     }
 
+    public void deleteAll(Class<?> entityClass) {
+        try(Cursor cursor = openPrimaryCursor()) {
+            DatabaseEntry firstKey = new DatabaseEntry(RowKey.getMinId(entityClass).getKey());
+            deleteAll(cursor, firstKey);
+        }
+    }
+
     public void deleteAll() {
-        try(Cursor cursor = openCursor()) {
+        try(Cursor cursor = openForeignCursor()) {
             DatabaseEntry firstKey = new DatabaseEntry(RowKey.getMinId().getKey());
+            deleteAll(cursor, firstKey);
+        }
+        try(Cursor cursor = openPrimaryCursor()) {
+            DatabaseEntry firstKey = new DatabaseEntry(RowKey.getMinId().getKey());
+            deleteAll(cursor, firstKey);
+        }
+    }
 
-            if (cursor.getSearchKeyRange(firstKey, new DatabaseEntry(), LockMode.DEFAULT) == OperationStatus.SUCCESS) {
-                cursor.delete();
-            }
-
-            while (cursor.getNextNoDup(firstKey, new DatabaseEntry(), LockMode.DEFAULT) == OperationStatus.SUCCESS) {
-                cursor.delete();
-            }
+    private void deleteAll(Cursor cursor, DatabaseEntry firstKey) {
+        if (cursor.getSearchKeyRange(firstKey, new DatabaseEntry(), LockMode.DEFAULT) == OperationStatus.SUCCESS) {
+            cursor.delete();
+        }
+        while (cursor.getNextNoDup(firstKey, new DatabaseEntry(), LockMode.DEFAULT) == OperationStatus.SUCCESS) {
+            cursor.delete();
         }
     }
 
@@ -124,10 +211,16 @@ public class EntityRepository {
         return db.get().count();
     }
 
-    Cursor openCursor() {
+    Cursor openPrimaryCursor() {
         CursorConfig config = new CursorConfig();
         config.setReadCommitted(true);
         return db.get().openCursor(getTx(), config);
+    }
+
+    Cursor openForeignCursor() {
+        CursorConfig config = new CursorConfig();
+        config.setReadCommitted(true);
+        return foreign.get().openCursor(getTx(), config);
     }
 
     public Transaction getTx() {
@@ -156,26 +249,35 @@ public class EntityRepository {
 
         @Override
         public void createSecondaryKeys(SecondaryDatabase secondary, DatabaseEntry key, DatabaseEntry data, Set<DatabaseEntry> results) {
-/*            BeanId beanId = BeanId.read(key.getData());
-            Schema schema = schemaManager.getSchema(beanId.getSchemaName());
+            /*
+            RowKey rowKey = new RowKey(key.getData());
+            if(!rowKey.getCls().isPresent()) {
+                return;
+            }
+            EntityClassWrapper cls = EntityClassWrapper.get(rowKey.getCls().get());
+            if (cls.getReferences().isEmpty()) {
+                return;
+            }
             ValueReader reader = new ValueReader(data.getData());
             int[][] header = reader.getHeader();
-            for (String referenceName : schema.getReferenceNames()) {
-                int refId = uniqueIds.getSchemaId(referenceName);
+            for (EntityFieldWrapper field : cls.getReferences().values()) {
+                int refId = uniqueIds.getSchemaId(field.getName());
                 Object value = reader.getValue(refId, header);
-                if (value != null) {
-                    String schemaName = schema.getReferenceSchemaName(referenceName);
-                    int schemaId = uniqueIds.getSchemaId(schemaName);
-                    if (value instanceof Collection) {
-                        for (Long id : (Collection<Long>) value) {
-                            results.add(new DatabaseEntry(BinaryBeanId.toKey(schemaId, id)));
-                        }
-                    } else {
-                        results.add(new DatabaseEntry(BinaryBeanId.toKey(schemaId, (long) value)));
+                if (value == null) {
+                    continue;
+                }
+                if (value instanceof Collection) {
+                    for (Object id : (Collection) value) {
+                        RowKey refKey = new RowKey(field.getType(), id);
+                        results.add(new DatabaseEntry(refKey.getKey()));
                     }
+                } else {
+                    RowKey refKey = new RowKey(field.getType(), value);
+                    results.add(new DatabaseEntry(refKey.getKey()));
                 }
             }
-        */
+            */
         }
+
     }
 }

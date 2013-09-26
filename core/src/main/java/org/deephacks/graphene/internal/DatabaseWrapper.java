@@ -6,6 +6,7 @@ import com.sleepycat.je.Database;
 import com.sleepycat.je.DatabaseEntry;
 import com.sleepycat.je.LockMode;
 import com.sleepycat.je.OperationStatus;
+import com.sleepycat.je.SecondaryIntegrityException;
 import com.sleepycat.je.Transaction;
 import org.deephacks.graphene.Graphene;
 import org.deephacks.graphene.Handle;
@@ -38,16 +39,20 @@ public class DatabaseWrapper {
     }
 
     public void deleteAll() {
-        try(Cursor cursor = db.get().openCursor(graphene.get().getTx(), null)) {
-            DatabaseEntry firstKey = new DatabaseEntry(RowKey.getMinId().getKey());
+        try {
+            try(Cursor cursor = db.get().openCursor(graphene.get().getTx(), null)) {
+                DatabaseEntry firstKey = new DatabaseEntry(RowKey.getMinId().getKey());
 
-            if (cursor.getSearchKeyRange(firstKey, new DatabaseEntry(), LockMode.DEFAULT) == OperationStatus.SUCCESS) {
-                cursor.delete();
-            }
+                if (cursor.getSearchKeyRange(firstKey, new DatabaseEntry(), LockMode.DEFAULT) == OperationStatus.SUCCESS) {
+                    cursor.delete();
+                }
 
-            while (cursor.getNextNoDup(firstKey, new DatabaseEntry(), LockMode.DEFAULT) == OperationStatus.SUCCESS) {
-                cursor.delete();
+                while (cursor.getNextNoDup(firstKey, new DatabaseEntry(), LockMode.DEFAULT) == OperationStatus.SUCCESS) {
+                    cursor.delete();
+                }
             }
+        } catch (SecondaryIntegrityException e) {
+
         }
     }
 }

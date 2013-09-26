@@ -1,9 +1,9 @@
-package org.deephacks.confit.internal.berkeley;
+package org.deephacks.graphene.berkeley;
 
 import com.google.common.collect.Lists;
-import org.deephacks.confit.internal.berkeley.TestData.A;
-import org.deephacks.confit.internal.berkeley.TestData.B;
-import org.deephacks.confit.internal.berkeley.TestData.C;
+import org.deephacks.graphene.berkeley.TestData.A;
+import org.deephacks.graphene.berkeley.TestData.B;
+import org.deephacks.graphene.berkeley.TestData.C;
 import org.deephacks.graphene.EntityRepository;
 import org.deephacks.graphene.ResultSet;
 import org.deephacks.graphene.internal.UniqueIds;
@@ -13,7 +13,7 @@ import org.junit.Test;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.deephacks.confit.internal.berkeley.TestData.defaultValues;
+import static org.deephacks.graphene.berkeley.TestData.defaultValues;
 import static org.deephacks.graphene.Criteria.*;
 import static org.deephacks.graphene.Criteria.equal;
 import static org.deephacks.graphene.Criteria.field;
