@@ -104,10 +104,9 @@ public class UnsafeUtils {
             return list;
         }
 
-        public Object getValue(String fieldName) {
+        public Object getValue(EntityFieldWrapper field) {
             try {
-                long offset = classWrapper.getOffset(fieldName);
-                EntityFieldWrapper field = classWrapper.getFields().get(fieldName);
+                long offset = classWrapper.getOffset(field.getName());
                 Class<?> cls = field.getType();
                 if (Reflections.isPrimitive(cls)) {
                     if(byte.class.isAssignableFrom(cls)) {
@@ -131,6 +130,26 @@ public class UnsafeUtils {
                     }
                 } else if (field.getType().isEnum()) {
                     return unsafe.getObject(object, offset);
+                } else if (field.isReference()) {
+                    Object ref = unsafe.getObject(object, offset);
+                    if (ref == null) {
+                        return null;
+                    }
+                    if (ref instanceof Collection) {
+                        ArrayList<String> instanceIds = new ArrayList<>();
+                        for (Object instance : (Collection) ref) {
+                            UnsafeEntityClassWrapper refClass = UnsafeEntityClassWrapper.get(instance.getClass());
+                            EntityFieldWrapper id = refClass.getId();
+                            String instanceId = String.valueOf(id.getField().get(instance));
+                            instanceIds.add(instanceId);
+                        }
+                        return instanceIds;
+                    } else {
+                        UnsafeEntityClassWrapper refClass = UnsafeEntityClassWrapper.get(ref.getClass());
+                        EntityFieldWrapper id = refClass.getId();
+                        String instanceId = String.valueOf(id.getField().get(ref));
+                        return instanceId;
+                    }
                 } else {
                     return unsafe.getObject(object, offset);
                 }
@@ -143,6 +162,7 @@ public class UnsafeUtils {
             return object;
         }
     }
+
     static class UnsafeEntityClassWrapper extends EntityClassWrapper {
         private Map<String, Long> offsets = new HashMap<>();
         private static final Map<Class<?>, UnsafeEntityClassWrapper> catalog = new HashMap<>();

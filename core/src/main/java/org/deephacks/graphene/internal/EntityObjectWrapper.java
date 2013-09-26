@@ -37,4 +37,28 @@ public class EntityObjectWrapper {
         }
         throw new IllegalStateException("Did not recognize field " + fieldName);
     }
+
+    public EntityFieldWrapper getReference(String fieldName) {
+        EntityFieldWrapper field = classWrapper.getReferences().get(fieldName);
+        if (field != null) {
+            return field;
+        }
+        if (classWrapper.getId().getName().equals(fieldName)) {
+            return classWrapper.getId();
+        }
+        throw new IllegalStateException("Did not recognize field " + fieldName);
+    }
+
+    public boolean isReference(String fieldName) {
+        return classWrapper.getReferences().containsKey(fieldName);
+    }
+
+    public boolean isField(String fieldName) {
+        return classWrapper.getFields().containsKey(fieldName);
+    }
+
+    @Override
+    public String toString() {
+        return rowKey.getCls() + " " + rowKey.getInstance();
+    }
 }

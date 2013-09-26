@@ -1,7 +1,8 @@
 package org.deephacks.graphene.internal;
 
+import com.google.common.collect.Lists;
+import org.deephacks.graphene.Entity;
 import org.deephacks.graphene.Id;
-import org.deephacks.graphene.Reference;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
@@ -23,23 +24,22 @@ public class EntityClassWrapper {
     protected EntityClassWrapper(Class<?> cls) {
         Map<String, Field> map = Reflections.findFields(cls);
         for (String fieldName : map.keySet()) {
-            fields.put(fieldName, new EntityFieldWrapper(map.get(fieldName)));
+            fields.put(fieldName, new EntityFieldWrapper(map.get(fieldName), false));
         }
 
         Map<Field, Annotation> annotation = Reflections.findFields(cls, Id.class);
         if (annotation.size() == 0) {
             throw new IllegalArgumentException("No id on " + cls);
         }
-        this.id = new EntityFieldWrapper(annotation.keySet().iterator().next());
+        this.id = new EntityFieldWrapper(annotation.keySet().iterator().next(), false);
         fields.remove(id.getName());
 
-        for (Field field : map.values()) {
-            if (field.getAnnotation(Reference.class) != null) {
+        for (EntityFieldWrapper field : Lists.newArrayList(fields.values())) {
+            if (field.getType().getAnnotation(Entity.class) != null) {
                 fields.remove(field.getName());
-                references.put(field.getName(), new EntityFieldWrapper(field));
+                references.put(field.getName(), new EntityFieldWrapper(field.getField(), true));
             }
         }
-
     }
 
     public EntityFieldWrapper getId() {
@@ -50,6 +50,9 @@ public class EntityClassWrapper {
         return fields;
     }
 
+    public Map<String, EntityFieldWrapper> getReferences() {
+        return references;
+    }
 
     public static EntityClassWrapper get(Class<?> cls) {
         if (catalog.containsKey(cls)) {
@@ -63,12 +66,13 @@ public class EntityClassWrapper {
         private Field field;
         private boolean isCollection;
         private boolean isMap;
-        private boolean primitive;
+        private boolean isReference;
 
-        EntityFieldWrapper(Field field) {
+        EntityFieldWrapper(Field field, boolean isReference) {
             this.field = field;
             this.isCollection = Collection.class.isAssignableFrom(field.getType());
             this.isMap = Map.class.isAssignableFrom(field.getType());
+            this.isReference = isReference;
         }
 
         public Class<?> getType() {
@@ -152,6 +156,10 @@ public class EntityClassWrapper {
 
         public boolean isPrimitive() {
             return Reflections.isPrimitive(field.getType());
+        }
+
+        public boolean isReference() {
+            return isReference;
         }
     }
 }

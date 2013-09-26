@@ -1,8 +1,11 @@
 package org.deephacks.confit.internal.berkeley;
 
 import com.google.common.collect.Lists;
+import org.deephacks.graphene.Entity;
 import org.deephacks.graphene.Id;
 
+import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -58,6 +61,39 @@ public class TestData {
         return (T) a;
     }
 
+    public static LinkedHashMap<String, A> defaultReferences() {
+        LinkedHashMap<String, A> map = new LinkedHashMap<>();
+        A a1 = TestData.defaultValues("a1", A.class);
+        map.put("a1", a1);
+        A a2 = TestData.defaultValues("a2", A.class);
+        map.put("a2", a2);
+        A a3 = TestData.defaultValues("a3", A.class);
+        map.put("a3", a3);
+
+        B b1 = TestData.defaultValues("b1", B.class);
+        b1.setA(a1);
+        b1.setAvalues(Arrays.asList(a2, a3));
+        map.put("b1", b1);
+
+        B b2 = TestData.defaultValues("b2", B.class);
+        b2.setA(a1);
+        b2.setAvalues(Arrays.asList(a2, a3));
+        map.put("b2", b2);
+
+        C c1 = TestData.defaultValues("c1", C.class);
+        c1.setB(b1);
+        c1.setBvalues(Arrays.asList(b1, b2));
+        map.put("c1", c1);
+
+        C c2 = TestData.defaultValues("c2", C.class);
+        c2.setB(b1);
+        c2.setBvalues(Arrays.asList(b1, b2));
+        map.put("c2", c2);
+
+        return map;
+    }
+
+    @Entity
     public static class A {
         @Id
         private String id;
@@ -323,22 +359,63 @@ public class TestData {
 
         @Override
         public String toString() {
-            return "A{" + id + "}";
+            return "{" + id + "}";
         }
     }
 
+    @Entity
     public static class B extends A {
+
+        private A a;
+
+        private List<A> aValues;
 
         public B(String id) {
             super(id);
         }
 
+        public A getA() {
+            return a;
+        }
+
+        public void setA(A a) {
+            this.a = a;
+        }
+
+        public List<A> getAvalues() {
+            return aValues;
+        }
+
+        public void setAvalues(List<A> aValues) {
+            this.aValues = aValues;
+        }
     }
 
+    @Entity
     public static class C extends A {
+
+        private B b;
+
+        private List<B> bValues;
 
         public C(String id) {
             super(id);
+        }
+
+        public B getB() {
+            return b;
+        }
+
+        public void setB(B b) {
+            this.b = b;
+        }
+
+        public List<B> getBvalues() {
+            return bValues;
+        }
+
+        public void setBvalues(List<B> bValues) {
+            this.bValues = bValues;
         }
     }
 }

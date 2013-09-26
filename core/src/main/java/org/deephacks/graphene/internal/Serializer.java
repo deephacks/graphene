@@ -15,6 +15,8 @@
 package org.deephacks.graphene.internal;
 
 
+import com.google.common.base.Optional;
+import org.deephacks.graphene.EntityRepository;
 import org.deephacks.graphene.internal.EntityClassWrapper.EntityFieldWrapper;
 import org.deephacks.graphene.internal.UnsafeUtils.UnsafeEntityClassWrapper;
 import org.deephacks.graphene.internal.UnsafeUtils.UnsafeEntityObjectWrapper;
@@ -36,7 +38,7 @@ public interface Serializer {
 
     public static class UnsafeSerializer implements Serializer {
         private static final UniqueIds ids = new UniqueIds();
-
+        private static final EntityRepository repository = new EntityRepository();
         @Override
         public RowKey deserializeRowKey(byte[] key) {
             return new RowKey(key);
@@ -55,8 +57,34 @@ public interface Serializer {
             UnsafeEntityObjectWrapper wrapper = new UnsafeEntityObjectWrapper(key);
             for (int[] id : header) {
                 String fieldName = ids.getSchemaName(id[0]);
-                Object value = reader.getValue(id[0], header);
-                wrapper.set(wrapper.getField(fieldName), value);
+                if (wrapper.isReference(fieldName)) {
+                    Object value = reader.getValue(id[0], header);
+                    if (value == null) {
+                        continue;
+                    }
+                    if (value instanceof Collection) {
+                        ArrayList<Object> references = new ArrayList<>();
+                        for (Object instance : (Collection) value) {
+                            EntityFieldWrapper field = wrapper.getReference(fieldName);
+                            Optional<?> optional = repository.get(instance, field.getType());
+                            if (optional.isPresent()) {
+                                references.add(optional.get());
+                            }
+                        }
+                        wrapper.set(wrapper.getReference(fieldName), references);
+                    } else {
+                        EntityFieldWrapper field = wrapper.getReference(fieldName);
+                        Optional<?> optional = repository.get(value, field.getType());
+                        if (optional.isPresent()) {
+                            wrapper.set(wrapper.getReference(fieldName), optional.get());
+                        }
+                    }
+                } else if (wrapper.isField(fieldName)){
+                    Object value = reader.getValue(id[0], header);
+                    wrapper.set(wrapper.getField(fieldName), value);
+                } else {
+                    throw new IllegalStateException("Did not recognize field " + fieldName);
+                }
             }
             return wrapper.getObject();
         }
@@ -69,21 +97,38 @@ public interface Serializer {
             ValueWriter writer = new ValueWriter();
             for (EntityFieldWrapper field : classWrapper.getFields().values()) {
                 int id = ids.getSchemaId(field.getName());
-                Object value = wrapper.getValue(field.getName());
+                Object value = wrapper.getValue(field);
                 if (value instanceof Collection) {
                     if (field.getType().isEnum()){
                         writer.putValues(id, toStrings((Collection) value), String.class);
                     } else {
                         writer.putValues(id, (Collection) value, field.getType());
                     }
-
                 } else {
                     if (field.getType().isEnum()) {
                         writer.putValue(id, value.toString());
                     } else {
                         writer.putValue(id, value);
                     }
-
+                }
+            }
+            for (EntityFieldWrapper field : classWrapper.getReferences().values()) {
+                int id = ids.getSchemaId(field.getName());
+                Object value = wrapper.getValue(field);
+                if (value instanceof Collection) {
+                    if (field.getType().isEnum()){
+                        writer.putValues(id, toStrings((Collection) value), String.class);
+                    } else if (field.isReference()){
+                        writer.putValues(id, (Collection) value, String.class);
+                    } else {
+                        writer.putValues(id, (Collection) value, field.getType());
+                    }
+                } else {
+                    if (field.getType().isEnum()) {
+                        writer.putValue(id, value.toString());
+                    } else {
+                        writer.putValue(id, value);
+                    }
                 }
             }
             return new byte[][] { key, writer.write()};

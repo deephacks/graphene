@@ -1,7 +1,5 @@
 package org.deephacks.confit.internal.berkeley;
 
-
-import com.google.common.base.Optional;
 import com.google.common.collect.Lists;
 import org.deephacks.confit.internal.berkeley.TestData.A;
 import org.deephacks.confit.internal.berkeley.TestData.B;
@@ -14,16 +12,17 @@ import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
 import static org.deephacks.confit.internal.berkeley.TestData.defaultValues;
 import static org.deephacks.graphene.Criteria.*;
+import static org.deephacks.graphene.Criteria.equal;
+import static org.deephacks.graphene.Criteria.field;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertThat;
 import static org.unitils.reflectionassert.ReflectionAssert.assertReflectionEquals;
 import static org.unitils.reflectionassert.ReflectionComparatorMode.LENIENT_ORDER;
 
-public class EntityRepositoryTest {
+public class SelectTest {
     private final EntityRepository repository = new EntityRepository();
 
     @Before
@@ -33,61 +32,6 @@ public class EntityRepositoryTest {
         ids.deleteAll();
         repository.commit();
         assertThat(repository.countAll(), is(0L));
-    }
-    /**
-     * Test that it is possible to put, get and delete instances of
-     * different types.
-     */
-    @Test
-    public void test_basic_put_get_delete() {
-        //putAndGetAssert(defaultValues("a", A.class));
-        //putAndGetAssert(defaultValues("b", B.class));
-        putAndGetAssert(defaultValues("c", C.class));
-    }
-
-    /**
-     * Test that it is possible to overwrite existing values with
-     * other values as well as nullifying them.
-     */
-    @Test
-    public void test_put_overwrite_with_value_and_nulls() {
-        A a = defaultValues("a", A.class);
-        repository.put(a);
-
-        a.setStringValue("newValue");
-        a.setFloatValues(null);
-        a.setIntValue(null);
-        repository.put(a);
-
-        Optional<A> result = repository.get("a", A.class);
-        assertReflectionEquals(result.get(), a, LENIENT_ORDER);
-
-    }
-
-    /**
-     * Test that it is not possible to overwrite existing values with putNoOverwrite.
-     */
-    @Test
-    public void test_put_noOverwrite() {
-        A a = defaultValues("a", A.class);
-        repository.putNoOverwrite(a);
-        a.setStringValue("newValue");
-        a.setFloatValues(null);
-        a.setIntValue(null);
-        assertFalse(repository.putNoOverwrite(a));
-        a = defaultValues("a", A.class);
-        Optional<A> result = repository.get("a", A.class);
-        assertReflectionEquals(a, result.get(), LENIENT_ORDER);
-    }
-
-    /**
-     * Test that no instance is returned when trying to delete non existing instance.
-     */
-    @Test
-    public void test_delete_non_existin_instances() {
-        final Optional<A> a = repository.delete(UUID.randomUUID().toString(), A.class);
-        assertFalse(a.isPresent());
-
     }
     /**
      * Test that it is possible to select all instances of a specific type.
@@ -188,7 +132,7 @@ public class EntityRepositoryTest {
         a3.setStringValue("a3");
         repository.put(a3);
         try (ResultSet<A> resultSet = repository.select(A.class,
-                        field("stringValue").not(contains("v"))).retrieve()) {
+                field("stringValue").not(contains("v"))).retrieve()) {
             List<A> result = Lists.newArrayList(resultSet);
             assertThat(result.size(), is(1));
             assertReflectionEquals(a3, result.get(0), LENIENT_ORDER);
@@ -246,7 +190,7 @@ public class EntityRepositoryTest {
      * Test that we can cant select elements that are outside first/last key span.
      */
     @Test
-    public void test_select_predictae_outside_min_max() {
+    public void test_select_predicate_outside_min_max() {
         int numInstances = 10;
         // reverse order which instances are inserted to check that sorted order is respected
         for (int i = numInstances; i > -1; i--) {
@@ -266,7 +210,6 @@ public class EntityRepositoryTest {
         assertThat(result.size(), is(0));
     }
 
-
     private void assertSelectAll(Class<? extends A> entityClass, String prefix, int numInstances) {
         final ResultSet<? extends A> resultSet = repository.select(entityClass).retrieve();
         final ArrayList<? extends A> objects = Lists.newArrayList(resultSet);
@@ -276,16 +219,5 @@ public class EntityRepositoryTest {
             assertReflectionEquals(expected, objects.get(i), LENIENT_ORDER);
         }
         assertThat(objects.size(), is(numInstances));
-    }
-
-    public <T extends A> void putAndGetAssert(T object) {
-        repository.put(object);
-        Optional<? extends A> optional = repository.get(object.getId(), object.getClass());
-        assertReflectionEquals(object, optional.get(), LENIENT_ORDER);
-        optional = repository.delete(object.getId(), object.getClass());
-        assertTrue(optional.isPresent());
-        assertReflectionEquals(object, optional.get(), LENIENT_ORDER);
-        optional = repository.get(object.getId(), object.getClass());
-        assertFalse(optional.isPresent());
     }
 }
