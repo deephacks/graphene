@@ -21,6 +21,8 @@ import com.sleepycat.je.Database;
 import com.sleepycat.je.DatabaseEntry;
 import com.sleepycat.je.LockMode;
 import com.sleepycat.je.OperationStatus;
+import com.sleepycat.je.SecondaryDatabase;
+import com.sleepycat.je.SecondaryMultiKeyCreator;
 import com.sleepycat.je.Transaction;
 import org.deephacks.graphene.Query.DefaultQuery;
 import org.deephacks.graphene.internal.EntityClassWrapper;
@@ -33,28 +35,37 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
+import java.util.Set;
 
 public class EntityRepository {
     private final Logger logger = LoggerFactory.getLogger(EntityRepository.class);
 
     private final Handle<Graphene> graphene = Graphene.get();
     private final Handle<Database> db;
-    private final Handle<Database> foreign;
+    private final Handle<SecondaryDatabase> foreign;
     private final UniqueIds ids = new UniqueIds();
 
     public EntityRepository() {
         this.db = graphene.get().getPrimary();
-        this.foreign = graphene.get().getForeign();
+        this.foreign = graphene.get().getSecondary();
 
     }
 
     public <E> Optional<E> get(Object key, Class<E> entityClass) {
+        Optional<byte[][]> optional = getKv(key, entityClass);
+        if (optional.isPresent()) {
+            return Optional.fromNullable((E) getSerializer(entityClass).deserializeEntity(optional.get()));
+        }
+        return Optional.absent();
+    }
+
+    public <E> Optional<byte[][]> getKv(Object key, Class<E> entityClass) {
         byte[] dataKey = getSerializer(entityClass).serializeRowKey(new RowKey(entityClass, key));
         DatabaseEntry entryKey = new DatabaseEntry(dataKey);
         DatabaseEntry entryValue = new DatabaseEntry();
         if (OperationStatus.SUCCESS == db.get().get(getTx(), entryKey, entryValue, LockMode.READ_COMMITTED)) {
             byte[][] kv = new byte[][]{ entryKey.getData(), entryValue.getData()};
-            return Optional.fromNullable((E) getSerializer(entityClass).deserializeEntity(kv));
+            return Optional.fromNullable(kv);
         }
         return Optional.absent();
     }
@@ -70,40 +81,6 @@ public class EntityRepository {
         DatabaseEntry value = new DatabaseEntry(data[1]);
         if (OperationStatus.SUCCESS != db.get().put(getTx(), key, value)) {
             return false;
-        }
-        ValueReader reader = new ValueReader(data[1]);
-        RowKey rowKey = new RowKey(data[0]);
-        EntityClassWrapper cls = EntityClassWrapper.get(rowKey.getCls().get());
-        int[][] header = reader.getHeader();
-        for (EntityFieldWrapper field : cls.getReferences().values()) {
-            int refId = ids.getSchemaId(field.getName());
-            Object refValue = reader.getValue(refId, header);
-            if (refValue == null) {
-                continue;
-            }
-            if (refValue instanceof Collection) {
-                for (Object id : (Collection) refValue) {
-                    RowKey refKey = new RowKey(field.getType(), id);
-                    if (!exists(refKey)) {
-                        rollback();
-                        throw new ForeignConstraintException("Missing reference " + refKey);
-                    } else {
-                        if (OperationStatus.SUCCESS != foreign.get().put(getTx(), new DatabaseEntry(refKey.getKey()), new DatabaseEntry(rowKey.getKey()))) {
-                            rollback();
-                            throw new ForeignConstraintException("Could not create foreign key.");
-                        }
-                    }
-                }
-            } else {
-                RowKey refKey = new RowKey(field.getType(), refValue);
-                if (!exists(refKey)) {
-                    throw new ForeignConstraintException(refKey.getCls().get() + " " + refKey.getInstance());
-                } else {
-                    if (OperationStatus.SUCCESS != foreign.get().put(getTx(), new DatabaseEntry(refKey.getKey()), new DatabaseEntry(rowKey.getKey()))) {
-                        throw new ForeignConstraintException("Could not create foreign key");
-                    }
-                }
-            }
         }
         return true;
     }
@@ -133,39 +110,19 @@ public class EntityRepository {
 
     public <E> Optional<E> delete(Object key, Class<E> entityClass) throws DeleteConstraintException {
         try {
-            final Optional<E> optional = get(key, entityClass);
+            final Optional<byte[][]> optional = getKv(key, entityClass);
             if(!optional.isPresent()) {
                 return Optional.absent();
             }
-
-            byte[] dataKey = getSerializer(entityClass).serializeRowKey(new RowKey(entityClass, key));
-            Optional<RowKey> ref = getForeignKey(dataKey);
-            if (ref.isPresent()) {
-                rollback();
-                throw new DeleteConstraintException(ref.get() + " has foreign key on instance.");
-            }
-
-            OperationStatus status = db.get().delete(getTx(), new DatabaseEntry(dataKey));
+            OperationStatus status = db.get().delete(getTx(), new DatabaseEntry(optional.get()[0]));
             if (status == OperationStatus.NOTFOUND) {
                 rollback();
                 return Optional.absent();
             }
-            return Optional.fromNullable(optional.get());
+            return Optional.fromNullable((E) getSerializer(entityClass).deserializeEntity(optional.get()));
         } catch (com.sleepycat.je.DeleteConstraintException e) {
             rollback();
             throw new DeleteConstraintException(e);
-        }
-    }
-
-    private Optional<RowKey> getForeignKey(byte[] key) {
-        try (Cursor cursor = foreign.get().openCursor(getTx(), null)){
-            DatabaseEntry dbKey = new DatabaseEntry(key);
-            DatabaseEntry foreignKey = new DatabaseEntry();
-            OperationStatus status = cursor.getSearchKey(dbKey, foreignKey, LockMode.DEFAULT);
-            if (OperationStatus.SUCCESS == status) {
-                return Optional.fromNullable(new RowKey(foreignKey.getData()));
-            }
-            return Optional.absent();
         }
     }
 
@@ -205,6 +162,10 @@ public class EntityRepository {
         while (cursor.getNextNoDup(firstKey, new DatabaseEntry(), LockMode.DEFAULT) == OperationStatus.SUCCESS) {
             logger.debug("Deleting " + new RowKey(firstKey.getData()));
             cursor.delete();
+            while (cursor.getNextDup(firstKey, new DatabaseEntry(), LockMode.DEFAULT) == OperationStatus.SUCCESS){
+                logger.debug("Deleting " + new RowKey(firstKey.getData()));
+                cursor.delete();
+            }
         }
     }
 
@@ -238,5 +199,40 @@ public class EntityRepository {
 
     private Serializer getSerializer(Class<?> entityClass){
         return graphene.get().getSerializer(entityClass);
+    }
+
+    public static class KeyCreator implements SecondaryMultiKeyCreator {
+        // private static final SchemaManager schemaManager = SchemaManager.lookup();
+        private static final UniqueIds uniqueIds = new UniqueIds();
+
+        public KeyCreator() {
+        }
+
+        @Override
+        public void createSecondaryKeys(SecondaryDatabase secondary, DatabaseEntry key, DatabaseEntry data, Set<DatabaseEntry> results) {
+            RowKey rowKey = new RowKey(key.getData());
+            EntityClassWrapper cls = EntityClassWrapper.get(rowKey.getCls());
+
+            ValueReader reader = new ValueReader(data.getData());
+            int[][] header = reader.getHeader();
+            for (EntityFieldWrapper field : cls.getReferences().values()) {
+                int fieldId = uniqueIds.getSchemaId(field.getName());
+                Object value = reader.getValue(fieldId, header);
+                if (value != null) {
+                    if (value instanceof Collection) {
+                        // TODO: make string an LONG instance id instead
+                        for (String instanceId : (Collection<String>) value) {
+                            int schemaId = uniqueIds.getSchemaId(field.getType().getName());
+                            long iid = uniqueIds.getInstanceId(instanceId);
+                            results.add(new DatabaseEntry(RowKey.toKey(schemaId, iid)));
+                        }
+                    } else {
+                        long iid = uniqueIds.getInstanceId(value.toString());
+                        int schemaId = uniqueIds.getSchemaId(field.getType().getName());
+                        results.add(new DatabaseEntry(RowKey.toKey(schemaId, iid)));
+                    }
+                }
+            }
+        }
     }
 }

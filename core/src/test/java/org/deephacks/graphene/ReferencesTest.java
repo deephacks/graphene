@@ -1,6 +1,7 @@
 package org.deephacks.graphene;
 
 import com.google.common.base.Optional;
+import com.sleepycat.je.ForeignConstraintException;
 import org.junit.Test;
 
 import java.util.LinkedHashMap;
@@ -44,6 +45,7 @@ public class ReferencesTest extends BaseTest {
             repository.put(map.get("b2"));
             fail("Should violate constraint");
         } catch (ForeignConstraintException e) {
+            repository.rollback();
             assertTrue(true);
         }
         assertFalse(repository.get(map.get("b2").getId(), B.class).isPresent());
@@ -53,7 +55,7 @@ public class ReferencesTest extends BaseTest {
      * Test that instances that other have references to cannot be deleted.
      */
     @Test
-    public void test_referential_integrity() {
+    public void test_referential_integrity_delete_constraint() {
         LinkedHashMap<String,A> map = defaultReferences();
         for (A a : map.values()) {
             repository.put(a);
@@ -66,4 +68,38 @@ public class ReferencesTest extends BaseTest {
             assertTrue(true);
         }
     }
+
+    /**
+     * Test that an existing delete constraint can be fixed by deleting instances
+     * that reference others.
+     */
+    //@Test
+    public void test_fixing_delete_constraint() {
+        LinkedHashMap<String,A> map = defaultReferences();
+
+        // create instance without references and create
+        // instances that reference them afterwards in order
+        // to not violate referential integrity
+        for (A a : map.values()) {
+            repository.put(a);
+            repository.commit();
+        }
+
+        // now we delete instances in the reverse order in order
+        // to not violate delete constraint.
+
+        A instance = map.get("c1");
+        repository.delete(instance.getId(), instance.getClass());
+
+        instance = map.get("b1");
+        try {
+            repository.delete(instance.getId(), instance.getClass());
+            fail("c2 should still have references to b1");
+        } catch (DeleteConstraintException e) {
+
+        }
+
+
+    }
+
 }

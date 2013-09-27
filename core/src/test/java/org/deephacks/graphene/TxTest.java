@@ -75,6 +75,14 @@ public class TxTest extends BaseTest {
 
         assertTrue(repository.get("a1", A.class).isPresent());
         assertFalse(repository.get("a100", A.class).isPresent());
+    }
 
+    /**
+     * Test that operations between different threads/transactions are not visible
+     * to other concurrent operations.
+     */
+    @Test
+    public void test_tx_isolation() {
+        // TODO:
     }
 }

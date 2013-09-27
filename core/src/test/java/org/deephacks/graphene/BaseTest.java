@@ -1,10 +1,6 @@
 package org.deephacks.graphene;
 
 import com.google.common.collect.Lists;
-import org.deephacks.graphene.Entity;
-import org.deephacks.graphene.EntityRepository;
-import org.deephacks.graphene.Graphene;
-import org.deephacks.graphene.Id;
 import org.deephacks.graphene.internal.UniqueIds;
 import org.junit.Before;
 
@@ -14,7 +10,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static org.junit.Assert.*;
 
 public class BaseTest {
     protected static final EntityRepository repository = new EntityRepository();
@@ -34,7 +30,9 @@ public class BaseTest {
 
     @Before
     public void before() {
-        repository.deleteAll();
+        repository.deleteAll(C.class);
+        repository.deleteAll(B.class);
+        repository.deleteAll(A.class);
         UniqueIds ids = new UniqueIds();
         ids.deleteAll();
         repository.commit();

@@ -12,7 +12,8 @@ public class EntityObjectWrapper {
         this.object = object;
         this.classWrapper = EntityClassWrapper.get(object.getClass());
         try {
-            this.rowKey = new RowKey(object.getClass(), classWrapper.getId().getField().get(object));
+            final Object o = classWrapper.getId().getField().get(object);
+            this.rowKey = new RowKey(object.getClass(), o.toString());
         } catch (IllegalAccessException e) {
             throw new IllegalArgumentException(e);
         }
@@ -20,7 +21,7 @@ public class EntityObjectWrapper {
 
     protected EntityObjectWrapper(RowKey rowKey) {
         this.rowKey = rowKey;
-        this.classWrapper = EntityClassWrapper.get(rowKey.getCls().get());
+        this.classWrapper = EntityClassWrapper.get(rowKey.getCls());
     }
 
     public RowKey getRowKey() {
