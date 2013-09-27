@@ -73,7 +73,7 @@ public class ReferencesTest extends BaseTest {
      * Test that an existing delete constraint can be fixed by deleting instances
      * that reference others.
      */
-    //@Test
+    @Test
     public void test_fixing_delete_constraint() {
         LinkedHashMap<String,A> map = defaultReferences();
 

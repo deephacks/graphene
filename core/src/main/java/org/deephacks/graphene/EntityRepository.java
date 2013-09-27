@@ -31,15 +31,11 @@ import org.deephacks.graphene.internal.RowKey;
 import org.deephacks.graphene.internal.Serializer;
 import org.deephacks.graphene.internal.UniqueIds;
 import org.deephacks.graphene.internal.ValueSerialization.ValueReader;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
 import java.util.Set;
 
 public class EntityRepository {
-    private final Logger logger = LoggerFactory.getLogger(EntityRepository.class);
-
     private final Handle<Graphene> graphene = Graphene.get();
     private final Handle<Database> db;
     private final Handle<SecondaryDatabase> foreign;
@@ -143,12 +139,10 @@ public class EntityRepository {
 
     public void deleteAll() {
         try(Cursor cursor = openForeignCursor()) {
-            logger.debug("Deleting foreign keys");
             DatabaseEntry firstKey = new DatabaseEntry(RowKey.getMinId().getKey());
             deleteAll(cursor, firstKey);
         }
         try(Cursor cursor = openPrimaryCursor()) {
-            logger.debug("Deleting primary keys");
             DatabaseEntry firstKey = new DatabaseEntry(RowKey.getMinId().getKey());
             deleteAll(cursor, firstKey);
         }
@@ -156,14 +150,11 @@ public class EntityRepository {
 
     private void deleteAll(Cursor cursor, DatabaseEntry firstKey) {
         if (cursor.getSearchKeyRange(firstKey, new DatabaseEntry(), LockMode.DEFAULT) == OperationStatus.SUCCESS) {
-            logger.debug("Deleting " + new RowKey(firstKey.getData()));
             cursor.delete();
         }
         while (cursor.getNextNoDup(firstKey, new DatabaseEntry(), LockMode.DEFAULT) == OperationStatus.SUCCESS) {
-            logger.debug("Deleting " + new RowKey(firstKey.getData()));
             cursor.delete();
             while (cursor.getNextDup(firstKey, new DatabaseEntry(), LockMode.DEFAULT) == OperationStatus.SUCCESS){
-                logger.debug("Deleting " + new RowKey(firstKey.getData()));
                 cursor.delete();
             }
         }

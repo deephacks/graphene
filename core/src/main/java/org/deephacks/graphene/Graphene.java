@@ -17,8 +17,6 @@ import org.deephacks.graphene.internal.FastKeyComparator;
 import org.deephacks.graphene.internal.Serializer;
 import org.deephacks.graphene.internal.Serializer.UnsafeSerializer;
 import org.deephacks.graphene.internal.UniqueIds;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.util.Arrays;
@@ -26,8 +24,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class Graphene {
-    private static final Logger logger = LoggerFactory.getLogger(Graphene.class);
-
     private static final Handle<Graphene> INSTANCE = new Handle<>();
 
     public static final String TMP_DIR = System.getProperty("java.io.tmpdir");
@@ -141,7 +137,6 @@ public class Graphene {
     public Handle<Database> getPrimary() {
         Preconditions.checkArgument(getPrimaryConfig().getTransactional(), "Primary must be transactional");
         if (primary.get() == null) {
-            logger.info("Opening primary database " + primaryName);
             primary.set(env.openDatabase(null, primaryName, primaryConfig));
         }
         return primary;
@@ -162,7 +157,6 @@ public class Graphene {
     public Handle<SecondaryDatabase> getSecondary() {
         Preconditions.checkArgument(getSecondaryConfig().getTransactional(), "Secondary must be transactional");
         if (secondary.get() == null) {
-            logger.info("Opening secondary database " + secondaryName);
             SecondaryDatabase db = env.openSecondaryDatabase(null, secondaryName, getPrimary().get(), secondaryConfig);
             secondary.set(db);
         }
@@ -209,7 +203,6 @@ public class Graphene {
             config.setTransactional(true);
             config.setAllowCreate(true);
             config.setSortedDuplicates(false);
-            logger.info("Opening schemas database " + schemaName);
             schemas.set(env.openDatabase(null, schemaName, config));
         }
         return schemas;
@@ -221,7 +214,6 @@ public class Graphene {
             config.setTransactional(true);
             config.setAllowCreate(true);
             config.setSortedDuplicates(false);
-            logger.info("Opening instances database " + instanceName);
             instances.set(env.openDatabase(null, instanceName, config));
         }
         return instances;
@@ -300,7 +292,6 @@ public class Graphene {
         secondary.set(null);
         schemas.set(null);
         instances.set(null);
-        logger.info("Graphene closed successfully.");
     }
 
     public void closeAndDelete() {
