@@ -3,6 +3,7 @@ package org.deephacks.graphene;
 import com.google.common.base.Optional;
 import com.sleepycat.je.DeleteConstraintException;
 import com.sleepycat.je.ForeignConstraintException;
+import org.junit.Test;
 
 import java.util.LinkedHashMap;
 
@@ -16,7 +17,7 @@ public class ReferencesTest extends BaseTest {
      * Test that references (single and collection) are fetched eagerly
      * through multiple levels.
      */
-    // @Test
+    @Test
     public void test_references_with_multiple_levels() {
         LinkedHashMap<String,A> map = defaultReferences();
         for (A a : map.values()) {
@@ -38,7 +39,7 @@ public class ReferencesTest extends BaseTest {
      * Test that instance that have references to non-existing instance cannot
      * be created.
      */
-    // @Test
+    @Test
     public void test_missing_references() {
         LinkedHashMap<String,A> map = defaultReferences();
         try {

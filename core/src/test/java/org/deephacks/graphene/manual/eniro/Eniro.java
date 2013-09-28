@@ -40,13 +40,15 @@ public class Eniro {
             infos.addAll(eniro.query(city, "Ica Banken AB"));
             */
         }
+        /*
         infos.addAll(eniro.query("Stockholm", "nordea"));
         for (CompanyInfo info : infos) {
+            System.out.println("insert " + info);
             repository.put(info);
         }
         repository.commit();
-
-        try (ResultSet<CompanyInfo> resultSet = repository.select(CompanyInfo.class, field("address.postArea").is(containsNoCase("tumba"))).retrieve()) {
+*/
+        try (ResultSet<CompanyInfo> resultSet = repository.select(CompanyInfo.class, field("address.postArea").not(containsNoCase("stockholm"))).retrieve()) {
             for (CompanyInfo info : resultSet) {
                 System.out.println(info);
             }
