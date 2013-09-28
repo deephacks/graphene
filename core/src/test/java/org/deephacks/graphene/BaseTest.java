@@ -10,9 +10,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.*;
-
 public class BaseTest {
     protected static final EntityRepository repository = new EntityRepository();
 
@@ -37,7 +34,6 @@ public class BaseTest {
         UniqueIds ids = new UniqueIds();
         ids.deleteAll();
         repository.commit();
-        assertThat(repository.countAll(), is(0L));
     }
 
     static class ShutdownHook {

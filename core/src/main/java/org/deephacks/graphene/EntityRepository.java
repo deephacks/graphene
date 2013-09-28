@@ -26,6 +26,7 @@ import com.sleepycat.je.SecondaryDatabase;
 import com.sleepycat.je.SecondaryMultiKeyCreator;
 import com.sleepycat.je.Transaction;
 import org.deephacks.graphene.Query.DefaultQuery;
+import org.deephacks.graphene.internal.BytesUtils;
 import org.deephacks.graphene.internal.EntityClassWrapper;
 import org.deephacks.graphene.internal.EntityClassWrapper.EntityFieldWrapper;
 import org.deephacks.graphene.internal.RowKey;
@@ -132,33 +133,40 @@ public class EntityRepository {
     }
 
     public void deleteAll(Class<?> entityClass) {
-        try(Cursor cursor = openPrimaryCursor()) {
-            DatabaseEntry firstKey = new DatabaseEntry(RowKey.getMinId(entityClass).getKey());
-            deleteAll(cursor, firstKey);
-        }
-    }
-
-    public void deleteAll() {
-        try(Cursor cursor = openForeignCursor()) {
-            DatabaseEntry firstKey = new DatabaseEntry(RowKey.getMinId().getKey());
-            deleteAll(cursor, firstKey);
-        }
-        try(Cursor cursor = openPrimaryCursor()) {
-            DatabaseEntry firstKey = new DatabaseEntry(RowKey.getMinId().getKey());
-            deleteAll(cursor, firstKey);
-        }
-    }
-
-    private void deleteAll(Cursor cursor, DatabaseEntry firstKey) {
-        if (cursor.getSearchKeyRange(firstKey, new DatabaseEntry(), LockMode.DEFAULT) == OperationStatus.SUCCESS) {
-            cursor.delete();
-        }
-        while (cursor.getNextNoDup(firstKey, new DatabaseEntry(), LockMode.DEFAULT) == OperationStatus.SUCCESS) {
-            cursor.delete();
-            while (cursor.getNextDup(firstKey, new DatabaseEntry(), LockMode.DEFAULT) == OperationStatus.SUCCESS){
-                cursor.delete();
+        try {
+            try(Cursor cursor = openPrimaryCursor()) {
+                byte[] firstKey = RowKey.getMinId(entityClass).getKey();
+                byte[] lastKey = RowKey.getMaxId(entityClass).getKey();
+                DatabaseEntry keyEntry = new DatabaseEntry(firstKey);
+                if (cursor.getSearchKeyRange(keyEntry, new DatabaseEntry(), LockMode.DEFAULT) == OperationStatus.SUCCESS) {
+                    // important; we must respect the class prefix boundaries of the key
+                    if (!withinKeyRange(keyEntry.getData(), firstKey, lastKey)) {
+                        return;
+                    }
+                    cursor.delete();
+                }
+                while (cursor.getNextNoDup(keyEntry, new DatabaseEntry(), LockMode.DEFAULT) == OperationStatus.SUCCESS) {
+                    // important; we must respect the class prefix boundaries of the key
+                    if (!withinKeyRange(keyEntry.getData(), firstKey, lastKey)) {
+                        return;
+                    }
+                    cursor.delete();
+                }
             }
+        } catch (DeleteConstraintException e) {
+            throw new org.deephacks.graphene.DeleteConstraintException(
+                    new RowKey(e.getPrimaryKey().getData()) + " have a reference to " + new RowKey(e.getSecondaryKey().getData()), e);
         }
+    }
+
+    private boolean withinKeyRange(byte[] key, byte[] firstKey, byte[] lastKey) {
+        if (BytesUtils.compareTo(firstKey, 0, firstKey.length, key, 0, key.length) > 0) {
+            return false;
+        }
+        if (BytesUtils.compareTo(lastKey, 0, lastKey.length, key, 0, key.length) < 0) {
+            return false;
+        }
+        return true;
     }
 
     public long countAll() {
