@@ -405,6 +405,20 @@ public class BytesUtils {
         return toBytes(value, offset, length);
     }
 
+    public static byte[][] toBytesList(byte[] data, int offset) {
+        int length = VarInt32.read(data, offset);
+        offset += VarInt32.size(length);
+        byte[][] byteArrays = new byte[length][];
+        for ( int i = 0; i < length; i++) {
+            int l = VarInt32.read(data, offset);
+            offset += VarInt32.size(l);
+            byte[] bytes = toBytes(data, offset, l);
+            offset += bytes.length;
+            byteArrays[i] = bytes;
+        }
+        return byteArrays;
+    }
+
     public static List<Byte> toByteList(byte[] value, int offset) {
         int length = VarInt32.read(value, offset);
         offset += VarInt32.size(length);
@@ -645,7 +659,7 @@ public class BytesUtils {
     public static enum DataType {
         BYTE(1), SHORT(2), INTEGER(3), LONG(4), FLOAT(5), DOUBLE(6), BOOLEAN(7), STRING(8), CHAR(9),
         BYTE_ARRAY(10), BYTE_LIST(11), SHORT_LIST(12), INTEGER_LIST(13), LONG_LIST(14), FLOAT_LIST(15),
-        DOUBLE_LIST(16), BOOLEAN_LIST(17), STRING_LIST(18), CHAR_LIST(19);
+        DOUBLE_LIST(16), BOOLEAN_LIST(17), STRING_LIST(18), CHAR_LIST(19), BYTE_ARRAY_LIST(20);
         private int id;
 
         DataType(int id) {

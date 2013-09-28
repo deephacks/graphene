@@ -83,8 +83,7 @@ public class BaseTest {
         }
 
         a.embedded = embedded();
-        // FIXME
-        // a.embeddedList = Lists.newArrayList(embedded(), embedded(), embedded());
+        a.embeddedList = Lists.newArrayList(embedded(), embedded(), embedded());
 
         a.bytePrimitive = (byte) 1;
         a.shortPrimitive = 123;

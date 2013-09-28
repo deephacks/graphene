@@ -64,6 +64,16 @@ public class ValueSerialization {
                         }
                         properties.put(id, bytes.toByteArray());
                         break;
+                    case BYTE_ARRAY:
+                        bytes.write(DataType.BYTE_ARRAY_LIST.getId());
+                        bytes.write(VarInt32.write(size));
+
+                        for (Object o : collection) {
+                            bytes.write(VarInt32.write(((byte[])o).length));
+                            bytes.write((byte[]) o);
+                        }
+                        properties.put(id, bytes.toByteArray());
+                        break;
                     case SHORT:
                         bytes.write(DataType.SHORT_LIST.getId());
                         bytes.write(VarInt32.write(size));
@@ -342,6 +352,7 @@ public class ValueSerialization {
                 case BOOLEAN: return data[idx] != 0;
                 case STRING: return BytesUtils.getString(data, idx);
                 case BYTE_LIST: return BytesUtils.toByteList(data, idx);
+                case BYTE_ARRAY_LIST: return BytesUtils.toBytesList(data, idx);
                 case SHORT_LIST: return BytesUtils.toShortList(data, idx);
                 case CHAR_LIST: return BytesUtils.toCharList(data, idx);
                 case INTEGER_LIST: return BytesUtils.toIntList(data, idx);

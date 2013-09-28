@@ -86,8 +86,19 @@ public interface Serializer {
                     Object value = reader.getValue(id[0], header);
                     Class<?> type = wrapper.getEmbedded(fieldName).getType();
                     byte[] schemaKey = RowKey.getMinId(type).getKey();
-                    Object entity = deserializeEntity(new byte[][] { schemaKey, (byte[]) value} );
-                    wrapper.set(wrapper.getEmbedded(fieldName), entity);
+                    if ( byte[].class.isAssignableFrom(value.getClass())) {
+                        Object entity = deserializeEntity(new byte[][] { schemaKey, (byte[]) value} );
+                        wrapper.set(wrapper.getEmbedded(fieldName), entity);
+                    } else if (byte[][].class.isAssignableFrom(value.getClass())) {
+                        ArrayList<Object> entities = new ArrayList<>();
+                        for (byte[] bytes : (byte[][]) value) {
+                            Object entity = deserializeEntity(new byte[][] { schemaKey, bytes} );
+                            entities.add(entity);
+                        }
+                        wrapper.set(wrapper.getEmbedded(fieldName), entities);
+                    } else {
+                        throw new UnsupportedOperationException("Did not recognize embedded type " + value.getClass());
+                    }
                 } else {
                     throw new IllegalStateException("Did not recognize field " + fieldName);
                 }
@@ -164,8 +175,12 @@ public interface Serializer {
                     continue;
                 }
                 if (value instanceof Collection) {
-                    byte[][] embedded = serializeEntity(value);
-
+                    ArrayList<byte[]> values = new ArrayList<>();
+                    for (Object val : (Collection) value) {
+                        byte[][] embedded = serializeEntity(val);
+                        values.add(embedded[1]);
+                    }
+                    writer.putValues(id, values, byte[].class);
                 } else {
                     byte[][] embedded = serializeEntity(value);
                     writer.putValue(id, embedded[1]);
