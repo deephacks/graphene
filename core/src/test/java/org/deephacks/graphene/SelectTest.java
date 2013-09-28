@@ -5,6 +5,7 @@ import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import static org.deephacks.graphene.Criteria.*;
 import static org.hamcrest.core.Is.is;
@@ -28,6 +29,29 @@ public class SelectTest extends BaseTest {
         assertSelectAll(A.class, "a", numInstances);
         assertSelectAll(B.class, "b", numInstances);
         assertSelectAll(C.class, "c", numInstances);
+    }
+
+    /**
+     * Test that we can select instances based on single embedded data.
+     */
+    @Test
+    public void test_select_single_embedded() {
+        int numInstances = 10;
+        String value = UUID.randomUUID().toString();
+        ArrayList<A> instances = new ArrayList<>();
+        for (int i = 0; i < numInstances; i++) {
+            A a = defaultValues(""+i, A.class);
+            a.setStringValue(value);
+            instances.add(a);
+            repository.put(a);
+        }
+        try (ResultSet<A> resultSet = repository.select(A.class, field("embedded.stringValue").is(equal(value))).retrieve()) {
+            ArrayList<A> objects = Lists.newArrayList(resultSet);
+            for (int i = 0; i < objects.size(); i++) {
+                A expected = instances.get(i);
+                assertReflectionEquals(expected, objects.get(i), LENIENT_ORDER);
+            }
+        }
     }
 
     /**

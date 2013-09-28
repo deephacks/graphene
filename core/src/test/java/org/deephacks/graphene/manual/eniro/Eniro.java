@@ -24,7 +24,7 @@ public class Eniro {
     public static final String URL = "/cs/search/basic?profile=%s&key=%s&version=1.1.3&country=%s&";
 
     public static void main(String[] args) {
-        Eniro eniro = null;
+        Eniro eniro = new Eniro("krisskross", "8280479948564619946", "se");
         List<CompanyInfo> infos = new ArrayList<>();
         EntityRepository repository = new EntityRepository();
         for (String city : getCities()) {
@@ -221,13 +221,15 @@ public class Eniro {
     public static class CompanyInfo {
         @Id
         private final String id = UUID.randomUUID().toString();
+
+        @Embedded
+        private Address address;
+
         private final String name;
         private final String orgNum;
 
         private Double lat;
         private Double lng;
-        @Embedded
-        private Address address;
         private String phone;
 
         public CompanyInfo(String name, String orgNum) {

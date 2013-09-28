@@ -376,12 +376,42 @@ public class Criteria implements Predicate {
         @SuppressWarnings("unchecked")
         @Override
         public boolean apply(Object object) {
-            byte[][] data = (byte[][]) object;
-            ValueReader reader = new ValueReader(data[1]);
-            int[][] header = reader.getHeader();
-            Object value = reader.getValue(ids.getSchemaId(fieldName), header);
+            String[] fields = fieldName.split("\\.");
+            byte[] data = ((byte[][]) object)[1];
+            if (fields.length == 1) {
+                return evaluateField(data, fieldName);
+            } else if (fields.length > 1) {
+                return evaluateEmdeddedFields(data, fields);
+            } else {
+                throw new IllegalArgumentException("Cant handle field " + fieldName);
+            }
+        }
+
+        public boolean evaluateField(byte[] data, String fieldName) {
+            Object value = getValue(data, fieldName);
             return target.apply(value);
         }
 
+        public boolean evaluateEmdeddedFields(byte[] data, String[] fields) {
+            if (fields.length > 2) {
+                throw new UnsupportedOperationException("Can only handle one deep embedded object ATM " + fields.length);
+            }
+            ValueReader reader = new ValueReader(data);
+            int[][] header = reader.getHeader();
+            int id = ids.getSchemaId(fields[0]);
+            Object value = reader.getValue(id, header);
+
+            reader = new ValueReader((byte[])value);
+            header = reader.getHeader();
+            id = ids.getSchemaId(fields[1]);
+            value = reader.getValue(id, header);
+            return target.apply(value);
+        }
+
+        public Object getValue(byte[] data, String fieldName) {
+            ValueReader reader = new ValueReader(data);
+            int[][] header = reader.getHeader();
+            return reader.getValue(ids.getSchemaId(fieldName), header);
+        }
     }
 }
