@@ -1,7 +1,6 @@
 package org.deephacks.graphene;
 
 import com.google.common.base.Optional;
-import com.sleepycat.je.DeleteConstraintException;
 import com.sleepycat.je.ForeignConstraintException;
 import org.junit.Test;
 
@@ -74,7 +73,7 @@ public class ReferencesTest extends BaseTest {
      * Test that an existing delete constraint can be fixed by deleting instances
      * that reference others.
      */
-    // @Test
+    @Test
     public void test_fixing_delete_constraint() {
         LinkedHashMap<String,A> map = defaultReferences();
 
@@ -86,28 +85,43 @@ public class ReferencesTest extends BaseTest {
             repository.commit();
         }
 
-        // now we delete instances in the reverse order in order
-        // to not violate delete constraint.
-
         A instance = map.get("c1");
         repository.delete(instance.getId(), instance.getClass());
-        instance = map.get("b1");
+        // make sure to commit! otherwise the following
+        // DeleteConstraintException will rollback this delete
+        repository.commit();
         try {
+            instance = map.get("b1");
             repository.delete(instance.getId(), instance.getClass());
-            fail("c2 should still have references to b1");
+            fail("c2 should have a reference to b1");
         } catch (DeleteConstraintException e) {
-            //repository.rollback();
+            repository.rollback();
         }
 
         instance = map.get("c2");
         repository.delete(instance.getId(), instance.getClass());
+
         instance = map.get("b1");
         repository.delete(instance.getId(), instance.getClass());
+        // make sure to commit! otherwise the following
+        // DeleteConstraintException will rollback this delete
+        repository.commit();
+        try {
+            instance = map.get("a1");
+            repository.delete(instance.getId(), instance.getClass());
+            fail("b2 should have a reference to a1");
+        } catch (DeleteConstraintException e) {
+            repository.rollback();
+        }
+
         instance = map.get("b2");
         repository.delete(instance.getId(), instance.getClass());
         instance = map.get("a1");
         repository.delete(instance.getId(), instance.getClass());
         instance = map.get("a2");
+        repository.delete(instance.getId(), instance.getClass());
+        repository.delete(instance.getId(), instance.getClass());
+        instance = map.get("a3");
         repository.delete(instance.getId(), instance.getClass());
 
     }

@@ -110,23 +110,17 @@ public class EntityRepository {
         if(!optional.isPresent()) {
             return Optional.absent();
         }
-        OperationStatus status = null;
         try {
-            status = db.get().delete(getTx(), new DatabaseEntry(optional.get()[0]));
+            OperationStatus status = db.get().delete(getTx(), new DatabaseEntry(optional.get()[0]));
             if (status == OperationStatus.NOTFOUND) {
                 rollback();
                 return Optional.absent();
             }
+            return  Optional.fromNullable((E) getSerializer(entityClass).deserializeEntity(optional.get()));
         } catch (DeleteConstraintException e) {
-            // fine.
-            System.out.println("sdjgsdg "  +  new RowKey(optional.get()[0]) + e.getMessage());
+            throw new org.deephacks.graphene.DeleteConstraintException(
+                    new RowKey(e.getPrimaryKey().getData()) + " have a reference to " + new RowKey(e.getSecondaryKey().getData()), e);
         }
-
-        if (status == OperationStatus.NOTFOUND) {
-            rollback();
-            return Optional.absent();
-        }
-        return  Optional.fromNullable((E) getSerializer(entityClass).deserializeEntity(optional.get()));
     }
 
     public <E> Query<E> select(final Class<E> entityClass, final Criteria criteria) {

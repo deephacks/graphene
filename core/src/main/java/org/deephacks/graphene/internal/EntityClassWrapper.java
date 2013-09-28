@@ -78,6 +78,11 @@ public class EntityClassWrapper {
         return catalog.get(cls);
     }
 
+    @Override
+    public String toString() {
+        return cls.getName();
+    }
+
     public static class EntityFieldWrapper {
         private Field field;
         private boolean isCollection;
