@@ -1,4 +1,4 @@
-package org.deephacks.graphene.berkely;
+package org.deephacks.graphene.manual;
 
 import com.sleepycat.je.Cursor;
 import com.sleepycat.je.Database;
@@ -20,6 +20,9 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+/**
+ * Bare Berkeley DB manual tests
+ */
 public class BareTest {
     public static void main(String[] args) {
         EnvironmentConfig envConfig = new EnvironmentConfig();

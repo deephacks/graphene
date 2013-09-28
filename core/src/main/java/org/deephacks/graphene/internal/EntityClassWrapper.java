@@ -36,6 +36,14 @@ public class EntityClassWrapper {
             this.id = new EntityFieldWrapper(annotation.keySet().iterator().next(), false);
             fields.remove(id.getName());
         }
+        // embedded fields must be check first because if field is Entity
+        // we must still treat it as embedded, not as an Entity
+        for (EntityFieldWrapper field : Lists.newArrayList(fields.values())) {
+            if (field.getAnnotation(Embedded.class) != null) {
+                fields.remove(field.getName());
+                embedded.put(field.getName(), new EntityFieldWrapper(field.getField(), true));
+            }
+        }
 
         for (EntityFieldWrapper field : Lists.newArrayList(fields.values())) {
             if (field.getType().getAnnotation(Entity.class) != null) {
@@ -44,12 +52,6 @@ public class EntityClassWrapper {
             }
         }
 
-        for (EntityFieldWrapper field : Lists.newArrayList(fields.values())) {
-            if (field.getAnnotation(Embedded.class) != null) {
-                fields.remove(field.getName());
-                embedded.put(field.getName(), new EntityFieldWrapper(field.getField(), true));
-            }
-        }
     }
 
     public EntityFieldWrapper getId() {
