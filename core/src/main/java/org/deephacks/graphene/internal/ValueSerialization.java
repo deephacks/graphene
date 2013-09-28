@@ -154,6 +154,13 @@ public class ValueSerialization {
                         bytes.write((Byte) value);
                         properties.put(id, bytes.toByteArray());
                         break;
+                    case BYTE_ARRAY:
+                        bytes.write(DataType.BYTE_ARRAY.getId());
+                        byte[] bytesValue = (byte[]) value;
+                        bytes.write(VarInt32.write(bytesValue.length));
+                        bytes.write(bytesValue);
+                        properties.put(id, bytes.toByteArray());
+                        break;
                     case SHORT:
                         bytes.write(DataType.SHORT.getId());
                         bytes.write(VarInt32.write((Short) value));
@@ -325,6 +332,7 @@ public class ValueSerialization {
             idx = idx + 1;
             switch (type) {
                 case BYTE: return data[idx];
+                case BYTE_ARRAY: return BytesUtils.toBytes(data, idx);
                 case SHORT: return (short) VarInt32.read(data, idx);
                 case INTEGER: return VarInt32.read(data, idx);
                 case LONG: return Bytes.getLong(data, idx);

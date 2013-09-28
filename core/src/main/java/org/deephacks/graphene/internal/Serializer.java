@@ -82,6 +82,12 @@ public interface Serializer {
                 } else if (wrapper.isField(fieldName)){
                     Object value = reader.getValue(id[0], header);
                     wrapper.set(wrapper.getField(fieldName), value);
+                } else if (wrapper.isEmbedded(fieldName)) {
+                    Object value = reader.getValue(id[0], header);
+                    Class<?> type = wrapper.getEmbedded(fieldName).getType();
+                    byte[] schemaKey = RowKey.getMinId(type).getKey();
+                    Object entity = deserializeEntity(new byte[][] { schemaKey, (byte[]) value} );
+                    wrapper.set(wrapper.getEmbedded(fieldName), entity);
                 } else {
                     throw new IllegalStateException("Did not recognize field " + fieldName);
                 }
@@ -93,28 +99,46 @@ public interface Serializer {
         public byte[][] serializeEntity(Object entity) {
             UnsafeEntityObjectWrapper wrapper = new UnsafeEntityObjectWrapper(entity);
             UnsafeEntityClassWrapper classWrapper = UnsafeEntityClassWrapper.get(entity.getClass());
-            byte[] key = serializeRowKey(wrapper.getRowKey());
+            // embedded entities may not have key
+            byte[] key = new byte[0];
+            if (wrapper.getRowKey() != null) {
+                key = serializeRowKey(wrapper.getRowKey());
+            }
             ValueWriter writer = new ValueWriter();
+
+            // basic fields
             for (EntityFieldWrapper field : classWrapper.getFields().values()) {
                 int id = ids.getSchemaId(field.getName());
                 Object value = wrapper.getValue(field);
+                if (value == null) {
+                    continue;
+                }
                 if (value instanceof Collection) {
-                    if (field.getType().isEnum()){
+                    if (field.isEnum()){
                         writer.putValues(id, toStrings((Collection) value), String.class);
-                    } else {
+                    } else if (field.isBasicType()) {
                         writer.putValues(id, (Collection) value, field.getType());
+                    } else {
+                        writer.putValues(id, toStrings((Collection) value), String.class);
                     }
                 } else {
                     if (field.getType().isEnum()) {
                         writer.putValue(id, value.toString());
-                    } else {
+                    } else if (field.isBasicType()){
                         writer.putValue(id, value);
+                    } else {
+                        writer.putValue(id, value.toString());
                     }
                 }
             }
+
+            // reference fields
             for (EntityFieldWrapper field : classWrapper.getReferences().values()) {
                 int id = ids.getSchemaId(field.getName());
                 Object value = wrapper.getValue(field);
+                if (value == null) {
+                    continue;
+                }
                 if (value instanceof Collection) {
                     if (field.getType().isEnum()){
                         writer.putValues(id, toStrings((Collection) value), String.class);
@@ -131,6 +155,23 @@ public interface Serializer {
                     }
                 }
             }
+
+            // embedded fields
+            for (EntityFieldWrapper field : classWrapper.getEmbedded().values()) {
+                int id = ids.getSchemaId(field.getName());
+                Object value = wrapper.getValue(field);
+                if (value == null) {
+                    continue;
+                }
+                if (value instanceof Collection) {
+                    byte[][] embedded = serializeEntity(value);
+
+                } else {
+                    byte[][] embedded = serializeEntity(value);
+                    writer.putValue(id, embedded[1]);
+                }
+            }
+
             return new byte[][] { key, writer.write()};
         }
 

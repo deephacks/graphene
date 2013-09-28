@@ -395,9 +395,7 @@ public class BytesUtils {
     public static byte[] toBytes(byte[] value, int offset, int num) {
         byte[] values = new byte[num];
         int idx = 0;
-        for (int i = offset; i < offset + num; i++) {
-            values[idx++] = value[i];
-        }
+        System.arraycopy(value, offset, values, 0, num);
         return values;
     }
 
@@ -451,7 +449,6 @@ public class BytesUtils {
             values[idx++] = getFloat(value, i);
         }
         return values;
-
     }
 
     public static float[] toFloats(byte[] value, int offset) {
@@ -645,10 +642,9 @@ public class BytesUtils {
         return (x1 + Long.MIN_VALUE) < (x2 + Long.MIN_VALUE);
     }
 
-
     public static enum DataType {
         BYTE(1), SHORT(2), INTEGER(3), LONG(4), FLOAT(5), DOUBLE(6), BOOLEAN(7), STRING(8), CHAR(9),
-        BYTE_LIST(11), SHORT_LIST(12), INTEGER_LIST(13), LONG_LIST(14), FLOAT_LIST(15),
+        BYTE_ARRAY(10), BYTE_LIST(11), SHORT_LIST(12), INTEGER_LIST(13), LONG_LIST(14), FLOAT_LIST(15),
         DOUBLE_LIST(16), BOOLEAN_LIST(17), STRING_LIST(18), CHAR_LIST(19);
         private int id;
 
@@ -674,6 +670,8 @@ public class BytesUtils {
         public static DataType getDataType(Class<?> cls) {
             if(Byte.class.isAssignableFrom(cls)) {
                 return BYTE;
+            } else if(byte[].class.isAssignableFrom(cls)) {
+               return BYTE_ARRAY;
             } else if(byte.class.isAssignableFrom(cls)) {
                 return BYTE;
             } else if (Short.class.isAssignableFrom(cls)) {

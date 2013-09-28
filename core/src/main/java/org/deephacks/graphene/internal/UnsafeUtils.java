@@ -1,5 +1,6 @@
 package org.deephacks.graphene.internal;
 
+import org.deephacks.graphene.Embedded;
 import org.deephacks.graphene.internal.EntityClassWrapper.EntityFieldWrapper;
 import sun.misc.Unsafe;
 
@@ -48,7 +49,11 @@ public class UnsafeUtils {
             }
             classWrapper = UnsafeEntityClassWrapper.get(object.getClass());
             EntityFieldWrapper id = classWrapper.getId();
-            set(id, rowKey.getInstance());
+            // embedded may not have id
+            if (id != null) {
+                set(id, rowKey.getInstance());
+            }
+
         }
 
         UnsafeEntityObjectWrapper(Object object) {
@@ -107,8 +112,9 @@ public class UnsafeUtils {
         public Object getValue(EntityFieldWrapper field) {
             try {
                 long offset = classWrapper.getOffset(field.getName());
-                Class<?> cls = field.getType();
-                if (Reflections.isPrimitive(cls)) {
+
+                if (field.isPrimitive()) {
+                    Class<?> cls = field.getType();
                     if(byte.class.isAssignableFrom(cls)) {
                         return unsafe.getByte(object, offset);
                     } else if (short.class.isAssignableFrom(cls)) {
@@ -128,7 +134,11 @@ public class UnsafeUtils {
                     } else {
                         throw new UnsupportedOperationException("Did not recognize " + cls);
                     }
+                } else if (field.isBasicType()) {
+                    return unsafe.getObject(object, offset);
                 } else if (field.getType().isEnum()) {
+                    return unsafe.getObject(object, offset);
+                } else if (field.getAnnotation(Embedded.class) != null) {
                     return unsafe.getObject(object, offset);
                 } else if (field.isReference()) {
                     Object ref = unsafe.getObject(object, offset);
@@ -177,8 +187,15 @@ public class UnsafeUtils {
                 long offset = unsafe.objectFieldOffset(field.getField());
                 offsets.put(field.getName(), offset);
             }
-            long offset = unsafe.objectFieldOffset(id.getField());
-            offsets.put(id.getName(), offset);
+            for (EntityFieldWrapper field : embedded.values()) {
+                long offset = unsafe.objectFieldOffset(field.getField());
+                offsets.put(field.getName(), offset);
+            }
+            // embedded entities may not have id
+            if (id != null) {
+                long offset = unsafe.objectFieldOffset(id.getField());
+                offsets.put(id.getName(), offset);
+            }
         }
 
         public long getOffset(String fieldName) {

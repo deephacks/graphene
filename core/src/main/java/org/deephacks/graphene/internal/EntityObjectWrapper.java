@@ -12,8 +12,11 @@ public class EntityObjectWrapper {
         this.object = object;
         this.classWrapper = EntityClassWrapper.get(object.getClass());
         try {
-            final Object o = classWrapper.getId().getField().get(object);
-            this.rowKey = new RowKey(object.getClass(), o.toString());
+            // embedded entities may not have an id
+            if (classWrapper.getId() != null) {
+                final Object o = classWrapper.getId().getField().get(object);
+                this.rowKey = new RowKey(object.getClass(), o.toString());
+            }
         } catch (IllegalAccessException e) {
             throw new IllegalArgumentException(e);
         }
@@ -50,6 +53,17 @@ public class EntityObjectWrapper {
         throw new IllegalStateException("Did not recognize field " + fieldName);
     }
 
+    public EntityFieldWrapper getEmbedded(String fieldName) {
+        EntityFieldWrapper field = classWrapper.getEmbedded().get(fieldName);
+        if (field != null) {
+            return field;
+        }
+        if (classWrapper.getId().getName().equals(fieldName)) {
+            return classWrapper.getId();
+        }
+        throw new IllegalStateException("Did not recognize field " + fieldName);
+    }
+
     public boolean isReference(String fieldName) {
         return classWrapper.getReferences().containsKey(fieldName);
     }
@@ -58,8 +72,13 @@ public class EntityObjectWrapper {
         return classWrapper.getFields().containsKey(fieldName);
     }
 
+    public boolean isEmbedded(String fieldName) {
+        return classWrapper.getEmbedded().containsKey(fieldName);
+    }
+
     @Override
     public String toString() {
         return rowKey.getCls() + " " + rowKey.getInstance();
     }
+
 }

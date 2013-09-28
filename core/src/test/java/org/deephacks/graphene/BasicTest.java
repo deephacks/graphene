@@ -10,6 +10,10 @@ import static org.junit.Assert.*;
 import static org.unitils.reflectionassert.ReflectionAssert.assertReflectionEquals;
 import static org.unitils.reflectionassert.ReflectionComparatorMode.LENIENT_ORDER;
 
+/**
+ * Test serialization of entity instances, including all different types that
+ * are supported like primitive and object types, enums, custom and embedded types.
+ */
 public class BasicTest extends BaseTest {
 
     /**
@@ -66,7 +70,6 @@ public class BasicTest extends BaseTest {
         final Optional<A> a = repository.delete(UUID.randomUUID().toString(), A.class);
         assertFalse(a.isPresent());
     }
-
 
     public <T extends A> void putAndGetAssert(T object) {
         repository.put(object);

@@ -4,6 +4,7 @@ import com.google.common.base.Preconditions;
 import com.sleepycat.je.Database;
 import com.sleepycat.je.DatabaseConfig;
 import com.sleepycat.je.DatabaseEntry;
+import com.sleepycat.je.Durability;
 import com.sleepycat.je.Environment;
 import com.sleepycat.je.EnvironmentConfig;
 import com.sleepycat.je.ForeignKeyDeleteAction;
@@ -63,6 +64,8 @@ public class Graphene {
         EnvironmentConfig envConfig = new EnvironmentConfig();
         envConfig.setAllowCreate(true);
         envConfig.setTransactional(true);
+        envConfig.setDurability(Durability.COMMIT_SYNC);
+        System.out.println(DEFAULT_ENV_FILE.getAbsolutePath());
         env = new Environment(DEFAULT_ENV_FILE, envConfig);
     }
 

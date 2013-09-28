@@ -1,6 +1,7 @@
 package org.deephacks.graphene.internal;
 
 import com.google.common.collect.Lists;
+import org.deephacks.graphene.Embedded;
 import org.deephacks.graphene.Entity;
 import org.deephacks.graphene.Id;
 
@@ -20,6 +21,7 @@ public class EntityClassWrapper {
     protected EntityFieldWrapper id;
     protected Map<String, EntityFieldWrapper> fields = new HashMap<>();
     protected Map<String, EntityFieldWrapper> references = new HashMap<>();
+    protected Map<String, EntityFieldWrapper> embedded = new HashMap<>();
     protected final Class<?> cls;
 
     protected EntityClassWrapper(Class<?> cls) {
@@ -30,16 +32,22 @@ public class EntityClassWrapper {
         }
 
         Map<Field, Annotation> annotation = Reflections.findFields(cls, Id.class);
-        if (annotation.size() == 0) {
-            throw new IllegalArgumentException("No id on " + cls);
+        if (annotation.size() != 0) {
+            this.id = new EntityFieldWrapper(annotation.keySet().iterator().next(), false);
+            fields.remove(id.getName());
         }
-        this.id = new EntityFieldWrapper(annotation.keySet().iterator().next(), false);
-        fields.remove(id.getName());
 
         for (EntityFieldWrapper field : Lists.newArrayList(fields.values())) {
             if (field.getType().getAnnotation(Entity.class) != null) {
                 fields.remove(field.getName());
                 references.put(field.getName(), new EntityFieldWrapper(field.getField(), true));
+            }
+        }
+
+        for (EntityFieldWrapper field : Lists.newArrayList(fields.values())) {
+            if (field.getAnnotation(Embedded.class) != null) {
+                fields.remove(field.getName());
+                embedded.put(field.getName(), new EntityFieldWrapper(field.getField(), true));
             }
         }
     }
@@ -56,6 +64,10 @@ public class EntityClassWrapper {
         return references;
     }
 
+    public Map<String, EntityFieldWrapper> getEmbedded() {
+        return embedded;
+    }
+
     public static EntityClassWrapper get(Class<?> cls) {
         if (catalog.containsKey(cls)) {
             return catalog.get(cls);
@@ -69,6 +81,8 @@ public class EntityClassWrapper {
         private boolean isCollection;
         private boolean isMap;
         private boolean isReference;
+        private boolean basicType;
+        private boolean anEnum;
 
         EntityFieldWrapper(Field field, boolean isReference) {
             this.field = field;
@@ -157,11 +171,28 @@ public class EntityClassWrapper {
         }
 
         public boolean isPrimitive() {
-            return Reflections.isPrimitive(field.getType());
+            return Types.isPrimitive(getType());
         }
 
         public boolean isReference() {
             return isReference;
+        }
+
+        public boolean isBasicType() {
+            return Types.isBasicType(getType());
+        }
+
+        public boolean isEnum() {
+            return getType().isEnum();
+        }
+
+        public Object getAnnotation(Class<? extends Annotation> annotation) {
+            return field.getAnnotation(annotation);
+        }
+
+        @Override
+        public String toString() {
+            return String.valueOf(field);
         }
     }
 }

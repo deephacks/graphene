@@ -19,6 +19,7 @@ import com.sleepycat.je.Cursor;
 import com.sleepycat.je.CursorConfig;
 import com.sleepycat.je.Database;
 import com.sleepycat.je.DatabaseEntry;
+import com.sleepycat.je.DeleteConstraintException;
 import com.sleepycat.je.LockMode;
 import com.sleepycat.je.OperationStatus;
 import com.sleepycat.je.SecondaryDatabase;
@@ -38,21 +39,21 @@ import java.util.Set;
 public class EntityRepository {
     private final Handle<Graphene> graphene = Graphene.get();
     private final Handle<Database> db;
-    private final Handle<SecondaryDatabase> foreign;
+    private final Handle<SecondaryDatabase> secondary;
     private final UniqueIds ids = new UniqueIds();
 
     public EntityRepository() {
         this.db = graphene.get().getPrimary();
-        this.foreign = graphene.get().getSecondary();
+        this.secondary = graphene.get().getSecondary();
 
     }
 
     public <E> Optional<E> get(Object key, Class<E> entityClass) {
-        Optional<byte[][]> optional = getKv(key, entityClass);
-        if (optional.isPresent()) {
-            return Optional.fromNullable((E) getSerializer(entityClass).deserializeEntity(optional.get()));
-        }
-        return Optional.absent();
+            Optional<byte[][]> optional = getKv(key, entityClass);
+            if (optional.isPresent()) {
+                return Optional.fromNullable((E) getSerializer(entityClass).deserializeEntity(optional.get()));
+            }
+            return Optional.absent();
     }
 
     public <E> Optional<byte[][]> getKv(Object key, Class<E> entityClass) {
@@ -105,21 +106,27 @@ public class EntityRepository {
     }
 
     public <E> Optional<E> delete(Object key, Class<E> entityClass) throws DeleteConstraintException {
+        final Optional<byte[][]> optional = getKv(key, entityClass);
+        if(!optional.isPresent()) {
+            return Optional.absent();
+        }
+        OperationStatus status = null;
         try {
-            final Optional<byte[][]> optional = getKv(key, entityClass);
-            if(!optional.isPresent()) {
-                return Optional.absent();
-            }
-            OperationStatus status = db.get().delete(getTx(), new DatabaseEntry(optional.get()[0]));
+            status = db.get().delete(getTx(), new DatabaseEntry(optional.get()[0]));
             if (status == OperationStatus.NOTFOUND) {
                 rollback();
                 return Optional.absent();
             }
-            return Optional.fromNullable((E) getSerializer(entityClass).deserializeEntity(optional.get()));
-        } catch (com.sleepycat.je.DeleteConstraintException e) {
-            rollback();
-            throw new DeleteConstraintException(e);
+        } catch (DeleteConstraintException e) {
+            // fine.
+            System.out.println("sdjgsdg "  +  new RowKey(optional.get()[0]) + e.getMessage());
         }
+
+        if (status == OperationStatus.NOTFOUND) {
+            rollback();
+            return Optional.absent();
+        }
+        return  Optional.fromNullable((E) getSerializer(entityClass).deserializeEntity(optional.get()));
     }
 
     public <E> Query<E> select(final Class<E> entityClass, final Criteria criteria) {
@@ -173,7 +180,7 @@ public class EntityRepository {
     Cursor openForeignCursor() {
         CursorConfig config = new CursorConfig();
         config.setReadCommitted(true);
-        return foreign.get().openCursor(getTx(), config);
+        return secondary.get().openCursor(getTx(), config);
     }
 
     public Transaction getTx() {
