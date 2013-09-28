@@ -29,8 +29,8 @@ public class Eniro {
         Eniro eniro = new Eniro("krisskross", "8280479948564619946", "se");
         List<CompanyInfo> infos = new ArrayList<>();
         EntityRepository repository = new EntityRepository();
+        /*
         for (String city : getCities()) {
-            /*
             infos.addAll(eniro.query(city, "nordea"));
             infos.addAll(eniro.query(city, "handelsbanken"));
             infos.addAll(eniro.query(city, "swedbank"));
@@ -38,17 +38,14 @@ public class Eniro {
             infos.addAll(eniro.query(city, "Skandinaviska Enskilda Banken"));
             infos.addAll(eniro.query(city, "Avanza Bank AB"));
             infos.addAll(eniro.query(city, "Ica Banken AB"));
-            */
         }
-        /*
-        infos.addAll(eniro.query("Stockholm", "nordea"));
         for (CompanyInfo info : infos) {
             System.out.println("insert " + info);
             repository.put(info);
         }
         repository.commit();
 */
-        try (ResultSet<CompanyInfo> resultSet = repository.select(CompanyInfo.class, field("address.postArea").not(containsNoCase("stockholm"))).retrieve()) {
+        try (ResultSet<CompanyInfo> resultSet = repository.select(CompanyInfo.class, field("address.postArea").is(containsNoCase("stockholm"))).retrieve()) {
             for (CompanyInfo info : resultSet) {
                 System.out.println(info);
             }
@@ -65,6 +62,7 @@ public class Eniro {
 
     public static List<String> getCities() {
         List<String> list = new ArrayList<>();
+        list.add("Stockholm");
         list.add("Malmö");
         list.add("Uppsala");
         list.add("Västerås");

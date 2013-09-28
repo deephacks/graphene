@@ -51,7 +51,7 @@
   </developers>
 
   <properties>
-    <graphene.confit>0.17.0</graphene.confit>
+    <version.graphene>0.1.0</version.graphene>
     <!-- plugins -->
     <version.surefire-plugin>2.10</version.surefire-plugin>
     <version.eclipse-plugin>2.8</version.eclipse-plugin>
@@ -69,6 +69,7 @@
 
   <modules>
     <module>core</module>
+    <module>examples</module>
   </modules>
 
 
@@ -226,7 +227,7 @@
       <dependency>
         <groupId>org.deephacks</groupId>
         <artifactId>graphene-core</artifactId>
-        <version>${version.confit}</version>
+        <version>${version.graphene}</version>
         <scope>compile</scope>
       </dependency>
       <dependency>

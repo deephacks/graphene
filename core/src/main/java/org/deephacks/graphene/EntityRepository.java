@@ -51,6 +51,14 @@ public class EntityRepository {
 
     }
 
+    /**
+     * Get an instance from storage according to key and type.
+     *
+     * @param key primary key of instance
+     * @param entityClass instance type
+     * @param <E> instance type
+     * @return the instance if it exist, otherwise absent
+     */
     public <E> Optional<E> get(Object key, Class<E> entityClass) {
             Optional<byte[][]> optional = getKv(key, entityClass);
             if (optional.isPresent()) {
@@ -59,17 +67,13 @@ public class EntityRepository {
             return Optional.absent();
     }
 
-    public <E> Optional<byte[][]> getKv(Object key, Class<E> entityClass) {
-        byte[] dataKey = getSerializer(entityClass).serializeRowKey(new RowKey(entityClass, key));
-        DatabaseEntry entryKey = new DatabaseEntry(dataKey);
-        DatabaseEntry entryValue = new DatabaseEntry();
-        if (OperationStatus.SUCCESS == db.get().get(getTx(), entryKey, entryValue, LockMode.READ_COMMITTED)) {
-            byte[][] kv = new byte[][]{ entryKey.getData(), entryValue.getData()};
-            return Optional.fromNullable(kv);
-        }
-        return Optional.absent();
-    }
-
+    /**
+     * Put provided instance in storage, overwrite if instance already exist.
+     *
+     * @param entity instance to be written
+     * @param <E> instance type
+     * @return true if writing the instance was successful
+     */
     public <E> boolean put(E entity) {
         Preconditions.checkNotNull(entity);
         Class<?> entityClass = entity.getClass();
@@ -85,17 +89,13 @@ public class EntityRepository {
         return true;
     }
 
-    private boolean exists(RowKey refKey) {
-        try(Cursor cursor = db.get().openCursor(getTx(), null)) {
-            DatabaseEntry key = new DatabaseEntry(refKey.getKey());
-            OperationStatus status = cursor.getSearchKey(key, new DatabaseEntry(), LockMode.DEFAULT);
-            if (OperationStatus.SUCCESS == status) {
-                return true;
-            }
-            return false;
-        }
-    }
-
+    /**
+     * Put an instance if it does not exist. If the instance exist, nothing will be written.
+     *
+     * @param entity instance to be written
+     * @param <E> instance type
+     * @return true if the instance did not exist, false otherwise.
+     */
     public <E> boolean putNoOverwrite(E entity) {
         Preconditions.checkNotNull(entity);
         Class<?> entityClass = entity.getClass();
@@ -108,6 +108,15 @@ public class EntityRepository {
         return OperationStatus.SUCCESS == db.get().putNoOverwrite(getTx(), key, value);
     }
 
+    /**
+     * Delete an instance with a specific primary key.
+     *
+     * @param key primary key to delete
+     * @param entityClass instance type to delete
+     * @param <E> instance type
+     * @return the instance if it was deleted, otherwise absent
+     * @throws DeleteConstraintException if another instance have a reference on the deleted instance
+     */
     public <E> Optional<E> delete(Object key, Class<E> entityClass) throws DeleteConstraintException {
         final Optional<byte[][]> optional = getKv(key, entityClass);
         if(!optional.isPresent()) {
@@ -125,6 +134,14 @@ public class EntityRepository {
         }
     }
 
+    /**
+     * Select instances based on the provided Criteria.
+     *
+     * @param entityClass the type which is target for selection
+     * @param criteria criteria used for selecting instances
+     * @param <E> instance type
+     * @return instances match criteria
+     */
     public <E> Query<E> select(final Class<E> entityClass, final Criteria criteria) {
         return new DefaultQuery<>(entityClass, this, criteria);
     }
@@ -160,6 +177,51 @@ public class EntityRepository {
         }
     }
 
+    /**
+     * Count all instances that exist in storage. The count may not be
+     * accurate in the face of concurrent update operations in the database.
+     *
+     * @return total number of instance (all types included)
+     */
+    public long countAll() {
+        return db.get().count();
+    }
+
+    /**
+     * Get the current transaction associated with this thread or create a new one.
+     *
+     * @return the transaction.
+     */
+    public Transaction getTx() {
+        return graphene.get().getTx();
+    }
+
+
+    /**
+     * Commit the transaction associated with the current thread.
+     */
+    public void commit() {
+        graphene.get().commit();
+    }
+
+    /**
+     * Rollback the transaction associated with the current thread.
+     */
+    public void rollback() {
+        graphene.get().abort();
+    }
+
+    private <E> Optional<byte[][]> getKv(Object key, Class<E> entityClass) {
+        byte[] dataKey = getSerializer(entityClass).serializeRowKey(new RowKey(entityClass, key));
+        DatabaseEntry entryKey = new DatabaseEntry(dataKey);
+        DatabaseEntry entryValue = new DatabaseEntry();
+        if (OperationStatus.SUCCESS == db.get().get(getTx(), entryKey, entryValue, LockMode.READ_COMMITTED)) {
+            byte[][] kv = new byte[][]{ entryKey.getData(), entryValue.getData()};
+            return Optional.fromNullable(kv);
+        }
+        return Optional.absent();
+    }
+
     private boolean withinKeyRange(byte[] key, byte[] firstKey, byte[] lastKey) {
         if (BytesUtils.compareTo(firstKey, 0, firstKey.length, key, 0, key.length) > 0) {
             return false;
@@ -168,10 +230,6 @@ public class EntityRepository {
             return false;
         }
         return true;
-    }
-
-    public long countAll() {
-        return db.get().count();
     }
 
     Cursor openPrimaryCursor() {
@@ -184,18 +242,6 @@ public class EntityRepository {
         CursorConfig config = new CursorConfig();
         config.setReadCommitted(true);
         return secondary.get().openCursor(getTx(), config);
-    }
-
-    public Transaction getTx() {
-        return graphene.get().getTx();
-    }
-
-    public void commit() {
-        graphene.get().commit();
-    }
-
-    public void rollback() {
-        graphene.get().abort();
     }
 
     private Serializer getSerializer(Class<?> entityClass){
