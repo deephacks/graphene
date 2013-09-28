@@ -37,11 +37,13 @@ import org.deephacks.graphene.internal.ValueSerialization.ValueReader;
 import java.util.Collection;
 import java.util.Set;
 
+/**
+ * EntityRepository will never commit or rollback a transactions.
+ */
 public class EntityRepository {
     private final Handle<Graphene> graphene = Graphene.get();
     private final Handle<Database> db;
     private final Handle<SecondaryDatabase> secondary;
-    private final UniqueIds ids = new UniqueIds();
 
     public EntityRepository() {
         this.db = graphene.get().getPrimary();
@@ -114,7 +116,6 @@ public class EntityRepository {
         try {
             OperationStatus status = db.get().delete(getTx(), new DatabaseEntry(optional.get()[0]));
             if (status == OperationStatus.NOTFOUND) {
-                rollback();
                 return Optional.absent();
             }
             return  Optional.fromNullable((E) getSerializer(entityClass).deserializeEntity(optional.get()));
