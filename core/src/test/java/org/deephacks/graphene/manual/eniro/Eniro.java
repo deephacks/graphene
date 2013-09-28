@@ -2,7 +2,6 @@ package org.deephacks.graphene.manual.eniro;
 
 import com.google.common.base.Charsets;
 import com.google.common.base.Strings;
-import org.deephacks.graphene.Criteria;
 import org.deephacks.graphene.Embedded;
 import org.deephacks.graphene.Entity;
 import org.deephacks.graphene.EntityRepository;
@@ -18,6 +17,9 @@ import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+
+import static org.deephacks.graphene.Criteria.containsNoCase;
+import static org.deephacks.graphene.Criteria.field;
 
 public class Eniro {
     public static final String HOST = "api.eniro.com";
@@ -44,7 +46,7 @@ public class Eniro {
         }
         repository.commit();
 
-        try (ResultSet<CompanyInfo> resultSet = repository.select(CompanyInfo.class, Criteria.field("name").is(Criteria.contains("ordea"))).retrieve()) {
+        try (ResultSet<CompanyInfo> resultSet = repository.select(CompanyInfo.class, field("address.postArea").is(containsNoCase("tumba"))).retrieve()) {
             for (CompanyInfo info : resultSet) {
                 System.out.println(info);
             }

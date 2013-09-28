@@ -299,6 +299,26 @@ public class Criteria implements Predicate {
     }
 
     /**
+     * Evaluate if a string contains another string, case insensitive
+     *
+     * @param value
+     * @return A string criteria
+     */
+    public static Predicate<String> containsNoCase(final String value) {
+        return new Predicate<String>() {
+
+            @Override
+            public boolean apply(String field) {
+                if (field == null) {
+                    return false;
+                }
+                return field.toLowerCase().contains(value.toLowerCase());
+            }
+
+        };
+    }
+
+    /**
      * Evaluate if a string starts with another string.
      *
      * @param value
