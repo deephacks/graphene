@@ -12,8 +12,6 @@ import com.sleepycat.je.SecondaryConfig;
 import com.sleepycat.je.SecondaryDatabase;
 import com.sleepycat.je.Sequence;
 import com.sleepycat.je.SequenceConfig;
-import com.sleepycat.je.Transaction;
-import com.sleepycat.je.TransactionConfig;
 import org.deephacks.graphene.EntityRepository.KeyCreator;
 import org.deephacks.graphene.internal.FastKeyComparator;
 import org.deephacks.graphene.internal.Serializer;
@@ -27,12 +25,10 @@ import java.util.concurrent.TimeUnit;
 
 public class Graphene {
     private static final Handle<Graphene> INSTANCE = new Handle<>();
-
+    private static TransactionManager TM;
     public static final String TMP_DIR = System.getProperty("java.io.tmpdir");
     public static final String DEFAULT_GRAPHENE_DIR_NAME = "graphene.env";
     public static File DEFAULT_ENV_FILE = new File(TMP_DIR, DEFAULT_GRAPHENE_DIR_NAME);
-
-    private static final ThreadLocal<Transaction> TX = new ThreadLocal<>();
 
     private Environment env;
 
@@ -70,6 +66,7 @@ public class Graphene {
         envConfig.setLockTimeout(1, TimeUnit.SECONDS);
         System.out.println(DEFAULT_ENV_FILE.getAbsolutePath());
         env = new Environment(DEFAULT_ENV_FILE, envConfig);
+        TM = new TransactionManager(env);
     }
 
     private Graphene(Environment env, String primaryName, String secondaryName) {
@@ -80,6 +77,7 @@ public class Graphene {
         this.env = env;
         this.primaryName = primaryName;
         this.secondaryName = secondaryName;
+        TM = new TransactionManager(env);
     }
 
     private Graphene(Environment env, String primaryName, DatabaseConfig primaryConfig, String secondaryName, SecondaryConfig secondaryConfig) {
@@ -92,6 +90,7 @@ public class Graphene {
         this.primaryName = primaryName;
         this.secondaryConfig = secondaryConfig;
         this.secondaryName = secondaryName;
+        TM = new TransactionManager(env);
     }
 
     public static Handle<Graphene> create() {
@@ -190,10 +189,10 @@ public class Graphene {
         config.setAllowCreate(true);
         if (SEQUENCE == null) {
             synchronized (INSTANCE) {
-                SEQUENCE = getSequence().get().openSequence(getTx(), new DatabaseEntry(key), config);
+                SEQUENCE = getSequence().get().openSequence(TM.peek(), new DatabaseEntry(key), config);
             }
         }
-        return SEQUENCE.get(getTx(), 1);
+        return SEQUENCE.get(TM.peek(), 1);
     }
 
     public Handle<Database> getSchemas() {
@@ -246,33 +245,8 @@ public class Graphene {
         return defaultSerializer;
     }
 
-    public Transaction getTx() {
-        Transaction tx = TX.get();
-        if (tx == null) {
-            TransactionConfig c = new TransactionConfig();
-            c.setNoWait(true);
-            tx = env.beginTransaction(null, null);
-            TX.set(tx);
-        }
-        return tx;
-    }
-
-    public void commit() {
-        Transaction tx = TX.get();
-        if (tx == null) {
-            return;
-        }
-        TX.set(null);
-        tx.commit();
-    }
-
-    public void abort() {
-        Transaction tx = TX.get();
-        if (tx == null) {
-            return;
-        }
-        TX.set(null);
-        tx.abort();
+    public TransactionManager getTransactionManager() {
+        return TM;
     }
 
     public void close() {

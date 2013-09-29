@@ -16,10 +16,16 @@ public class Accounts {
     @Inject
     private EntityRepository repository;
 
+    public Account lockAccount(User user) {
+        Optional<Account> opt = repository.getForUpdate(user.getSsn(), Account.class);
+        return opt.get();
+    }
+
     public Account getAccount(User user) {
         Optional<Account> opt = repository.get(user.getSsn(), Account.class);
         return opt.get();
     }
+
 
     public Account createAccount(User user) {
         Account account = new Account(user.getSsn());
@@ -31,7 +37,6 @@ public class Accounts {
     public void save(Account account) {
         repository.put(account);
     }
-
 
     @Entity
     public static class Account {

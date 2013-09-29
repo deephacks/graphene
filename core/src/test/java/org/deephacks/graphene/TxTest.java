@@ -22,6 +22,7 @@ public class TxTest extends BaseTest {
      */
     @Test
     public void test_put_get_rollback() {
+        repository.beginTransaction();
         assertFalse(repository.get(defaultValues("a1", A.class), A.class).isPresent());
         assertTrue(repository.put(defaultValues("a1", A.class)));
         repository.rollback();
@@ -33,6 +34,7 @@ public class TxTest extends BaseTest {
      */
     @Test
     public void test_put_select_rollback() {
+        repository.beginTransaction();
         int numInstances = 10;
         // reverse order which instances are inserted to check that sorted order is respected
         for (int i = numInstances; i > 0; i--) {
@@ -51,6 +53,7 @@ public class TxTest extends BaseTest {
             assertThat(Lists.newArrayList(result).size(), is(numInstances));
         }
         repository.rollback();
+        repository.beginTransaction();
         new UniqueIds().printAllSchemaAndInstances();
         try (ResultSet<A> result = repository.select(A.class).retrieve()) {
             assertThat(Lists.newArrayList(result).size(), is(0));
@@ -61,6 +64,7 @@ public class TxTest extends BaseTest {
         try (ResultSet<C> result = repository.select(C.class).retrieve()) {
             assertThat(Lists.newArrayList(result).size(), is(0));
         }
+        repository.commit();
     }
 
     /**
@@ -68,6 +72,7 @@ public class TxTest extends BaseTest {
      */
     @Test
     public void test_put_delete_rollback() {
+        repository.beginTransaction();
         int numInstances = 10;
         // reverse order which instances are inserted to check that sorted order is respected
         for (int i = numInstances; i > 0; i--) {
@@ -75,6 +80,7 @@ public class TxTest extends BaseTest {
         }
         repository.commit();
 
+        repository.beginTransaction();
         assertTrue(repository.put(defaultValues("a100", A.class)));
         assertTrue(repository.get("a100", A.class).isPresent());
         assertTrue(repository.delete("a1", A.class).isPresent());
@@ -82,9 +88,10 @@ public class TxTest extends BaseTest {
 
         // undo put (a100) and delete (a1) operation above
         repository.rollback();
-
+        repository.beginTransaction();
         assertTrue(repository.get("a1", A.class).isPresent());
         assertFalse(repository.get("a100", A.class).isPresent());
+        repository.commit();
     }
 
     static Exception failure;
@@ -96,6 +103,7 @@ public class TxTest extends BaseTest {
     @Test
     public void test_tx_write_isolation() throws Exception {
         for (int i = 0; i < 100; i++) {
+            repository.beginTransaction();
             final CountDownLatch latch = new CountDownLatch(2);
             final SynchronousQueue<String> queue = new SynchronousQueue<>();
             repository.delete("a", A.class);
@@ -107,6 +115,7 @@ public class TxTest extends BaseTest {
                 @Override
                 public void run() {
                     try {
+                        repository.beginTransaction();
                         repository.put(a1);
                         // signal t2 wake up
                         queue.put("wakeup");
@@ -115,6 +124,7 @@ public class TxTest extends BaseTest {
                         Thread.sleep(10);
                         repository.commit();
                     } catch (Exception e) {
+                        repository.rollback();
                         failure = e;
                         throw new RuntimeException(e);
                     } finally {
@@ -126,12 +136,14 @@ public class TxTest extends BaseTest {
                 @Override
                 public void run() {
                     try {
+                        repository.beginTransaction();
                         // wait for a1.put(a)
                         queue.take();
                         // t2 should be forced to wait until t1 does commit
                         assertTrue(repository.get("a", A.class).isPresent());
                         repository.commit();
                     } catch (Exception e) {
+                        repository.rollback();
                         failure = e;
                         throw new RuntimeException(e);
                     } finally {
@@ -163,12 +175,15 @@ public class TxTest extends BaseTest {
                 @Override
                 public void run() {
                     try {
+                        repository.beginTransaction();
                         repository.put(instance);
                         repository.commit();
+                        repository.beginTransaction();
                         assertReflectionEquals(instance, repository.get("a1", A.class).get(), LENIENT_ORDER);
                         repository.commit();
                         counter.incrementAndGet();
                     } catch (Exception e) {
+                        repository.rollback();
                         throw new RuntimeException(e);
                     } finally {
                         latch.countDown();

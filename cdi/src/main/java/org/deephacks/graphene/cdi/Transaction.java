@@ -14,4 +14,5 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
 @Documented
 @InterceptorBinding
 public @interface Transaction {
+    TransactionAttribute value() default TransactionAttribute.REQUIRED;
 }

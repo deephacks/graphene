@@ -22,7 +22,7 @@ public abstract class Query<T> {
      * Set the position of the first result to retrieve. If this parameter is not
      * set, the query starts from the absolute first instance.
      *
-     * @param firstResult start position of the first result.
+     * @param firstResult beginTransaction position of the first result.
      * @return the same query instance
      */
     public abstract Query<T> setFirstResult(Object firstResult);
@@ -32,7 +32,7 @@ public abstract class Query<T> {
      * set, the query continue until there are no more results or maxResults have been
      * reached.
      *
-     * @param firstResult start position of the first result.
+     * @param firstResult beginTransaction position of the first result.
      * @return the same query instance
      */
     public abstract Query<T> setLastResult(Object firstResult);

@@ -2,6 +2,7 @@ package org.deephacks.graphene.cdi;
 
 
 import org.deephacks.graphene.EntityRepository;
+import org.deephacks.graphene.TransactionManager;
 
 import javax.interceptor.AroundInvoke;
 import javax.interceptor.Interceptor;
@@ -12,25 +13,24 @@ import java.io.Serializable;
 @Interceptor
 class TransactionInterceptor implements Serializable {
     private static final EntityRepository repository = new EntityRepository();
+    private static final TransactionManager tm = repository.getTransactionManager();
 
     @AroundInvoke
     public Object aroundInvoke(final InvocationContext ic) throws Exception {
         try {
-            boolean initalTx = ThreadLocalManager.peek(com.sleepycat.je.Transaction.class) == null;
+
+            boolean initalTx = tm.peek() == null;
             if (initalTx) {
-                com.sleepycat.je.Transaction tx = repository.getTx();
-                ThreadLocalManager.push(com.sleepycat.je.Transaction.class, tx);
+                tm.beginTransaction();
             }
             Object result = ic.proceed();
             if (initalTx) {
-                ThreadLocalManager.pop(com.sleepycat.je.Transaction.class);
-                repository.commit();
+                tm.commit();
             }
             return result;
         } catch (Throwable e) {
             try {
-                ThreadLocalManager.pop(com.sleepycat.je.Transaction.class);
-                repository.rollback();
+                tm.rollback();
             } catch (Exception e1) {
                 throw new IllegalStateException(e1);
             }

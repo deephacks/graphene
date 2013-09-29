@@ -18,10 +18,11 @@ public class ReferencesTest extends BaseTest {
      */
     @Test
     public void test_references_with_multiple_levels() {
+
         LinkedHashMap<String,A> map = defaultReferences();
+        repository.beginTransaction();
         for (A a : map.values()) {
             repository.put(a);
-            repository.commit();
         }
 
         Optional result = repository.get("b1", B.class);
@@ -32,6 +33,7 @@ public class ReferencesTest extends BaseTest {
 
         result = repository.get("c1", C.class);
         assertReflectionEquals(map.get("c1"), result.get(), LENIENT_ORDER);
+        repository.commit();
     }
 
     /**
@@ -40,6 +42,7 @@ public class ReferencesTest extends BaseTest {
      */
     @Test
     public void test_missing_references() {
+        repository.beginTransaction();
         LinkedHashMap<String,A> map = defaultReferences();
         try {
             repository.put(map.get("b2"));
@@ -49,6 +52,7 @@ public class ReferencesTest extends BaseTest {
             assertTrue(true);
         }
         assertFalse(repository.get(map.get("b2").getId(), B.class).isPresent());
+        repository.commit();
     }
 
     /**
@@ -56,10 +60,10 @@ public class ReferencesTest extends BaseTest {
      */
     // @Test
     public void test_referential_integrity_delete_constraint() {
+        repository.beginTransaction();
         LinkedHashMap<String,A> map = defaultReferences();
         for (A a : map.values()) {
             repository.put(a);
-            repository.commit();
         }
         try {
             repository.delete(map.get("a2").getId(), A.class);
@@ -67,6 +71,7 @@ public class ReferencesTest extends BaseTest {
         } catch (DeleteConstraintException e) {
             assertTrue(true);
         }
+        repository.commit();
     }
 
     /**
@@ -75,6 +80,7 @@ public class ReferencesTest extends BaseTest {
      */
     @Test
     public void test_fixing_delete_constraint() {
+        repository.beginTransaction();
         LinkedHashMap<String,A> map = defaultReferences();
 
         // create instance without references and create
@@ -82,7 +88,6 @@ public class ReferencesTest extends BaseTest {
         // to not violate referential integrity
         for (A a : map.values()) {
             repository.put(a);
-            repository.commit();
         }
 
         A instance = map.get("c1");
@@ -91,13 +96,14 @@ public class ReferencesTest extends BaseTest {
         // DeleteConstraintException will rollback this delete
         repository.commit();
         try {
+            repository.beginTransaction();
             instance = map.get("b1");
             repository.delete(instance.getId(), instance.getClass());
             fail("c2 should have a reference to b1");
         } catch (DeleteConstraintException e) {
             repository.rollback();
         }
-
+        repository.beginTransaction();
         instance = map.get("c2");
         repository.delete(instance.getId(), instance.getClass());
 
@@ -107,13 +113,14 @@ public class ReferencesTest extends BaseTest {
         // DeleteConstraintException will rollback this delete
         repository.commit();
         try {
+            repository.beginTransaction();
             instance = map.get("a1");
             repository.delete(instance.getId(), instance.getClass());
             fail("b2 should have a reference to a1");
         } catch (DeleteConstraintException e) {
             repository.rollback();
         }
-
+        repository.beginTransaction();
         instance = map.get("b2");
         repository.delete(instance.getId(), instance.getClass());
         instance = map.get("a1");
@@ -123,7 +130,7 @@ public class ReferencesTest extends BaseTest {
         repository.delete(instance.getId(), instance.getClass());
         instance = map.get("a3");
         repository.delete(instance.getId(), instance.getClass());
-
+        repository.commit();
     }
 
 }

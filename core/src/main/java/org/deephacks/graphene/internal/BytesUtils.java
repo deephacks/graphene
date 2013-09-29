@@ -576,8 +576,8 @@ public class BytesUtils {
      *
      * @param buffer1 left operand
      * @param buffer2 right operand
-     * @param offset1 Where to start comparing in the left buffer
-     * @param offset2 Where to start comparing in the right buffer
+     * @param offset1 Where to beginTransaction comparing in the left buffer
+     * @param offset2 Where to beginTransaction comparing in the right buffer
      * @param length1 How much to compare from the left buffer
      * @param length2 How much to compare from the right buffer
      * @return 0 if equal, < 0 if left is less than right, etc.

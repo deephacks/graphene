@@ -14,21 +14,21 @@ public class Bank {
     private Accounts accounts;
 
     public void transfer(User from, User to, int amount) {
-        Account fromAccount = accounts.getAccount(from);
-        Account toAccount = accounts.getAccount(to);
+        Account fromAccount = accounts.lockAccount(from);
+        Account toAccount = accounts.lockAccount(to);
 
         deposit(toAccount, amount);
         withdraw(fromAccount, amount);
     }
 
     public void deposit(Account account, int amount) {
-        account = accounts.getAccount(account.getUser());
+        account = accounts.lockAccount(account.getUser());
         account.deposit(amount);
         accounts.save(account);
     }
 
     public void withdraw(Account account, int amount) {
-        account = accounts.getAccount(account.getUser());
+        account = accounts.lockAccount(account.getUser());
         account.withdraw(amount);
         accounts.save(account);
     }

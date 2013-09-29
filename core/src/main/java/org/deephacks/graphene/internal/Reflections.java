@@ -43,7 +43,7 @@ public final class Reflections {
     /**
      * Get list superclasses and interfaces recursively.
      *
-     * @param clazz The class to start the search with.
+     * @param clazz The class to beginTransaction the search with.
      *
      * @return List of list super classes and interfaces of {@code clazz}. The list contains the class itself! The empty
      *         list is returned if {@code clazz} is {@code null}.
@@ -57,7 +57,7 @@ public final class Reflections {
     /**
      * Get list superclasses and interfaces recursively.
      *
-     * @param clazz The class to start the search with.
+     * @param clazz The class to beginTransaction the search with.
      * @param classes List of classes to which to add list found super classes and interfaces.
      */
     private static void computeClassHierarchy(Class<?> clazz, List<Class<?>> classes) {

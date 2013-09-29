@@ -58,7 +58,7 @@ public class Bytes {
     /**
     * Reads a big-endian 2-byte short from an offset in the given array.
     * @param b The array to read from.
-    * @param offset The offset in the array to start reading from.
+    * @param offset The offset in the array to beginTransaction reading from.
     * @return A short integer.
     * @throws IndexOutOfBoundsException if the byte array is too small.
     */
@@ -81,7 +81,7 @@ public class Bytes {
     * Reads a big-endian 2-byte unsigned short from an offset in the
     * given array.
     * @param b The array to read from.
-    * @param offset The offset in the array to start reading from.
+    * @param offset The offset in the array to beginTransaction reading from.
     * @return A positive short integer.
     * @throws IndexOutOfBoundsException if the byte array is too small.
     */
@@ -102,7 +102,7 @@ public class Bytes {
     /**
     * Writes a big-endian 2-byte short at an offset in the given array.
     * @param b The array to write to.
-    * @param offset The offset in the array to start writing at.
+    * @param offset The offset in the array to beginTransaction writing at.
     * @throws IndexOutOfBoundsException if the byte array is too small.
     */
     public static void setShort(final byte[] b, final short n, final int offset) {
@@ -134,7 +134,7 @@ public class Bytes {
     /**
     * Reads a big-endian 4-byte integer from an offset in the given array.
     * @param b The array to read from.
-    * @param offset The offset in the array to start reading from.
+    * @param offset The offset in the array to beginTransaction reading from.
     * @return An integer.
     * @throws IndexOutOfBoundsException if the byte array is too small.
     */
@@ -158,7 +158,7 @@ public class Bytes {
     * Reads a big-endian 4-byte unsigned integer from an offset in the
     * given array.
     * @param b The array to read from.
-    * @param offset The offset in the array to start reading from.
+    * @param offset The offset in the array to beginTransaction reading from.
     * @return A positive integer.
     * @throws IndexOutOfBoundsException if the byte array is too small.
     */
@@ -179,7 +179,7 @@ public class Bytes {
     /**
     * Writes a big-endian 4-byte int at an offset in the given array.
     * @param b The array to write to.
-    * @param offset The offset in the array to start writing at.
+    * @param offset The offset in the array to beginTransaction writing at.
     * @throws IndexOutOfBoundsException if the byte array is too small.
     */
     public static void setInt(final byte[] b, final int n, final int offset) {
@@ -213,7 +213,7 @@ public class Bytes {
     /**
     * Reads a big-endian 8-byte long from an offset in the given array.
     * @param b The array to read from.
-    * @param offset The offset in the array to start reading from.
+    * @param offset The offset in the array to beginTransaction reading from.
     * @return A long integer.
     * @throws IndexOutOfBoundsException if the byte array is too small.
     */
@@ -237,7 +237,7 @@ public class Bytes {
     /**
     * Writes a big-endian 8-byte long at an offset in the given array.
     * @param b The array to write to.
-    * @param offset The offset in the array to start writing at.
+    * @param offset The offset in the array to beginTransaction writing at.
     * @throws IndexOutOfBoundsException if the byte array is too small.
     */
     public static void setLong(final byte[] b, final long n, final int offset) {

@@ -37,6 +37,7 @@ public class CdiTest {
 
     @Before
     public void before() {
+        repository.beginTransaction();
         repository.deleteAll(Account.class);
         repository.deleteAll(User.class);
         repository.commit();
@@ -75,6 +76,29 @@ public class CdiTest {
      */
     @Test
     public void test_concurrency() throws InterruptedException {
+        int amount = 1000;
+        bank.deposit(a1, amount);
+        ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() * 4);
+        final CountDownLatch latch = new CountDownLatch(amount);
+        for (int i = 0; i < amount; i++) {
+            executor.execute(new Runnable() {
+                @Override
+                public void run() {
+                    bank.transfer(u1, u2, 1);
+                    latch.countDown();
+                }
+            });
+        }
+        latch.await();
+        assertThat(accounts.getAccount(u1).getBalance(), is(0));
+        assertThat(accounts.getAccount(u2).getBalance(), is(amount));
+    }
+
+    /**
+     * Test that concurrent transfers adds up in the end.
+     */
+    @Test
+    public void test_requires_new_tx() throws InterruptedException {
         int amount = 1000;
         bank.deposit(a1, amount);
         ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() * 4);

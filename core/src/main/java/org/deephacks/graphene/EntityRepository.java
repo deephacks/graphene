@@ -43,6 +43,7 @@ import java.util.Set;
 public class EntityRepository {
     private static final Object WRITE_LOCK = new Object();
     private final Handle<Graphene> graphene = Graphene.get();
+    private final TransactionManager tm = graphene.get().getTransactionManager();
     private final Handle<Database> db;
     private final Handle<SecondaryDatabase> secondary;
 
@@ -52,7 +53,8 @@ public class EntityRepository {
     }
 
     /**
-     * Get an instance from storage according to key and type.
+     * Get an instance from storage and acquire a shared read lock on this instance.
+     * The lock will be held until the transaction commit or rollback.
      *
      * @param key primary key of instance
      * @param entityClass instance type
@@ -60,13 +62,30 @@ public class EntityRepository {
      * @return the instance if it exist, otherwise absent
      */
     public <E> Optional<E> get(Object key, Class<E> entityClass) {
-        Optional<byte[][]> optional = getKv(key, entityClass);
+        Optional<byte[][]> optional = getKv(key, entityClass, LockMode.READ_COMMITTED);
         if (optional.isPresent()) {
             return Optional.fromNullable((E) getSerializer(entityClass).deserializeEntity(optional.get()));
         }
         return Optional.absent();
     }
 
+    /**
+     * Get instance from storage according and acquire an exclusive write lock on this instance.
+     * The lock will be held until the transaction commit or rollback.
+     *
+     * @param key primary key of instance
+     * @param entityClass instance type
+     * @param <E> instance type
+     * @return the instance if it exist, otherwise absent
+     *
+     */
+    public <E> Optional<E> getForUpdate(Object key, Class<E> entityClass) {
+        Optional<byte[][]> optional = getKv(key, entityClass, LockMode.RMW);
+        if (optional.isPresent()) {
+            return Optional.fromNullable((E) getSerializer(entityClass).deserializeEntity(optional.get()));
+        }
+        return Optional.absent();
+    }
     /**
      * Put provided instance in storage, overwrite if instance already exist.
      *
@@ -123,7 +142,7 @@ public class EntityRepository {
      */
     public <E> Optional<E> delete(Object key, Class<E> entityClass) throws DeleteConstraintException {
         synchronized (WRITE_LOCK) {
-            final Optional<byte[][]> optional = getKv(key, entityClass);
+            final Optional<byte[][]> optional = getKv(key, entityClass, LockMode.RMW);
             if(!optional.isPresent()) {
                 return Optional.absent();
             }
@@ -196,34 +215,47 @@ public class EntityRepository {
     }
 
     /**
+     * @return the current transaction manager
+     */
+    public TransactionManager getTransactionManager() {
+        return tm;
+    }
+
+    /**
+     * Start a transaction.
+     */
+    public void beginTransaction() {
+        tm.beginTransaction();
+    }
+
+    /**
      * Get the current transaction associated with this thread or create a new one.
      *
      * @return the transaction.
      */
     public Transaction getTx() {
-        return graphene.get().getTx();
+        return tm.peek();
     }
-
 
     /**
      * Commit the transaction associated with the current thread.
      */
     public void commit() {
-        graphene.get().commit();
+        tm.commit();
     }
 
     /**
      * Rollback the transaction associated with the current thread.
      */
     public void rollback() {
-        graphene.get().abort();
+        tm.rollback();
     }
 
-    private <E> Optional<byte[][]> getKv(Object key, Class<E> entityClass) {
+    private <E> Optional<byte[][]> getKv(Object key, Class<E> entityClass, LockMode mode) {
         byte[] dataKey = getSerializer(entityClass).serializeRowKey(new RowKey(entityClass, key));
         DatabaseEntry entryKey = new DatabaseEntry(dataKey);
         DatabaseEntry entryValue = new DatabaseEntry();
-        if (OperationStatus.SUCCESS == db.get().get(getTx(), entryKey, entryValue, LockMode.RMW)) {
+        if (OperationStatus.SUCCESS == db.get().get(getTx(), entryKey, entryValue, mode)) {
             byte[][] kv = new byte[][]{ entryKey.getData(), entryValue.getData()};
             return Optional.fromNullable(kv);
         }

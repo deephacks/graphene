@@ -28,6 +28,7 @@ public class BaseTest {
 
     @Before
     public void before() {
+        repository.beginTransaction();
         UniqueIds ids = new UniqueIds();
         repository.deleteAll(C.class);
         repository.deleteAll(B.class);

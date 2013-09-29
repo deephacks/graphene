@@ -20,6 +20,7 @@ public class SelectTest extends BaseTest {
      */
     @Test
     public void test_select_all() {
+        repository.beginTransaction();
         int numInstances = 10;
         for (int i = 0; i < numInstances; i++) {
             repository.put(defaultValues("a" + i, A.class));
@@ -29,6 +30,7 @@ public class SelectTest extends BaseTest {
         assertSelectAll(A.class, "a", numInstances);
         assertSelectAll(B.class, "b", numInstances);
         assertSelectAll(C.class, "c", numInstances);
+        repository.commit();
     }
 
     /**
@@ -36,6 +38,7 @@ public class SelectTest extends BaseTest {
      */
     @Test
     public void test_select_single_embedded() {
+        repository.beginTransaction();
         int numInstances = 10;
         String value = UUID.randomUUID().toString();
         ArrayList<A> instances = new ArrayList<>();
@@ -52,6 +55,7 @@ public class SelectTest extends BaseTest {
                 assertReflectionEquals(expected, objects.get(i), LENIENT_ORDER);
             }
         }
+        repository.commit();
     }
 
     /**
@@ -60,6 +64,7 @@ public class SelectTest extends BaseTest {
      */
     @Test
     public void test_select_min_max() {
+        repository.beginTransaction();
         int numInstances = 10;
         for (int i = 0; i < numInstances; i++) {
             repository.put(defaultValues("a" + i, A.class));
@@ -75,6 +80,7 @@ public class SelectTest extends BaseTest {
             assertReflectionEquals(defaultValues("b5", B.class), result.get(2), LENIENT_ORDER);
             assertReflectionEquals(defaultValues("b6", B.class), result.get(3), LENIENT_ORDER);
         }
+        repository.commit();
     }
 
     /**
@@ -83,6 +89,7 @@ public class SelectTest extends BaseTest {
      */
     @Test
     public void test_select_min_max_and_max_results() {
+        repository.beginTransaction();
         int numInstances = 10;
         // reverse order which instances are inserted to check that sorted order is respected
         for (int i = 0; i < numInstances; i++) {
@@ -97,6 +104,7 @@ public class SelectTest extends BaseTest {
         // assert in key sort (not insert) order and that only two first result is returned
         assertReflectionEquals(defaultValues("b3", B.class), result.get(0), LENIENT_ORDER);
         assertReflectionEquals(defaultValues("b4", B.class), result.get(1), LENIENT_ORDER);
+        repository.commit();
     }
 
     /**
@@ -104,6 +112,7 @@ public class SelectTest extends BaseTest {
      */
     @Test
     public void test_select_or_predicate() {
+        repository.beginTransaction();
         A a1 = defaultValues("a1", A.class);
         a1.setStringValue("v1");
         if (!repository.put(a1)) {
@@ -120,6 +129,7 @@ public class SelectTest extends BaseTest {
             List<A> result = Lists.newArrayList(resultSet);
             assertThat(result.size(), is(2));
         }
+        repository.commit();
     }
 
     /**
@@ -127,6 +137,7 @@ public class SelectTest extends BaseTest {
      */
     @Test
     public void test_select_not_predicate() {
+        repository.beginTransaction();
         A a1 = defaultValues("a1", A.class);
         a1.setStringValue("v1");
         repository.put(a1);
@@ -142,6 +153,7 @@ public class SelectTest extends BaseTest {
             assertThat(result.size(), is(1));
             assertReflectionEquals(a3, result.get(0), LENIENT_ORDER);
         }
+        repository.commit();
     }
 
     /**
@@ -149,6 +161,7 @@ public class SelectTest extends BaseTest {
      */
     @Test
     public void test_select_and_predicate() {
+        repository.beginTransaction();
         A a1 = defaultValues("a1", A.class);
         a1.setStringValue("v1");
         repository.put(a1);
@@ -162,6 +175,7 @@ public class SelectTest extends BaseTest {
             List<A> result = Lists.newArrayList(resultSet);
             assertThat(result.size(), is(1));
         }
+        repository.commit();
     }
 
     /**
@@ -169,6 +183,7 @@ public class SelectTest extends BaseTest {
      */
     @Test
     public void test_select_min_max_and_max_results_predicate() {
+        repository.beginTransaction();
         int numInstances = 10;
         // reverse order which instances are inserted to check that sorted order is respected
         for (int i = 0; i < numInstances; i++) {
@@ -189,6 +204,7 @@ public class SelectTest extends BaseTest {
         B b4 = defaultValues("b4", B.class);
         b4.setStringValue("b4");
         assertReflectionEquals(b4, result.get(0), LENIENT_ORDER);
+        repository.commit();
     }
 
     /**
@@ -196,6 +212,7 @@ public class SelectTest extends BaseTest {
      */
     @Test
     public void test_select_predicate_outside_min_max() {
+        repository.beginTransaction();
         int numInstances = 10;
         // reverse order which instances are inserted to check that sorted order is respected
         for (int i = numInstances; i > -1; i--) {
@@ -213,6 +230,7 @@ public class SelectTest extends BaseTest {
         List<B> result = Lists.newArrayList(resultSet);
         resultSet.close();
         assertThat(result.size(), is(0));
+        repository.commit();
     }
 
     private void assertSelectAll(Class<? extends A> entityClass, String prefix, int numInstances) {

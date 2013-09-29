@@ -65,7 +65,7 @@ public abstract class ResultSet<T> implements Iterable<T>, Closeable {
                 this.key.setData(this.first);
                 value = new DatabaseEntry();
             }
-            cursor.getSearchKeyRange(key, value, LockMode.DEFAULT);
+            cursor.getSearchKeyRange(key, value, LockMode.RMW);
             if (last != null) {
                 this.last = serializer.serializeRowKey(new RowKey(entityClass, last));
             } else {
@@ -107,7 +107,7 @@ public abstract class ResultSet<T> implements Iterable<T>, Closeable {
                             return true;
                         }
                         value = new DatabaseEntry();
-                        boolean success = cursor.getNextNoDup(key, value, LockMode.DEFAULT) == OperationStatus.SUCCESS;
+                        boolean success = cursor.getNextNoDup(key, value, LockMode.RMW) == OperationStatus.SUCCESS;
                         if (!FastKeyComparator.withinKeyRange(key.getData(), first, last)) {
                             return false;
                         }
