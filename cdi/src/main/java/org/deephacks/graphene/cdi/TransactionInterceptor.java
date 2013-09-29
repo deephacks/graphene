@@ -18,16 +18,18 @@ class TransactionInterceptor implements Serializable {
         try {
             boolean initalTx = ThreadLocalManager.peek(com.sleepycat.je.Transaction.class) == null;
             if (initalTx) {
-                ThreadLocalManager.push(com.sleepycat.je.Transaction.class, repository.getTx());
+                com.sleepycat.je.Transaction tx = repository.getTx();
+                ThreadLocalManager.push(com.sleepycat.je.Transaction.class, tx);
             }
             Object result = ic.proceed();
             if (initalTx) {
-                ThreadLocalManager.clear(com.sleepycat.je.Transaction.class);
+                ThreadLocalManager.pop(com.sleepycat.je.Transaction.class);
                 repository.commit();
             }
             return result;
-        } catch (Exception e) {
+        } catch (Throwable e) {
             try {
+                ThreadLocalManager.pop(com.sleepycat.je.Transaction.class);
                 repository.rollback();
             } catch (Exception e1) {
                 throw new IllegalStateException(e1);

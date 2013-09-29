@@ -24,7 +24,7 @@ public class DatabaseWrapper {
         Transaction tx = graphene.get().getTx();
         DatabaseEntry dbKey = new DatabaseEntry(key);
         DatabaseEntry dbValue = new DatabaseEntry();
-        if (OperationStatus.NOTFOUND == db.get().get(tx, dbKey, dbValue, LockMode.DEFAULT)) {
+        if (OperationStatus.NOTFOUND == db.get().get(tx, dbKey, dbValue, LockMode.RMW)) {
             return Optional.absent();
         }
         return Optional.fromNullable(dbValue.getData());
@@ -45,11 +45,11 @@ public class DatabaseWrapper {
         try(Cursor cursor = db.get().openCursor(graphene.get().getTx(), null)) {
             DatabaseEntry firstKey = new DatabaseEntry(RowKey.getMinId().getKey());
             DatabaseEntry entry = new DatabaseEntry();
-            if (cursor.getSearchKeyRange(firstKey, entry, LockMode.DEFAULT) == OperationStatus.SUCCESS) {
+            if (cursor.getSearchKeyRange(firstKey, entry, LockMode.RMW) == OperationStatus.SUCCESS) {
                 map.put(firstKey.getData(), entry.getData());
             }
 
-            while (cursor.getNextNoDup(firstKey, entry, LockMode.DEFAULT) == OperationStatus.SUCCESS) {
+            while (cursor.getNextNoDup(firstKey, entry, LockMode.RMW) == OperationStatus.SUCCESS) {
                 map.put(firstKey.getData(), entry.getData());
             }
         }
@@ -60,15 +60,13 @@ public class DatabaseWrapper {
         try(Cursor cursor = db.get().openCursor(graphene.get().getTx(), null)) {
             DatabaseEntry firstKey = new DatabaseEntry(RowKey.getMinId().getKey());
 
-            if (cursor.getSearchKeyRange(firstKey, new DatabaseEntry(), LockMode.DEFAULT) == OperationStatus.SUCCESS) {
+            if (cursor.getSearchKeyRange(firstKey, new DatabaseEntry(), LockMode.RMW) == OperationStatus.SUCCESS) {
                 cursor.delete();
             }
 
-            while (cursor.getNextNoDup(firstKey, new DatabaseEntry(), LockMode.DEFAULT) == OperationStatus.SUCCESS) {
+            while (cursor.getNextNoDup(firstKey, new DatabaseEntry(), LockMode.RMW) == OperationStatus.SUCCESS) {
                 cursor.delete();
             }
         }
     }
-
-
 }

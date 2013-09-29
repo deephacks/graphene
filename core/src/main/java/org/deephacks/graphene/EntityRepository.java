@@ -121,7 +121,7 @@ public class EntityRepository {
      * @return the instance if it was deleted, otherwise absent
      * @throws DeleteConstraintException if another instance have a reference on the deleted instance
      */
-    public synchronized <E> Optional<E> delete(Object key, Class<E> entityClass) throws DeleteConstraintException {
+    public <E> Optional<E> delete(Object key, Class<E> entityClass) throws DeleteConstraintException {
         synchronized (WRITE_LOCK) {
             final Optional<byte[][]> optional = getKv(key, entityClass);
             if(!optional.isPresent()) {
@@ -163,14 +163,14 @@ public class EntityRepository {
                     byte[] firstKey = RowKey.getMinId(entityClass).getKey();
                     byte[] lastKey = RowKey.getMaxId(entityClass).getKey();
                     DatabaseEntry keyEntry = new DatabaseEntry(firstKey);
-                    if (cursor.getSearchKeyRange(keyEntry, new DatabaseEntry(), LockMode.DEFAULT) == OperationStatus.SUCCESS) {
+                    if (cursor.getSearchKeyRange(keyEntry, new DatabaseEntry(), LockMode.RMW) == OperationStatus.SUCCESS) {
                         // important; we must respect the class prefix boundaries of the key
                         if (!FastKeyComparator.withinKeyRange(keyEntry.getData(), firstKey, lastKey)) {
                             return;
                         }
                         cursor.delete();
                     }
-                    while (cursor.getNextNoDup(keyEntry, new DatabaseEntry(), LockMode.DEFAULT) == OperationStatus.SUCCESS) {
+                    while (cursor.getNextNoDup(keyEntry, new DatabaseEntry(), LockMode.RMW) == OperationStatus.SUCCESS) {
                         // important; we must respect the class prefix boundaries of the key
                         if (!FastKeyComparator.withinKeyRange(keyEntry.getData(), firstKey, lastKey)) {
                             return;
@@ -223,7 +223,7 @@ public class EntityRepository {
         byte[] dataKey = getSerializer(entityClass).serializeRowKey(new RowKey(entityClass, key));
         DatabaseEntry entryKey = new DatabaseEntry(dataKey);
         DatabaseEntry entryValue = new DatabaseEntry();
-        if (OperationStatus.SUCCESS == db.get().get(getTx(), entryKey, entryValue, LockMode.READ_COMMITTED)) {
+        if (OperationStatus.SUCCESS == db.get().get(getTx(), entryKey, entryValue, LockMode.RMW)) {
             byte[][] kv = new byte[][]{ entryKey.getData(), entryValue.getData()};
             return Optional.fromNullable(kv);
         }

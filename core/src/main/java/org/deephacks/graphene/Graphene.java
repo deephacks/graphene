@@ -23,6 +23,7 @@ import org.deephacks.graphene.internal.UniqueIds;
 import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 public class Graphene {
     private static final Handle<Graphene> INSTANCE = new Handle<>();
@@ -66,6 +67,7 @@ public class Graphene {
         envConfig.setAllowCreate(true);
         envConfig.setTransactional(true);
         envConfig.setDurability(Durability.COMMIT_SYNC);
+        envConfig.setLockTimeout(1, TimeUnit.SECONDS);
         System.out.println(DEFAULT_ENV_FILE.getAbsolutePath());
         env = new Environment(DEFAULT_ENV_FILE, envConfig);
     }
@@ -250,7 +252,6 @@ public class Graphene {
             TransactionConfig c = new TransactionConfig();
             c.setNoWait(true);
             tx = env.beginTransaction(null, null);
-
             TX.set(tx);
         }
         return tx;

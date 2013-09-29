@@ -149,60 +149,6 @@ public class TxTest extends BaseTest {
     }
 
     /**
-     * Check that two different read transactions does not compete for same lock.
-     */
-    @Test
-    public void test_tx_read_concurrency() throws Exception {
-        for (int i = 0; i < 2; i++) {
-            final CountDownLatch latch = new CountDownLatch(2);
-            final SynchronousQueue<String> queue = new SynchronousQueue<>();
-            repository.put(defaultValues("a", A.class));
-            repository.commit();
-            failure = null;
-            Thread t1 = new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        repository.get("a", A.class);
-                        queue.put("wake up");
-                        // if there was a lock conflict t2 would get a
-                        // timeout long before this sleep returns.
-                        Thread.sleep(1000);
-                        repository.commit();
-                    } catch (Exception e) {
-                        failure = e;
-                        throw new RuntimeException(e);
-                    } finally {
-                        latch.countDown();
-                    }
-                }
-            }, "Thread 1");
-            Thread t2 = new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        queue.take();
-                        repository.get("a", A.class);
-                        repository.commit();
-                    } catch (Exception e) {
-                        failure = e;
-                        throw new RuntimeException(e);
-                    } finally {
-                        latch.countDown();
-                    }
-                }
-            }, "Thread 2");
-            t1.start();
-            t2.start();
-            latch.await();
-            if (failure != null) {
-                throw failure;
-            }
-        }
-    }
-
-
-    /**
      * Test that highly concurrent transactions does not break when accessing the same entity.
      */
     @Test
