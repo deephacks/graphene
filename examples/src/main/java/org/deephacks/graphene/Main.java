@@ -3,14 +3,24 @@ package org.deephacks.graphene;
 import org.jboss.weld.environment.se.Weld;
 
 import javax.enterprise.inject.spi.CDI;
+import javax.inject.Inject;
 import java.util.List;
 
 public class Main {
+
+    @Inject
+    private PersonService personService;
+
+    @Inject
+    private CountryService countryService;
+
     public static void main(String[] args) {
         startCdi();
-        PersonService personService = CDI.current().select(PersonService.class).get();
-        CountryService countryService = CDI.current().select(CountryService.class).get();
+        Main main = CDI.current().select(Main.class).get();
+        main.run();
+    }
 
+    void run() {
         Country country = new Country("Sweden");
         countryService.create(country);
 
@@ -18,9 +28,10 @@ public class Main {
         personService.create(person);
         List<Person> persons = personService.selectSurname("Sjögren");
         System.out.println(persons);
+
     }
 
-    public static void startCdi() {
+    static void startCdi() {
         final Weld weld = new Weld();
         weld.initialize();
 
@@ -35,39 +46,4 @@ public class Main {
             }
         });
     }
-
-    static class ShutdownHook {
-
-        static void install(final Thread threadToJoin) {
-            Thread thread = new ShutdownHookThread(threadToJoin);
-            Runtime.getRuntime().addShutdownHook(thread);
-        }
-
-        private static class ShutdownHookThread extends Thread {
-            private final Thread threadToJoin;
-
-            private ShutdownHookThread(final Thread threadToJoin) {
-                super("ShutdownHook: " + threadToJoin.getName());
-                this.threadToJoin = threadToJoin;
-            }
-
-            @Override
-            public void run() {
-                shutdown(threadToJoin, 30000);
-            }
-        }
-
-        public static void shutdown(final Thread t, final long joinwait) {
-            if (t == null)
-                return;
-            t.start();
-            while (t.isAlive()) {
-                try {
-                    t.join(joinwait);
-                } catch (InterruptedException e) {
-                }
-            }
-        }
-    }
-
 }
