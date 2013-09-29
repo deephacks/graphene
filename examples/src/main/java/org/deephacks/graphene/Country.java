@@ -9,6 +9,10 @@ public class Country {
         this.country = country;
     }
 
+    public String getCountry() {
+        return country;
+    }
+
     @Override
     public String toString() {
         return "Country{" +

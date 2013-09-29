@@ -1,4 +1,4 @@
-package org.deephacks.graphene.manual.eniro;
+package org.deephacks.graphene.eniro;
 
 import com.google.common.base.Charsets;
 import com.google.common.base.Strings;

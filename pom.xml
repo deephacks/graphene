@@ -69,6 +69,7 @@
 
   <modules>
     <module>core</module>
+    <module>cdi</module>
     <module>examples</module>
   </modules>
 
@@ -227,6 +228,12 @@
       <dependency>
         <groupId>org.deephacks</groupId>
         <artifactId>graphene-core</artifactId>
+        <version>${version.graphene}</version>
+        <scope>compile</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.deephacks</groupId>
+        <artifactId>graphene-cdi</artifactId>
         <version>${version.graphene}</version>
         <scope>compile</scope>
       </dependency>

@@ -11,7 +11,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.deephacks.graphene.manual.eniro;
+package org.deephacks.graphene.eniro;
 
 import com.google.common.io.CharStreams;
 import com.google.common.io.Closeables;
