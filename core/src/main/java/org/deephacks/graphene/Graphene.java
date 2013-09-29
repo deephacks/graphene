@@ -13,6 +13,7 @@ import com.sleepycat.je.SecondaryDatabase;
 import com.sleepycat.je.Sequence;
 import com.sleepycat.je.SequenceConfig;
 import com.sleepycat.je.Transaction;
+import com.sleepycat.je.TransactionConfig;
 import org.deephacks.graphene.EntityRepository.KeyCreator;
 import org.deephacks.graphene.internal.FastKeyComparator;
 import org.deephacks.graphene.internal.Serializer;
@@ -45,6 +46,7 @@ public class Graphene {
     private static final Handle<Database> sequence = new Handle<>();
     private DatabaseConfig sequenceConfig;
     private String sequenceName = "graphene.sequence";
+    private static Sequence SEQUENCE;
 
     private static final Handle<Database> schemas = new Handle<>();
     private static final String schemaName = "graphene.schema";
@@ -184,9 +186,12 @@ public class Graphene {
     public long increment(byte[] key) {
         SequenceConfig config = new SequenceConfig();
         config.setAllowCreate(true);
-        try(Sequence sequence = getSequence().get().openSequence(getTx(), new DatabaseEntry(key), config)) {
-            return sequence.get(getTx(), 1);
+        if (SEQUENCE == null) {
+            synchronized (INSTANCE) {
+                SEQUENCE = getSequence().get().openSequence(getTx(), new DatabaseEntry(key), config);
+            }
         }
+        return SEQUENCE.get(getTx(), 1);
     }
 
     public Handle<Database> getSchemas() {
@@ -242,7 +247,10 @@ public class Graphene {
     public Transaction getTx() {
         Transaction tx = TX.get();
         if (tx == null) {
+            TransactionConfig c = new TransactionConfig();
+            c.setNoWait(true);
             tx = env.beginTransaction(null, null);
+
             TX.set(tx);
         }
         return tx;
@@ -279,6 +287,7 @@ public class Graphene {
         secondary.set(null);
         schemas.set(null);
         instances.set(null);
+        SEQUENCE.close();
     }
 
     public void closeAndDelete() {

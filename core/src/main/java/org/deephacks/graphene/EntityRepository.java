@@ -41,6 +41,7 @@ import java.util.Set;
  * EntityRepository will never commit or rollback a transactions.
  */
 public class EntityRepository {
+    private static final Object WRITE_LOCK = new Object();
     private final Handle<Graphene> graphene = Graphene.get();
     private final Handle<Database> db;
     private final Handle<SecondaryDatabase> secondary;
@@ -48,7 +49,6 @@ public class EntityRepository {
     public EntityRepository() {
         this.db = graphene.get().getPrimary();
         this.secondary = graphene.get().getSecondary();
-
     }
 
     /**
@@ -60,11 +60,11 @@ public class EntityRepository {
      * @return the instance if it exist, otherwise absent
      */
     public <E> Optional<E> get(Object key, Class<E> entityClass) {
-            Optional<byte[][]> optional = getKv(key, entityClass);
-            if (optional.isPresent()) {
-                return Optional.fromNullable((E) getSerializer(entityClass).deserializeEntity(optional.get()));
-            }
-            return Optional.absent();
+        Optional<byte[][]> optional = getKv(key, entityClass);
+        if (optional.isPresent()) {
+            return Optional.fromNullable((E) getSerializer(entityClass).deserializeEntity(optional.get()));
+        }
+        return Optional.absent();
     }
 
     /**
@@ -75,18 +75,20 @@ public class EntityRepository {
      * @return true if writing the instance was successful
      */
     public <E> boolean put(E entity) {
-        Preconditions.checkNotNull(entity);
-        Class<?> entityClass = entity.getClass();
-        byte[][] data = getSerializer(entityClass).serializeEntity(entity);
-        if (data == null || data.length != 2) {
-            throw new IllegalArgumentException("Could not serialize entity");
+        synchronized (WRITE_LOCK) {
+            Preconditions.checkNotNull(entity);
+            Class<?> entityClass = entity.getClass();
+            byte[][] data = getSerializer(entityClass).serializeEntity(entity);
+            if (data == null || data.length != 2) {
+                throw new IllegalArgumentException("Could not serialize entity");
+            }
+            DatabaseEntry key = new DatabaseEntry(data[0]);
+            DatabaseEntry value = new DatabaseEntry(data[1]);
+            if (OperationStatus.SUCCESS != db.get().put(getTx(), key, value)) {
+                return false;
+            }
+            return true;
         }
-        DatabaseEntry key = new DatabaseEntry(data[0]);
-        DatabaseEntry value = new DatabaseEntry(data[1]);
-        if (OperationStatus.SUCCESS != db.get().put(getTx(), key, value)) {
-            return false;
-        }
-        return true;
     }
 
     /**
@@ -97,15 +99,17 @@ public class EntityRepository {
      * @return true if the instance did not exist, false otherwise.
      */
     public <E> boolean putNoOverwrite(E entity) {
-        Preconditions.checkNotNull(entity);
-        Class<?> entityClass = entity.getClass();
-        byte[][] data = getSerializer(entityClass).serializeEntity(entity);
-        if (data == null || data.length != 2) {
-            throw new IllegalArgumentException("Could not serialize entity");
+        synchronized (WRITE_LOCK) {
+            Preconditions.checkNotNull(entity);
+            Class<?> entityClass = entity.getClass();
+            byte[][] data = getSerializer(entityClass).serializeEntity(entity);
+            if (data == null || data.length != 2) {
+                throw new IllegalArgumentException("Could not serialize entity");
+            }
+            DatabaseEntry key = new DatabaseEntry(data[0]);
+            DatabaseEntry value = new DatabaseEntry(data[1]);
+            return OperationStatus.SUCCESS == db.get().putNoOverwrite(getTx(), key, value);
         }
-        DatabaseEntry key = new DatabaseEntry(data[0]);
-        DatabaseEntry value = new DatabaseEntry(data[1]);
-        return OperationStatus.SUCCESS == db.get().putNoOverwrite(getTx(), key, value);
     }
 
     /**
@@ -117,20 +121,22 @@ public class EntityRepository {
      * @return the instance if it was deleted, otherwise absent
      * @throws DeleteConstraintException if another instance have a reference on the deleted instance
      */
-    public <E> Optional<E> delete(Object key, Class<E> entityClass) throws DeleteConstraintException {
-        final Optional<byte[][]> optional = getKv(key, entityClass);
-        if(!optional.isPresent()) {
-            return Optional.absent();
-        }
-        try {
-            OperationStatus status = db.get().delete(getTx(), new DatabaseEntry(optional.get()[0]));
-            if (status == OperationStatus.NOTFOUND) {
+    public synchronized <E> Optional<E> delete(Object key, Class<E> entityClass) throws DeleteConstraintException {
+        synchronized (WRITE_LOCK) {
+            final Optional<byte[][]> optional = getKv(key, entityClass);
+            if(!optional.isPresent()) {
                 return Optional.absent();
             }
-            return  Optional.fromNullable((E) getSerializer(entityClass).deserializeEntity(optional.get()));
-        } catch (DeleteConstraintException e) {
-            throw new org.deephacks.graphene.DeleteConstraintException(
-                    new RowKey(e.getPrimaryKey().getData()) + " have a reference to " + new RowKey(e.getSecondaryKey().getData()), e);
+            try {
+                OperationStatus status = db.get().delete(getTx(), new DatabaseEntry(optional.get()[0]));
+                if (status == OperationStatus.NOTFOUND) {
+                    return Optional.absent();
+                }
+                return  Optional.fromNullable((E) getSerializer(entityClass).deserializeEntity(optional.get()));
+            } catch (DeleteConstraintException e) {
+                throw new org.deephacks.graphene.DeleteConstraintException(
+                        new RowKey(e.getPrimaryKey().getData()) + " have a reference to " + new RowKey(e.getSecondaryKey().getData()), e);
+            }
         }
     }
 
@@ -151,29 +157,31 @@ public class EntityRepository {
     }
 
     public void deleteAll(Class<?> entityClass) {
-        try {
-            try(Cursor cursor = openPrimaryCursor()) {
-                byte[] firstKey = RowKey.getMinId(entityClass).getKey();
-                byte[] lastKey = RowKey.getMaxId(entityClass).getKey();
-                DatabaseEntry keyEntry = new DatabaseEntry(firstKey);
-                if (cursor.getSearchKeyRange(keyEntry, new DatabaseEntry(), LockMode.DEFAULT) == OperationStatus.SUCCESS) {
-                    // important; we must respect the class prefix boundaries of the key
-                    if (!FastKeyComparator.withinKeyRange(keyEntry.getData(), firstKey, lastKey)) {
-                        return;
+        synchronized (WRITE_LOCK) {
+            try {
+                try(Cursor cursor = openPrimaryCursor()) {
+                    byte[] firstKey = RowKey.getMinId(entityClass).getKey();
+                    byte[] lastKey = RowKey.getMaxId(entityClass).getKey();
+                    DatabaseEntry keyEntry = new DatabaseEntry(firstKey);
+                    if (cursor.getSearchKeyRange(keyEntry, new DatabaseEntry(), LockMode.DEFAULT) == OperationStatus.SUCCESS) {
+                        // important; we must respect the class prefix boundaries of the key
+                        if (!FastKeyComparator.withinKeyRange(keyEntry.getData(), firstKey, lastKey)) {
+                            return;
+                        }
+                        cursor.delete();
                     }
-                    cursor.delete();
-                }
-                while (cursor.getNextNoDup(keyEntry, new DatabaseEntry(), LockMode.DEFAULT) == OperationStatus.SUCCESS) {
-                    // important; we must respect the class prefix boundaries of the key
-                    if (!FastKeyComparator.withinKeyRange(keyEntry.getData(), firstKey, lastKey)) {
-                        return;
+                    while (cursor.getNextNoDup(keyEntry, new DatabaseEntry(), LockMode.DEFAULT) == OperationStatus.SUCCESS) {
+                        // important; we must respect the class prefix boundaries of the key
+                        if (!FastKeyComparator.withinKeyRange(keyEntry.getData(), firstKey, lastKey)) {
+                            return;
+                        }
+                        cursor.delete();
                     }
-                    cursor.delete();
                 }
+            } catch (DeleteConstraintException e) {
+                throw new org.deephacks.graphene.DeleteConstraintException(
+                        new RowKey(e.getPrimaryKey().getData()) + " have a reference to " + new RowKey(e.getSecondaryKey().getData()), e);
             }
-        } catch (DeleteConstraintException e) {
-            throw new org.deephacks.graphene.DeleteConstraintException(
-                    new RowKey(e.getPrimaryKey().getData()) + " have a reference to " + new RowKey(e.getSecondaryKey().getData()), e);
         }
     }
 
