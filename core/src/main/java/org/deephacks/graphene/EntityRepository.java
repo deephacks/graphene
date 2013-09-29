@@ -26,9 +26,9 @@ import com.sleepycat.je.SecondaryDatabase;
 import com.sleepycat.je.SecondaryMultiKeyCreator;
 import com.sleepycat.je.Transaction;
 import org.deephacks.graphene.Query.DefaultQuery;
-import org.deephacks.graphene.internal.BytesUtils;
 import org.deephacks.graphene.internal.EntityClassWrapper;
 import org.deephacks.graphene.internal.EntityClassWrapper.EntityFieldWrapper;
+import org.deephacks.graphene.internal.FastKeyComparator;
 import org.deephacks.graphene.internal.RowKey;
 import org.deephacks.graphene.internal.Serializer;
 import org.deephacks.graphene.internal.UniqueIds;
@@ -158,15 +158,14 @@ public class EntityRepository {
                 DatabaseEntry keyEntry = new DatabaseEntry(firstKey);
                 if (cursor.getSearchKeyRange(keyEntry, new DatabaseEntry(), LockMode.DEFAULT) == OperationStatus.SUCCESS) {
                     // important; we must respect the class prefix boundaries of the key
-                    System.out.println(new RowKey(keyEntry.getData()));
-                    if (!withinKeyRange(keyEntry.getData(), firstKey, lastKey)) {
+                    if (!FastKeyComparator.withinKeyRange(keyEntry.getData(), firstKey, lastKey)) {
                         return;
                     }
                     cursor.delete();
                 }
                 while (cursor.getNextNoDup(keyEntry, new DatabaseEntry(), LockMode.DEFAULT) == OperationStatus.SUCCESS) {
                     // important; we must respect the class prefix boundaries of the key
-                    if (!withinKeyRange(keyEntry.getData(), firstKey, lastKey)) {
+                    if (!FastKeyComparator.withinKeyRange(keyEntry.getData(), firstKey, lastKey)) {
                         return;
                     }
                     cursor.delete();
@@ -221,16 +220,6 @@ public class EntityRepository {
             return Optional.fromNullable(kv);
         }
         return Optional.absent();
-    }
-
-    private boolean withinKeyRange(byte[] key, byte[] firstKey, byte[] lastKey) {
-        if (BytesUtils.compareTo(firstKey, 0, firstKey.length, key, 0, key.length) > 0) {
-            return false;
-        }
-        if (BytesUtils.compareTo(lastKey, 0, lastKey.length, key, 0, key.length) < 0) {
-            return false;
-        }
-        return true;
     }
 
     Cursor openPrimaryCursor() {

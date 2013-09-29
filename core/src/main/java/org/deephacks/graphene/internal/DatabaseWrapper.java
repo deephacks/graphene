@@ -10,6 +10,9 @@ import com.sleepycat.je.Transaction;
 import org.deephacks.graphene.Graphene;
 import org.deephacks.graphene.Handle;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class DatabaseWrapper {
     private final Handle<Graphene> graphene = Graphene.get();
     private final Handle<Database> db;
@@ -37,6 +40,22 @@ public class DatabaseWrapper {
         return true;
     }
 
+    public Map<byte[], byte[]> listAll() {
+        Map<byte[], byte[]> map = new HashMap<>();
+        try(Cursor cursor = db.get().openCursor(graphene.get().getTx(), null)) {
+            DatabaseEntry firstKey = new DatabaseEntry(RowKey.getMinId().getKey());
+            DatabaseEntry entry = new DatabaseEntry();
+            if (cursor.getSearchKeyRange(firstKey, entry, LockMode.DEFAULT) == OperationStatus.SUCCESS) {
+                map.put(firstKey.getData(), entry.getData());
+            }
+
+            while (cursor.getNextNoDup(firstKey, entry, LockMode.DEFAULT) == OperationStatus.SUCCESS) {
+                map.put(firstKey.getData(), entry.getData());
+            }
+        }
+        return map;
+    }
+
     public void deleteAll() {
         try(Cursor cursor = db.get().openCursor(graphene.get().getTx(), null)) {
             DatabaseEntry firstKey = new DatabaseEntry(RowKey.getMinId().getKey());
@@ -50,4 +69,6 @@ public class DatabaseWrapper {
             }
         }
     }
+
+
 }

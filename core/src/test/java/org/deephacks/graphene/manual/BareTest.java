@@ -13,6 +13,7 @@ import org.deephacks.graphene.BaseTest.B;
 import org.deephacks.graphene.BaseTest.C;
 import org.deephacks.graphene.internal.FastKeyComparator;
 import org.deephacks.graphene.internal.RowKey;
+import org.deephacks.graphene.internal.UniqueIds;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -25,6 +26,9 @@ import java.util.List;
  */
 public class BareTest {
     public static void main(String[] args) {
+        UniqueIds ids = new UniqueIds();
+        ids.listSchemas();
+
         EnvironmentConfig envConfig = new EnvironmentConfig();
         envConfig.setAllowCreate(true);
         envConfig.setTransactional(true);

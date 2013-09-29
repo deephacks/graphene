@@ -20,7 +20,6 @@ import org.deephacks.graphene.internal.Serializer.UnsafeSerializer;
 import org.deephacks.graphene.internal.UniqueIds;
 
 import java.io.File;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -53,7 +52,7 @@ public class Graphene {
     private static final Handle<Database> instances = new Handle<>();
     private static final String instanceName = "graphene.instance";
 
-    private final Map<Integer, Handle<Sequence>> sequences = new HashMap<>();
+    private static final Map<Integer, Handle<Sequence>> sequences = new HashMap<>();
 
     private Serializer defaultSerializer;
     private final Map<Class<?>, Serializer> serializers = new HashMap<>();
@@ -182,22 +181,12 @@ public class Graphene {
     }
 
 
-    public Handle<Sequence> getSequence(byte[] key) {
-        int hashCode = Arrays.hashCode(key);
-        Handle<Sequence> sequenceHandle = sequences.get(hashCode);
-        if (sequenceHandle != null && sequenceHandle.get() != null) {
-            return sequenceHandle;
+    public long increment(byte[] key) {
+        SequenceConfig config = new SequenceConfig();
+        config.setAllowCreate(true);
+        try(Sequence sequence = getSequence().get().openSequence(getTx(), new DatabaseEntry(key), config)) {
+            return sequence.get(getTx(), 1);
         }
-        if (sequenceHandle == null) {
-            sequenceHandle = new Handle<>();
-        }
-        if (sequenceHandle.get() == null) {
-            SequenceConfig config = new SequenceConfig();
-            config.setAllowCreate(true);
-            Sequence sequence = getSequence().get().openSequence(getTx(), new DatabaseEntry(key), config);
-            sequenceHandle.set(sequence);
-        }
-        return sequenceHandle;
     }
 
     public Handle<Database> getSchemas() {
@@ -230,8 +219,9 @@ public class Graphene {
             sequenceConfig.setSortedDuplicates(false);
             sequenceConfig.setBtreeComparator(new FastKeyComparator());
             sequenceConfig.setKeyPrefixing(true);
+            sequence.set(env.openDatabase(null, sequenceName, sequenceConfig));
         }
-        return instances;
+        return sequence;
     }
 
     public void registerSerializer(Class<?> entityClass, Serializer serializer) {
@@ -277,17 +267,11 @@ public class Graphene {
     }
 
     public void close() {
-        for (int key : sequences.keySet()) {
-            Handle<Sequence> sequenceHandle = sequences.remove(key);
-            if (sequenceHandle.get() != null) {
-                sequenceHandle.get().close();
-                sequenceHandle.set(null);
-            }
-        }
         getSchemas().get().close();
         getInstances().get().close();
         getSecondary().get().close();
         getPrimary().get().close();
+        getSequence().get().close();
         INSTANCE.set(null);
         primaryConfig = null;
         secondaryConfig = null;

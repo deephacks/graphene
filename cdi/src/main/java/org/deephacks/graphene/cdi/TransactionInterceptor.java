@@ -16,8 +16,15 @@ class TransactionInterceptor implements Serializable {
     @AroundInvoke
     public Object aroundInvoke(final InvocationContext ic) throws Exception {
         try {
+            boolean initalTx = ThreadLocalManager.peek(com.sleepycat.je.Transaction.class) == null;
+            if (initalTx) {
+                ThreadLocalManager.push(com.sleepycat.je.Transaction.class, repository.getTx());
+            }
             Object result = ic.proceed();
-            repository.commit();
+            if (initalTx) {
+                ThreadLocalManager.clear(com.sleepycat.je.Transaction.class);
+                repository.commit();
+            }
             return result;
         } catch (Exception e) {
             try {

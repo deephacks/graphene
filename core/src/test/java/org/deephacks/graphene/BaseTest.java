@@ -28,10 +28,10 @@ public class BaseTest {
 
     @Before
     public void before() {
+        UniqueIds ids = new UniqueIds();
         repository.deleteAll(C.class);
         repository.deleteAll(B.class);
         repository.deleteAll(A.class);
-        UniqueIds ids = new UniqueIds();
         ids.deleteAll();
         repository.commit();
     }

@@ -1,6 +1,7 @@
 package org.deephacks.graphene;
 
 import com.google.common.collect.Lists;
+import org.deephacks.graphene.internal.UniqueIds;
 import org.junit.Test;
 
 import static org.hamcrest.core.Is.is;
@@ -42,6 +43,7 @@ public class TxTest extends BaseTest {
             assertThat(Lists.newArrayList(result).size(), is(numInstances));
         }
         repository.rollback();
+        new UniqueIds().printAllSchemaAndInstances();
         try (ResultSet<A> result = repository.select(A.class).retrieve()) {
             assertThat(Lists.newArrayList(result).size(), is(0));
         }

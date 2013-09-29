@@ -5,6 +5,9 @@ import com.google.common.base.Strings;
 import org.deephacks.graphene.Graphene;
 import org.deephacks.graphene.Handle;
 
+import java.util.Arrays;
+import java.util.Map;
+import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -130,7 +133,7 @@ public class UniqueIds {
             return Long.valueOf(Bytes.getLong(optionalId.get())).intValue();
         }
         byte[] key = SCHEMA_DATABASE_NAME.getBytes(UTF_8);
-        long id = graphene.get().getSequence(key).get().get(graphene.get().getTx(), 1);
+        long id = graphene.get().increment(key);
         byte[] idKey = getIdKey(id);
         schemas.put(nameKey, Bytes.fromLong(id));
         schemas.put(idKey, nameBytes);
@@ -152,7 +155,7 @@ public class UniqueIds {
             return Bytes.getLong(optionalId.get());
         }
         byte[] key = INSTANCE_DATABASE_NAME.getBytes(UTF_8);
-        long id = graphene.get().getSequence(key).get().get(graphene.get().getTx(), 1);
+        long id = graphene.get().increment(key);
         byte[] nameKey = getNameKey(nameBytes);
         byte[] idKey = getIdKey(id);
         instances.put(nameKey, Bytes.fromLong(id));
@@ -171,6 +174,57 @@ public class UniqueIds {
         return key;
     }
 
+    public Map<String, byte[]> listSchemas() {
+        Map<byte[], byte[]> map = schemas.listAll();
+        TreeMap<String, byte[]> result = new TreeMap<>();
+
+        for (byte[] key : map.keySet()) {
+            if (key[0] == NAME_PREFIX) {
+                byte[] name = new byte[key.length - 1];
+                System.arraycopy(key, 1, name, 0, key.length - 1);
+                for (byte[] key2 : map.keySet()) {
+                    byte[] name2 = map.get(key2);
+                    if (Arrays.equals(name2, map.get(key))) {
+                        result.put(new String(name), map.get(key));
+                    }
+                }
+            }
+        }
+        return result;
+    }
+
+    public Map<String, byte[]> listInstances() {
+        Map<byte[], byte[]> map = instances.listAll();
+        TreeMap<String, byte[]> result = new TreeMap<>();
+
+        for (byte[] key : map.keySet()) {
+            if (key[0] == NAME_PREFIX) {
+                byte[] name = new byte[key.length - 1];
+                System.arraycopy(key, 1, name, 0, key.length - 1);
+                for (byte[] key2 : map.keySet()) {
+                    byte[] name2 = map.get(key2);
+                    if (Arrays.equals(name2, map.get(key))) {
+                        result.put(new String(name), map.get(key));
+                    }
+                }
+            }
+        }
+        return result;
+    }
+
+    public void printAllSchemaAndInstances() {
+        System.out.println("Schemas:");
+        Map<String, byte[]> map = listSchemas();
+        for (String name : map.keySet()) {
+            System.out.println(" " + Arrays.toString(map.get(name)) + " " + name);
+        }
+        System.out.println("Instances:");
+        map = listInstances();
+        for (String name : map.keySet()) {
+            System.out.println(" " + Arrays.toString(map.get(name)) + " " + name);
+        }
+    }
+
     public static void clear() {
         instanceIdCache.clear();
         instanceNameCache.clear();
@@ -186,6 +240,5 @@ public class UniqueIds {
         instances.deleteAll();
         instanceIdCache.clear();
         instanceNameCache.clear();
-
     }
 }

@@ -20,6 +20,7 @@ import com.sleepycat.je.DatabaseEntry;
 import com.sleepycat.je.LockMode;
 import com.sleepycat.je.OperationStatus;
 import org.deephacks.graphene.internal.BytesUtils;
+import org.deephacks.graphene.internal.FastKeyComparator;
 import org.deephacks.graphene.internal.RowKey;
 import org.deephacks.graphene.internal.Serializer;
 
@@ -47,6 +48,7 @@ public abstract class ResultSet<T> implements Iterable<T>, Closeable {
         private final Serializer serializer;
         private DatabaseEntry key;
         private DatabaseEntry value;
+        private byte[] first;
         private byte[] last;
         private boolean lastReached = false;
 
@@ -55,10 +57,12 @@ public abstract class ResultSet<T> implements Iterable<T>, Closeable {
             this.key = new DatabaseEntry();
             this.serializer = graphene.get().getSerializer(entityClass);
             if (first != null) {
-                this.key.setData(serializer.serializeRowKey(new RowKey(entityClass, first)));
+                this.first = serializer.serializeRowKey(new RowKey(entityClass, first));
+                this.key.setData(this.first);
                 value = new DatabaseEntry();
             } else {
-                this.key.setData(serializer.serializeRowKey(RowKey.getMinId(entityClass)));
+                this.first = serializer.serializeRowKey(RowKey.getMinId(entityClass));
+                this.key.setData(this.first);
                 value = new DatabaseEntry();
             }
             cursor.getSearchKeyRange(key, value, LockMode.DEFAULT);
@@ -103,7 +107,10 @@ public abstract class ResultSet<T> implements Iterable<T>, Closeable {
                             return true;
                         }
                         value = new DatabaseEntry();
-                        boolean success = cursor.getNextNoDup(key, value, LockMode.DEFAULT) == OperationStatus.SUCCESS ;
+                        boolean success = cursor.getNextNoDup(key, value, LockMode.DEFAULT) == OperationStatus.SUCCESS;
+                        if (!FastKeyComparator.withinKeyRange(key.getData(), first, last)) {
+                            return false;
+                        }
                         if (!success) {
                             return false;
                         }
