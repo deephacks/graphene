@@ -1,5 +1,6 @@
 package org.deephacks.graphene.cdi;
 
+import javax.enterprise.util.Nonbinding;
 import javax.interceptor.InterceptorBinding;
 import java.lang.annotation.Documented;
 import java.lang.annotation.Retention;
@@ -14,5 +15,6 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
 @Documented
 @InterceptorBinding
 public @interface Transaction {
+    @Nonbinding
     TransactionAttribute value() default TransactionAttribute.REQUIRED;
 }

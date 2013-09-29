@@ -43,8 +43,12 @@ public class CdiTest {
         repository.commit();
         users.createUser(u1);
         users.createUser(u2);
+        repository.beginTransaction();
+        u1 = users.get(u1.getSsn());
+        u2 = users.get(u2.getSsn());
         a1 = accounts.createAccount(u1);
         a2 = accounts.createAccount(u2);
+        repository.commit();
     }
 
     /**
@@ -95,25 +99,11 @@ public class CdiTest {
     }
 
     /**
-     * Test that concurrent transfers adds up in the end.
+     * Test that requires new methods are executed in a new transaction that
+     * commit or abort within that method call.
      */
     @Test
     public void test_requires_new_tx() throws InterruptedException {
-        int amount = 1000;
-        bank.deposit(a1, amount);
-        ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() * 4);
-        final CountDownLatch latch = new CountDownLatch(amount);
-        for (int i = 0; i < amount; i++) {
-            executor.execute(new Runnable() {
-                @Override
-                public void run() {
-                    bank.transfer(u1, u2, 1);
-                    latch.countDown();
-                }
-            });
-        }
-        latch.await();
-        assertThat(accounts.getAccount(u1).getBalance(), is(0));
-        assertThat(accounts.getAccount(u2).getBalance(), is(amount));
+
     }
 }

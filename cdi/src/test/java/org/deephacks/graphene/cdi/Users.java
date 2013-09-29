@@ -7,18 +7,20 @@ import org.deephacks.graphene.Id;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
+import static org.deephacks.graphene.cdi.TransactionAttribute.REQUIRES_NEW;
+
 @ApplicationScoped
+@Transaction
 public class Users {
 
     @Inject
     private EntityRepository repository;
 
-    @Transaction
     public void createUser(User user) {
         repository.put(user);
     }
 
-    @Transaction
+    @Transaction(REQUIRES_NEW)
     public User get(String ssn) {
         return repository.get(ssn, User.class).get();
     }

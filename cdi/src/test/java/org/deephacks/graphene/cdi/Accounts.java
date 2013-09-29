@@ -26,12 +26,11 @@ public class Accounts {
         return opt.get();
     }
 
-
     public Account createAccount(User user) {
         Account account = new Account(user.getSsn());
         account.setUser(user);
         repository.put(account);
-        return repository.get(user.getSsn(), Account.class).get();
+        return getAccount(user);
     }
 
     public void save(Account account) {
