@@ -158,6 +158,7 @@ public class EntityRepository {
                 DatabaseEntry keyEntry = new DatabaseEntry(firstKey);
                 if (cursor.getSearchKeyRange(keyEntry, new DatabaseEntry(), LockMode.DEFAULT) == OperationStatus.SUCCESS) {
                     // important; we must respect the class prefix boundaries of the key
+                    System.out.println(new RowKey(keyEntry.getData()));
                     if (!withinKeyRange(keyEntry.getData(), firstKey, lastKey)) {
                         return;
                     }

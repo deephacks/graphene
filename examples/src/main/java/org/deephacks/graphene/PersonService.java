@@ -4,6 +4,7 @@ import com.google.common.collect.Lists;
 import org.deephacks.graphene.cdi.Transaction;
 
 import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
 import java.util.List;
 
 import static org.deephacks.graphene.Criteria.containsNoCase;
@@ -12,7 +13,9 @@ import static org.deephacks.graphene.Criteria.field;
 @Transaction
 @ApplicationScoped
 public class PersonService {
-    private static final EntityRepository repository = new EntityRepository();
+
+    @Inject
+    private EntityRepository repository;
 
     public void create(Person person) {
         repository.put(person);
