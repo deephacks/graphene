@@ -187,12 +187,10 @@ public class Graphene {
     public long increment(byte[] key) {
         SequenceConfig config = new SequenceConfig();
         config.setAllowCreate(true);
-        if (SEQUENCE == null) {
-            synchronized (INSTANCE) {
-                SEQUENCE = getSequence().get().openSequence(TM.peek(), new DatabaseEntry(key), config);
-            }
+
+        try (Sequence seq = getSequence().get().openSequence(TM.peek(), new DatabaseEntry(key), config)) {
+            return seq.get(TM.peek(), 1);
         }
-        return SEQUENCE.get(TM.peek(), 1);
     }
 
     public Handle<Database> getSchemas() {

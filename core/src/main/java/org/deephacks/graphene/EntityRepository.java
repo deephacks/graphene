@@ -15,6 +15,7 @@ package org.deephacks.graphene;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
 import com.sleepycat.je.Cursor;
 import com.sleepycat.je.CursorConfig;
 import com.sleepycat.je.Database;
@@ -35,6 +36,7 @@ import org.deephacks.graphene.internal.UniqueIds;
 import org.deephacks.graphene.internal.ValueSerialization.ValueReader;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -171,8 +173,42 @@ public class EntityRepository {
         return new DefaultQuery<>(entityClass, this, criteria);
     }
 
+    /**
+     * Select and return instances based on the provided Criteria.
+     *
+     * @param entityClass the type which is target for selection
+     * @param criteria criteria used for selecting instances
+     * @param <E> instance type
+     * @return instances match criteria
+     */
+    public <E> List<E> selectAll(Class<E> entityClass, final Criteria criteria) {
+        try (ResultSet<E> result = new DefaultQuery<>(entityClass, this, criteria).retrieve()) {
+            return Lists.newArrayList(result);
+        }
+    }
+
+    /**
+     * Select all instances.
+     *
+     * @param entityClass the type which is target for selection
+     * @param <E> instance type
+     * @return instances match criteria
+     */
     public <E> Query<E> select(Class<E> entityClass) {
         return new DefaultQuery<>(entityClass, this);
+    }
+
+    /**
+     * Select and return all instances.
+     *
+     * @param entityClass the type which is target for selection
+     * @param <E> instance type
+     * @return instances match criteria
+     */
+    public <E> List<E> selectAll(Class<E> entityClass) {
+        try (ResultSet<E> result = new DefaultQuery<>(entityClass, this).retrieve()) {
+            return Lists.newArrayList(result);
+        }
     }
 
     public void deleteAll(Class<?> entityClass) {
