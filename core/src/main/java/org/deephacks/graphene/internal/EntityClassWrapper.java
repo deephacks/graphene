@@ -62,12 +62,24 @@ public class EntityClassWrapper {
         return fields;
     }
 
+    public boolean isField(String name) {
+        return fields.containsKey(name);
+    }
+
     public Map<String, EntityFieldWrapper> getReferences() {
         return references;
     }
 
+    public boolean isReference(String name) {
+        return references.containsKey(name);
+    }
+
     public Map<String, EntityFieldWrapper> getEmbedded() {
         return embedded;
+    }
+
+    public boolean isEmbedded(String name) {
+        return embedded.containsKey(name);
     }
 
     public static EntityClassWrapper get(Class<?> cls) {

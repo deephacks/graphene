@@ -4,6 +4,7 @@ import com.google.common.collect.Lists;
 import org.junit.Test;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.UUID;
 
@@ -53,6 +54,29 @@ public class SelectTest extends BaseTest {
             for (int i = 0; i < objects.size(); i++) {
                 A expected = instances.get(i);
                 assertReflectionEquals(expected, objects.get(i), LENIENT_ORDER);
+            }
+        }
+        repository.commit();
+    }
+
+    /**
+     * Test that we can select instances based on single reference data.
+     */
+    @Test
+    public void test_select_single_reference() {
+
+        LinkedHashMap<String,A> map = defaultReferences();
+        repository.beginTransaction();
+        for (A a : map.values()) {
+            repository.put(a);
+        }
+        repository.commit();
+        repository.beginTransaction();
+        try (ResultSet<B> resultSet = repository.select(B.class, field("a.stringValue").is(equal("value"))).retrieve()) {
+            ArrayList<B> objects = Lists.newArrayList(resultSet);
+            for (int i = 0; i < objects.size(); i++) {
+                A expected = map.get(objects.get(i).getId());
+                assertReflectionEquals(objects.get(i), expected, LENIENT_ORDER);
             }
         }
         repository.commit();

@@ -296,8 +296,12 @@ public class EntityRepository {
         tm.rollback();
     }
 
-    private <E> Optional<byte[][]> getKv(Object key, Class<E> entityClass, LockMode mode) {
-        byte[] dataKey = getSerializer(entityClass).serializeRowKey(new RowKey(entityClass, key));
+    public <E> Optional<byte[][]> getKv(Object key, Class<E> entityClass, LockMode mode) {
+        return getKv(new RowKey(entityClass, key), mode);
+    }
+
+    public Optional<byte[][]> getKv(RowKey key, LockMode mode) {
+        byte[] dataKey = getSerializer(key.getClass()).serializeRowKey(key);
         DatabaseEntry entryKey = new DatabaseEntry(dataKey);
         DatabaseEntry entryValue = new DatabaseEntry();
         if (OperationStatus.SUCCESS == db.get().get(getTx(), entryKey, entryValue, mode)) {

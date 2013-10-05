@@ -13,8 +13,12 @@
  */
 package org.deephacks.graphene;
 
+import com.google.common.base.Optional;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
+import com.sleepycat.je.LockMode;
+import org.deephacks.graphene.internal.EntityClassWrapper;
+import org.deephacks.graphene.internal.RowKey;
 import org.deephacks.graphene.internal.UniqueIds;
 import org.deephacks.graphene.internal.ValueSerialization.ValueReader;
 
@@ -27,6 +31,9 @@ import java.util.Date;
  */
 @SuppressWarnings("rawtypes")
 public class Criteria implements Predicate {
+
+    private static final EntityRepository repository = new EntityRepository();
+
     private static final UniqueIds ids = new UniqueIds();
     private final String fieldName;
     private Predicate p;
@@ -397,13 +404,21 @@ public class Criteria implements Predicate {
         @Override
         public boolean apply(Object object) {
             String[] fields = fieldName.split("\\.");
-            byte[] data = ((byte[][]) object)[1];
+            byte[][] entity =  (byte[][]) object;
             if (fields.length == 1) {
-                return evaluateField(data, fieldName);
+                return evaluateField(entity[1], fieldName);
             } else if (fields.length > 1) {
-                return evaluateEmdeddedFields(data, fields);
+                RowKey key = new RowKey(entity[0]);
+                EntityClassWrapper cls = EntityClassWrapper.get(key.getCls());
+                if (cls.isEmbedded(fields[0])) {
+                    return evaluateEmdeddedFields(entity[1], fields);
+                } else if (cls.isReference(fields[0])) {
+                    return evaluateReferenceFields(entity[1], fields, key);
+                } else {
+                    throw new IllegalStateException("Cannot handle field " + fieldName);
+                }
             } else {
-                throw new IllegalArgumentException("Cant handle field " + fieldName);
+                throw new IllegalArgumentException("Cannot handle field " + fieldName);
             }
         }
 
@@ -426,6 +441,17 @@ public class Criteria implements Predicate {
             id = ids.getSchemaId(fields[1]);
             value = reader.getValue(id, header);
             return target.apply(value);
+        }
+
+        public boolean evaluateReferenceFields(byte[] data, String[] fields, RowKey key) {
+            if (fields.length > 2) {
+                throw new UnsupportedOperationException("Can only handle one deep reference object ATM " + fields.length);
+            }
+            Optional<byte[][]> kv = repository.getKv(key, LockMode.DEFAULT);
+            if (!kv.isPresent()) {
+                return false;
+            }
+            return evaluateField(kv.get()[1], fields[1]);
         }
 
         public Object getValue(byte[] data, String fieldName) {

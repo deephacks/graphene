@@ -45,7 +45,6 @@ public class Graphene {
     private static final Handle<Database> sequence = new Handle<>();
     private DatabaseConfig sequenceConfig;
     private String sequenceName = "graphene.sequence";
-    private static Sequence SEQUENCE;
 
     private static final Handle<Database> schemas = new Handle<>();
     private static final String schemaName = "graphene.schema";
@@ -282,7 +281,6 @@ public class Graphene {
         secondary.set(null);
         schemas.set(null);
         instances.set(null);
-        SEQUENCE.close();
     }
 
     public void closeAndDelete() {
