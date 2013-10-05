@@ -29,6 +29,7 @@ import com.sleepycat.je.Transaction;
 import org.deephacks.graphene.Query.DefaultQuery;
 import org.deephacks.graphene.internal.EntityClassWrapper;
 import org.deephacks.graphene.internal.EntityClassWrapper.EntityFieldWrapper;
+import org.deephacks.graphene.internal.EntityValidator;
 import org.deephacks.graphene.internal.FastKeyComparator;
 import org.deephacks.graphene.internal.RowKey;
 import org.deephacks.graphene.internal.Serializer;
@@ -48,10 +49,12 @@ public class EntityRepository {
     private final TransactionManager tm = graphene.get().getTransactionManager();
     private final Handle<Database> db;
     private final Handle<SecondaryDatabase> secondary;
+    private final Optional<EntityValidator> validator;
 
     public EntityRepository() {
         this.db = graphene.get().getPrimary();
         this.secondary = graphene.get().getSecondary();
+        this.validator = graphene.get().getValidator();
     }
 
     /**
@@ -98,6 +101,9 @@ public class EntityRepository {
     public <E> boolean put(E entity) {
         synchronized (WRITE_LOCK) {
             Preconditions.checkNotNull(entity);
+            if (validator.isPresent()) {
+                validator.get().validate(entity);
+            }
             Class<?> entityClass = entity.getClass();
             byte[][] data = getSerializer(entityClass).serializeEntity(entity);
             if (data == null || data.length != 2) {
@@ -122,6 +128,9 @@ public class EntityRepository {
     public <E> boolean putNoOverwrite(E entity) {
         synchronized (WRITE_LOCK) {
             Preconditions.checkNotNull(entity);
+            if (validator.isPresent()) {
+                validator.get().validate(entity);
+            }
             Class<?> entityClass = entity.getClass();
             byte[][] data = getSerializer(entityClass).serializeEntity(entity);
             if (data == null || data.length != 2) {

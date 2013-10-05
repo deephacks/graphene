@@ -1,5 +1,6 @@
 package org.deephacks.graphene;
 
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.sleepycat.je.Database;
 import com.sleepycat.je.DatabaseConfig;
@@ -13,6 +14,7 @@ import com.sleepycat.je.SecondaryDatabase;
 import com.sleepycat.je.Sequence;
 import com.sleepycat.je.SequenceConfig;
 import org.deephacks.graphene.EntityRepository.KeyCreator;
+import org.deephacks.graphene.internal.EntityValidator;
 import org.deephacks.graphene.internal.FastKeyComparator;
 import org.deephacks.graphene.internal.Serializer;
 import org.deephacks.graphene.internal.Serializer.UnsafeSerializer;
@@ -56,6 +58,7 @@ public class Graphene {
     private Serializer defaultSerializer;
     private final Map<Class<?>, Serializer> serializers = new HashMap<>();
 
+    private Optional<EntityValidator> validator;
 
     private Graphene() {
         DEFAULT_ENV_FILE.mkdirs();
@@ -67,6 +70,11 @@ public class Graphene {
         System.out.println(DEFAULT_ENV_FILE.getAbsolutePath());
         env = new Environment(DEFAULT_ENV_FILE, envConfig);
         TM = new TransactionManager(env);
+        try {
+            validator = Optional.of(new EntityValidator());
+        } catch (Throwable e) {
+            validator = Optional.absent();
+        }
     }
 
     private Graphene(Environment env, String primaryName, String secondaryName) {
@@ -78,6 +86,11 @@ public class Graphene {
         this.primaryName = primaryName;
         this.secondaryName = secondaryName;
         TM = new TransactionManager(env);
+        try {
+            validator = Optional.of(new EntityValidator());
+        } catch (Throwable e) {
+            validator = Optional.absent();
+        }
     }
 
     private Graphene(Environment env, String primaryName, DatabaseConfig primaryConfig, String secondaryName, SecondaryConfig secondaryConfig) {
@@ -91,6 +104,11 @@ public class Graphene {
         this.secondaryConfig = secondaryConfig;
         this.secondaryName = secondaryName;
         TM = new TransactionManager(env);
+        try {
+            validator = Optional.of(new EntityValidator());
+        } catch (Throwable e) {
+            validator = Optional.absent();
+        }
     }
 
     public static Handle<Graphene> create() {
@@ -226,6 +244,10 @@ public class Graphene {
             sequence.set(env.openDatabase(null, sequenceName, sequenceConfig));
         }
         return sequence;
+    }
+
+    public Optional<EntityValidator> getValidator() {
+        return validator;
     }
 
     public void registerSerializer(Class<?> entityClass, Serializer serializer) {

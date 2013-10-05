@@ -179,7 +179,7 @@ public class TxTest extends BaseTest {
                         repository.put(instance);
                         repository.commit();
                         repository.beginTransaction();
-                        assertReflectionEquals(instance, repository.get("a1", A.class).get(), LENIENT_ORDER);
+                        assertReflectionEquals(instance, repository.getForUpdate("a1", A.class).get(), LENIENT_ORDER);
                         repository.commit();
                         counter.incrementAndGet();
                     } catch (Exception e) {
