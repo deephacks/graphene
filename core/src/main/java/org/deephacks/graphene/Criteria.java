@@ -413,7 +413,7 @@ public class Criteria implements Predicate {
                 if (cls.isEmbedded(fields[0])) {
                     return evaluateEmdeddedFields(entity[1], fields);
                 } else if (cls.isReference(fields[0])) {
-                    return evaluateReferenceFields(entity[1], fields, key);
+                    return evaluateReferenceFields(entity[1], fields, cls);
                 } else {
                     throw new IllegalStateException("Cannot handle field " + fieldName);
                 }
@@ -443,15 +443,26 @@ public class Criteria implements Predicate {
             return target.apply(value);
         }
 
-        public boolean evaluateReferenceFields(byte[] data, String[] fields, RowKey key) {
+        public boolean evaluateReferenceFields(byte[] data, String[] fields, EntityClassWrapper cls) {
             if (fields.length > 2) {
                 throw new UnsupportedOperationException("Can only handle one deep reference object ATM " + fields.length);
             }
+            ValueReader reader = new ValueReader(data);
+            int[][] header = reader.getHeader();
+            int id = ids.getSchemaId(fields[0]);
+            Object instanceId = reader.getValue(id, header);
+            RowKey key = new RowKey(cls.getReferences().get(fields[0]).getType(), instanceId);
+
             Optional<byte[][]> kv = repository.getKv(key, LockMode.DEFAULT);
             if (!kv.isPresent()) {
                 return false;
             }
-            return evaluateField(kv.get()[1], fields[1]);
+            if (cls.getId().getField().getName().equals(fields[1])) {
+                String instance = new RowKey(kv.get()[0]).getInstance();
+                return target.apply(instance);
+            } else {
+                return evaluateField(kv.get()[1], fields[1]);
+            }
         }
 
         public Object getValue(byte[] data, String fieldName) {

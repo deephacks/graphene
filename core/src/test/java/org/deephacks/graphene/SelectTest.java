@@ -72,13 +72,39 @@ public class SelectTest extends BaseTest {
         }
         repository.commit();
         repository.beginTransaction();
+        ArrayList<B> objects;
         try (ResultSet<B> resultSet = repository.select(B.class, field("a.stringValue").is(equal("value"))).retrieve()) {
-            ArrayList<B> objects = Lists.newArrayList(resultSet);
+            objects = Lists.newArrayList(resultSet);
             for (int i = 0; i < objects.size(); i++) {
                 A expected = map.get(objects.get(i).getId());
                 assertReflectionEquals(objects.get(i), expected, LENIENT_ORDER);
             }
         }
+        assertThat(objects.size(), is(2));
+        repository.commit();
+    }
+
+    /**
+     * Test that we can select instances based on single reference key data.
+     */
+    @Test
+    public void test_select_single_reference_key() {
+        LinkedHashMap<String,A> map = defaultReferences();
+        repository.beginTransaction();
+        for (A a : map.values()) {
+            repository.put(a);
+        }
+        repository.commit();
+        repository.beginTransaction();
+        ArrayList<B> objects;
+        try (ResultSet<B> resultSet = repository.select(B.class, field("a.id").is(equal("a1"))).retrieve()) {
+            objects = Lists.newArrayList(resultSet);
+            for (int i = 0; i < objects.size(); i++) {
+                A expected = map.get(objects.get(i).getId());
+                assertReflectionEquals(objects.get(i), expected, LENIENT_ORDER);
+            }
+        }
+        assertThat(objects.size(), is(2));
         repository.commit();
     }
 
