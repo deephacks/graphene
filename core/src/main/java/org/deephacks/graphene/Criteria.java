@@ -451,13 +451,14 @@ public class Criteria implements Predicate {
             int[][] header = reader.getHeader();
             int id = ids.getSchemaId(fields[0]);
             Object instanceId = reader.getValue(id, header);
-            RowKey key = new RowKey(cls.getReferences().get(fields[0]).getType(), instanceId);
-
-            Optional<byte[][]> kv = repository.getKv(key, LockMode.DEFAULT);
+            Class<?> refCls = cls.getReferences().get(fields[0]).getType();
+            EntityClassWrapper entityRefCls = EntityClassWrapper.get(refCls);
+            RowKey key = new RowKey(refCls, instanceId);
+            Optional <byte[][]> kv = repository.getKv(key, LockMode.DEFAULT);
             if (!kv.isPresent()) {
                 return false;
             }
-            if (cls.getId().getField().getName().equals(fields[1])) {
+            if (entityRefCls.getId().getField().getName().equals(fields[1])) {
                 String instance = new RowKey(kv.get()[0]).getInstance();
                 return target.apply(instance);
             } else {
