@@ -1,7 +1,6 @@
 package org.deephacks.graphene;
 
 import com.google.common.base.Optional;
-import com.sleepycat.je.ForeignConstraintException;
 import org.junit.Test;
 
 import java.util.LinkedHashMap;
@@ -47,7 +46,7 @@ public class ReferencesTest extends BaseTest {
         try {
             repository.put(map.get("b2"));
             fail("Should violate constraint");
-        } catch (ForeignConstraintException e) {
+        } catch (ForeignKeyConstraintException e) {
             repository.rollback();
             assertTrue(true);
         }

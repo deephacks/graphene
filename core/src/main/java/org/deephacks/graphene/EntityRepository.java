@@ -21,6 +21,7 @@ import com.sleepycat.je.CursorConfig;
 import com.sleepycat.je.Database;
 import com.sleepycat.je.DatabaseEntry;
 import com.sleepycat.je.DeleteConstraintException;
+import com.sleepycat.je.ForeignConstraintException;
 import com.sleepycat.je.LockMode;
 import com.sleepycat.je.OperationStatus;
 import com.sleepycat.je.SecondaryDatabase;
@@ -100,21 +101,25 @@ public class EntityRepository {
      */
     public <E> boolean put(E entity) {
         synchronized (WRITE_LOCK) {
-            Preconditions.checkNotNull(entity);
-            if (validator.isPresent()) {
-                validator.get().validate(entity);
+            try {
+                Preconditions.checkNotNull(entity);
+                if (validator.isPresent()) {
+                    validator.get().validate(entity);
+                }
+                Class<?> entityClass = entity.getClass();
+                byte[][] data = getSerializer(entityClass).serializeEntity(entity);
+                if (data == null || data.length != 2) {
+                    throw new IllegalArgumentException("Could not serialize entity");
+                }
+                DatabaseEntry key = new DatabaseEntry(data[0]);
+                DatabaseEntry value = new DatabaseEntry(data[1]);
+                if (OperationStatus.SUCCESS != db.get().put(getTx(), key, value)) {
+                    return false;
+                }
+                return true;
+            } catch (ForeignConstraintException e) {
+                throw new ForeignKeyConstraintException(e);
             }
-            Class<?> entityClass = entity.getClass();
-            byte[][] data = getSerializer(entityClass).serializeEntity(entity);
-            if (data == null || data.length != 2) {
-                throw new IllegalArgumentException("Could not serialize entity");
-            }
-            DatabaseEntry key = new DatabaseEntry(data[0]);
-            DatabaseEntry value = new DatabaseEntry(data[1]);
-            if (OperationStatus.SUCCESS != db.get().put(getTx(), key, value)) {
-                return false;
-            }
-            return true;
         }
     }
 
@@ -127,18 +132,22 @@ public class EntityRepository {
      */
     public <E> boolean putNoOverwrite(E entity) {
         synchronized (WRITE_LOCK) {
-            Preconditions.checkNotNull(entity);
-            if (validator.isPresent()) {
-                validator.get().validate(entity);
+            try {
+                Preconditions.checkNotNull(entity);
+                if (validator.isPresent()) {
+                    validator.get().validate(entity);
+                }
+                Class<?> entityClass = entity.getClass();
+                byte[][] data = getSerializer(entityClass).serializeEntity(entity);
+                if (data == null || data.length != 2) {
+                    throw new IllegalArgumentException("Could not serialize entity");
+                }
+                DatabaseEntry key = new DatabaseEntry(data[0]);
+                DatabaseEntry value = new DatabaseEntry(data[1]);
+                return OperationStatus.SUCCESS == db.get().putNoOverwrite(getTx(), key, value);
+            } catch (ForeignConstraintException e) {
+                throw new ForeignKeyConstraintException(e);
             }
-            Class<?> entityClass = entity.getClass();
-            byte[][] data = getSerializer(entityClass).serializeEntity(entity);
-            if (data == null || data.length != 2) {
-                throw new IllegalArgumentException("Could not serialize entity");
-            }
-            DatabaseEntry key = new DatabaseEntry(data[0]);
-            DatabaseEntry value = new DatabaseEntry(data[1]);
-            return OperationStatus.SUCCESS == db.get().putNoOverwrite(getTx(), key, value);
         }
     }
 
