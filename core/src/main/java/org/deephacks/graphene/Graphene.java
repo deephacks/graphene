@@ -42,9 +42,10 @@ public class Graphene {
     private SecondaryConfig secondaryConfig;
     private String secondaryName = "graphene.secondary";
 
-    private static final Handle<Database> sequence = new Handle<>();
+    private static final Handle<Database> sequenceDatabase = new Handle<>();
     private DatabaseConfig sequenceConfig;
-    private String sequenceName = "graphene.sequence";
+    private String sequenceName = "graphene.sequenceDatabase";
+    private static Sequence sequence;
 
     private static final Handle<Database> schemas = new Handle<>();
     private static final String schemaName = "graphene.schema";
@@ -65,7 +66,7 @@ public class Graphene {
         envConfig.setAllowCreate(true);
         envConfig.setTransactional(true);
         envConfig.setDurability(Durability.COMMIT_SYNC);
-        envConfig.setLockTimeout(1, TimeUnit.SECONDS);
+        envConfig.setLockTimeout(10, TimeUnit.SECONDS);
         System.out.println(DEFAULT_ENV_FILE.getAbsolutePath());
         env = new Environment(DEFAULT_ENV_FILE, envConfig);
         TM = new TransactionManager(env);
@@ -200,14 +201,17 @@ public class Graphene {
         return secondaryConfig;
     }
 
-
     public long increment(byte[] key) {
-        SequenceConfig config = new SequenceConfig();
-        config.setAllowCreate(true);
-
-        try (Sequence seq = getSequence().get().openSequence(TM.peek(), new DatabaseEntry(key), config)) {
-            return seq.get(TM.peek(), 1);
+        if (sequence == null) {
+            synchronized (INSTANCE) {
+                if (sequence == null) {
+                    SequenceConfig config = new SequenceConfig();
+                    config.setAllowCreate(true);
+                    sequence = getSequenceDatabase().get().openSequence(null, new DatabaseEntry(key), config);
+                }
+            }
         }
+        return sequence.get(null, 1);
     }
 
     public Handle<Database> getSchemas() {
@@ -232,17 +236,17 @@ public class Graphene {
         return instances;
     }
 
-    public Handle<Database> getSequence() {
-        if (sequence.get() == null) {
+    public Handle<Database> getSequenceDatabase() {
+        if (sequenceDatabase.get() == null) {
             sequenceConfig = new DatabaseConfig();
             sequenceConfig.setTransactional(true);
             sequenceConfig.setAllowCreate(true);
             sequenceConfig.setSortedDuplicates(false);
             sequenceConfig.setBtreeComparator(new FastKeyComparator());
             sequenceConfig.setKeyPrefixing(true);
-            sequence.set(env.openDatabase(null, sequenceName, sequenceConfig));
+            sequenceDatabase.set(env.openDatabase(null, sequenceName, sequenceConfig));
         }
-        return sequence;
+        return sequenceDatabase;
     }
 
     public Optional<EntityValidator> getValidator() {
@@ -273,7 +277,7 @@ public class Graphene {
         getInstances().get().close();
         getSecondary().get().close();
         getPrimary().get().close();
-        getSequence().get().close();
+        getSequenceDatabase().get().close();
         INSTANCE.set(null);
         primaryConfig = null;
         secondaryConfig = null;
