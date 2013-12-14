@@ -6,7 +6,7 @@
   <artifactId>graphene-root</artifactId>
   <name>graphene</name>
   <packaging>pom</packaging>
-  <version>0.1.0</version>
+  <version>0.1.1-SNAPSHOT</version>
   <description>Simple Persistence Framework.</description>
   <url>http://graphene.deephacks.org</url>
   <inceptionYear>2013</inceptionYear>
@@ -107,7 +107,6 @@
           <showWarnings>true</showWarnings>
           <optimize>true</optimize>
           <fork>true</fork>
-          <argLine>-Xmx512M</argLine>
         </configuration>
       </plugin>
       <plugin>
@@ -233,6 +232,12 @@
       </dependency>
       <dependency>
         <groupId>org.deephacks</groupId>
+        <artifactId>graphene-cdi</artifactId>
+        <version>${version.graphene}</version>
+        <scope>compile</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.slf4j</groupId>
         <artifactId>graphene-cdi</artifactId>
         <version>${version.graphene}</version>
         <scope>compile</scope>

@@ -22,6 +22,8 @@ import org.deephacks.graphene.internal.UnsafeUtils.UnsafeEntityClassWrapper;
 import org.deephacks.graphene.internal.UnsafeUtils.UnsafeEntityObjectWrapper;
 import org.deephacks.graphene.internal.ValueSerialization.ValueReader;
 import org.deephacks.graphene.internal.ValueSerialization.ValueWriter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -37,6 +39,7 @@ public interface Serializer {
     public byte[][] serializeEntity(Object entity);
 
     public static class UnsafeSerializer implements Serializer {
+        private static final Logger logger = LoggerFactory.getLogger(Serializer.class);
         private static final UniqueIds ids = new UniqueIds();
         private static final EntityRepository repository = new EntityRepository();
         @Override
@@ -100,7 +103,7 @@ public interface Serializer {
                         throw new UnsupportedOperationException("Did not recognize embedded type " + value.getClass());
                     }
                 } else {
-                    throw new IllegalStateException("Did not recognize field " + fieldName);
+                    logger.warn("Did not recognize field " + fieldName);
                 }
             }
             return wrapper.getObject();
