@@ -271,9 +271,6 @@
   <profiles>
     <profile>
       <id>sign-artifacts</id>
-      <modules>
-        <module>dist</module>
-      </modules>
       <build>
         <plugins>
           <plugin>
@@ -294,10 +291,6 @@
                 <phase>site</phase>
               </execution>
             </executions>
-            <configuration>
-              <javadoc:aggregate>true</javadoc:aggregate>
-              <!--          <excludePackageNames>*.internal:*.test:*.examples</excludePackageNames> -->
-            </configuration>
           </plugin>
           <plugin>
             <groupId>org.apache.maven.plugins</groupId>

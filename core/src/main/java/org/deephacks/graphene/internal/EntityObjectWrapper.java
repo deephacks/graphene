@@ -15,6 +15,9 @@ public class EntityObjectWrapper {
             // embedded entities may not have an id
             if (classWrapper.getId() != null) {
                 final Object o = classWrapper.getId().getField().get(object);
+                if (o == null) {
+                    throw new IllegalArgumentException("Entity of type ["+object.getClass()+"] lacks a String id.");
+                }
                 this.rowKey = new RowKey(object.getClass(), o.toString());
             }
         } catch (IllegalAccessException e) {
