@@ -6,12 +6,11 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 import static org.deephacks.graphene.Criteria.*;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.*;
-import static org.unitils.reflectionassert.ReflectionAssert.assertReflectionEquals;
-import static org.unitils.reflectionassert.ReflectionComparatorMode.LENIENT_ORDER;
 
 public class SelectTest extends BaseTest {
 
@@ -51,7 +50,7 @@ public class SelectTest extends BaseTest {
       ArrayList<A> objects = Guavas.newArrayList(resultSet);
       for (int i = 0; i < objects.size(); i++) {
         A expected = instances.get(i);
-        assertReflectionEquals(expected, objects.get(i), LENIENT_ORDER);
+        assertEquals(expected, objects.get(i));
       }
     }
     repository.commit();
@@ -72,7 +71,7 @@ public class SelectTest extends BaseTest {
       objects = Guavas.newArrayList(resultSet);
       for (int i = 0; i < objects.size(); i++) {
         StandardProperties expected = map.get(objects.get(i).getId());
-        assertReflectionEquals(objects.get(i), expected, LENIENT_ORDER);
+        assertEquals(objects.get(i), expected);
       }
     }
     assertThat(objects.size(), is(2));
@@ -89,15 +88,18 @@ public class SelectTest extends BaseTest {
     map.values().forEach(repository::put);
     repository.commit();
     repository.beginTransaction();
-    ArrayList<B> objects;
-    try (ResultSet<B> resultSet = repository.select(B.class, field("a.id").is(equal("a1"))).retrieve()) {
-      objects = Guavas.newArrayList(resultSet);
-      for (int i = 0; i < objects.size(); i++) {
-        StandardProperties expected = map.get(objects.get(i).getId());
-        assertReflectionEquals(objects.get(i), expected, LENIENT_ORDER);
-      }
+
+    List<B> result = new ArrayList<>();
+    try (Stream<B> stream = repository.stream(B.class)) {
+      stream.filter(b -> b.getA().getId().equals("a1")).forEach(result::add);
     }
-    assertThat(objects.size(), is(2));
+
+    for (int i = 0; i < result.size(); i++) {
+      StandardProperties expected = map.get(result.get(i).getId());
+      assertEquals(result.get(i), expected);
+    }
+
+    assertThat(result.size(), is(2));
     repository.commit();
   }
 
@@ -118,10 +120,10 @@ public class SelectTest extends BaseTest {
       List<B> result = Guavas.newArrayList(resultSet);
       assertThat(result.size(), is(4));
       // assert in key sort (not insert) order.
-      assertReflectionEquals(buildB("b3"), result.get(0), LENIENT_ORDER);
-      assertReflectionEquals(buildB("b4"), result.get(1), LENIENT_ORDER);
-      assertReflectionEquals(buildB("b5"), result.get(2), LENIENT_ORDER);
-      assertReflectionEquals(buildB("b6"), result.get(3), LENIENT_ORDER);
+      assertEquals(buildB("b3"), result.get(0));
+      assertEquals(buildB("b4"), result.get(1));
+      assertEquals(buildB("b5"), result.get(2));
+      assertEquals(buildB("b6"), result.get(3));
     }
     repository.commit();
   }
@@ -145,8 +147,8 @@ public class SelectTest extends BaseTest {
     resultSet.close();
     assertThat(result.size(), is(2));
     // assert in key sort (not insert) order and that only two first result is returned
-    assertReflectionEquals(buildB("b3"), result.get(0), LENIENT_ORDER);
-    assertReflectionEquals(buildB("b4"), result.get(1), LENIENT_ORDER);
+    assertEquals(buildB("b3"), result.get(0));
+    assertEquals(buildB("b4"), result.get(1));
     repository.commit();
   }
 
@@ -164,12 +166,11 @@ public class SelectTest extends BaseTest {
     if (!repository.put(a2)) {
       throw new IllegalStateException("Could not create");
     }
-    try (ResultSet<A> resultSet = repository.select(A.class,
-            field("stringValue").is(contains("v1")).or(field("stringValue").is(equal("v2"))))
-            .retrieve()) {
-      List<A> result = Guavas.newArrayList(resultSet);
-      assertThat(result.size(), is(2));
+    List<A> result = new ArrayList<>();
+    try (Stream<A> stream = repository.stream(A.class)) {
+      stream.filter(a -> a.getStringValue().contains("v1") || a.getStringValue().contains("v2")).forEach(result::add);
     }
+    assertThat(result.size(), is(2));
     repository.commit();
   }
 
@@ -185,12 +186,12 @@ public class SelectTest extends BaseTest {
     repository.put(a2);
     A a3 = buildA("a3", "a3");
     repository.put(a3);
-    try (ResultSet<A> resultSet = repository.select(A.class,
-            field("stringValue").not(contains("v"))).retrieve()) {
-      List<A> result = Guavas.newArrayList(resultSet);
-      assertThat(result.size(), is(1));
-      assertReflectionEquals(a3, result.get(0), LENIENT_ORDER);
+    List<A> result = new ArrayList<>();
+    try (Stream<A> stream = repository.stream(A.class)) {
+      stream.filter(a -> !a.getStringValue().contains("v")).forEach(result::add);
     }
+    assertThat(result.size(), is(1));
+    assertEquals(a3, result.get(0));
     repository.commit();
   }
 
@@ -204,12 +205,11 @@ public class SelectTest extends BaseTest {
     repository.put(a1);
     A a2 = buildA("a2", "v2");
     repository.put(a2);
-    try (ResultSet<A> resultSet = repository.select(A.class,
-            field("stringValue").is(contains("v")).and(field("intValue").is(largerThan(0))))
-            .retrieve()) {
-      List<A> result = Guavas.newArrayList(resultSet);
-      assertThat(result.size(), is(1));
+    List<A> result = new ArrayList<>();
+    try (Stream<A> stream = repository.stream(A.class)) {
+      stream.filter(a -> a.getStringValue().contains("v1") && a.getIntValue() < 0).forEach(result::add);
     }
+    assertThat(result.size(), is(1));
     repository.commit();
   }
 
@@ -236,7 +236,7 @@ public class SelectTest extends BaseTest {
     resultSet.close();
     assertThat(result.size(), is(1));
     B b4 = buildB("b4", "b4");
-    assertReflectionEquals(b4, result.get(0), LENIENT_ORDER);
+    assertEquals(b4, result.get(0));
     repository.commit();
   }
 
@@ -256,11 +256,15 @@ public class SelectTest extends BaseTest {
       final C c = buildC("c" + i);
       repository.put(c);
     }
+    List<B> result = new ArrayList<>();
+    try (Stream<B> stream = repository.stream(B.class)) {
+      stream.filter(b -> b.getStringValue().equals("b1")).limit(2).forEach(result::add);
+    }
+    /*
     ResultSet<B> resultSet = repository.select(B.class,
             field("stringValue").is(equal("b1")))
             .setFirstResult("b3").setLastResult("b6").setMaxResults(2).retrieve();
-    List<B> result = Guavas.newArrayList(resultSet);
-    resultSet.close();
+            */
     assertThat(result.size(), is(0));
     repository.commit();
   }
@@ -280,7 +284,7 @@ public class SelectTest extends BaseTest {
       } else {
         throw new IllegalArgumentException("Did not recognize class " + entityClass);
       }
-      assertReflectionEquals(expected, objects.get(i), LENIENT_ORDER);
+      assertEquals(expected, objects.get(i));
     }
     assertThat(objects.size(), is(numInstances));
   }

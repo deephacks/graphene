@@ -11,8 +11,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.*;
-import static org.unitils.reflectionassert.ReflectionAssert.assertReflectionEquals;
-import static org.unitils.reflectionassert.ReflectionComparatorMode.LENIENT_ORDER;
 
 public class TxTest extends BaseTest {
 
@@ -177,7 +175,7 @@ public class TxTest extends BaseTest {
             repository.put(instance);
             repository.commit();
             repository.beginTransaction();
-            assertReflectionEquals(instance, repository.getForUpdate("a1", A.class).get(), LENIENT_ORDER);
+            assertEquals(instance, repository.getForUpdate("a1", A.class).get());
             repository.commit();
             counter.incrementAndGet();
           } catch (Exception e) {

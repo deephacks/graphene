@@ -46,13 +46,9 @@ public class EntityClassWrapper {
 
     for (EntityMethodWrapper method : Guavas.newArrayList(methods.values())) {
       Class<?> type = method.getType();
-      if (cls.getSimpleName().equals("C") && type.getSimpleName().equals("B")) {
-        System.out.println("");
-      }
       Id id = findAnnotation(type, Id.class);
       if (id != null) {
         methods.remove(method.getName());
-        System.out.println(cls + " " + method.getName());
         references.put(method.getName(), new EntityMethodWrapper(method.getMethod(), true));
       }
     }
