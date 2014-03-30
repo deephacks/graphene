@@ -13,8 +13,6 @@
  */
 package org.deephacks.graphene;
 
-import com.google.common.base.Optional;
-import com.google.common.collect.Iterables;
 import com.sleepycat.je.Cursor;
 import com.sleepycat.je.DatabaseEntry;
 import com.sleepycat.je.LockMode;
@@ -26,6 +24,7 @@ import org.deephacks.graphene.internal.Serializer;
 
 import java.io.Closeable;
 import java.util.Iterator;
+import java.util.Optional;
 
 /**
  * A lazy evaluated result set iterator matching a certain query that created this
@@ -78,14 +77,7 @@ public abstract class ResultSet<T> implements Iterable<T>, Closeable {
 
         @Override
         public Iterator<E> iterator() {
-            final Iterator<byte[][]> iterator;
-            if (criteria.isPresent()) {
-                iterator = Iterables.filter(new ByteIterator(), criteria.get()).iterator();
-
-            } else {
-                iterator = Iterables.filter(new ByteIterator(), byte[][].class).iterator();
-            }
-            return new ByteIteratorWrapper(iterator, serializer);
+            return new ByteIteratorWrapper<>(new ByteIterator().iterator(), serializer);
         }
 
         @Override

@@ -1,12 +1,12 @@
 package org.deephacks.graphene.internal;
 
-import com.google.common.base.Optional;
-import com.google.common.base.Strings;
 import org.deephacks.graphene.Graphene;
+import org.deephacks.graphene.Guavas;
 import org.deephacks.graphene.Handle;
 
 import java.util.Arrays;
 import java.util.Map;
+import java.util.Optional;
 import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -73,11 +73,11 @@ public class UniqueIds {
 
     public String getSchemaName(final int id) {
         String name = schemaNameCache.get(id);
-        if (!Strings.isNullOrEmpty(name)) {
+        if (!Guavas.isNullOrEmpty(name)) {
             return name;
         } else {
             name = getSchemaNameFromStorage(id);
-            if (Strings.isNullOrEmpty(name)) {
+            if (Guavas.isNullOrEmpty(name)) {
                 throw new IllegalStateException("Could not map id " + id + " to a name");
             }
             schemaIdCache.put(name, id);
@@ -102,11 +102,11 @@ public class UniqueIds {
 
     public String getInstanceName(final long id) {
         String name = instanceNameCache.get(id);
-        if (!Strings.isNullOrEmpty(name)) {
+        if (!Guavas.isNullOrEmpty(name)) {
             return name;
         } else {
             name = getInstanceNameFromStorage(id);
-            if (Strings.isNullOrEmpty(name)) {
+            if (Guavas.isNullOrEmpty(name)) {
                 throw new IllegalStateException("Could not map id " + id + " to a name");
             }
             if (shouldCacheInstance) {

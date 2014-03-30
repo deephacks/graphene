@@ -1,12 +1,11 @@
 package org.deephacks.graphene.internal;
 
-import com.google.common.collect.Lists;
 import org.deephacks.graphene.Embedded;
-import org.deephacks.graphene.Entity;
+import org.deephacks.graphene.Guavas;
 import org.deephacks.graphene.Id;
 
 import java.lang.annotation.Annotation;
-import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -14,204 +13,249 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.deephacks.graphene.internal.Reflections.findAnnotation;
 import static org.deephacks.graphene.internal.Reflections.getParameterizedType;
 
 public class EntityClassWrapper {
-    private static final Map<Class<?>, EntityClassWrapper> catalog = new HashMap<>();
-    protected EntityFieldWrapper id;
-    protected Map<String, EntityFieldWrapper> fields = new HashMap<>();
-    protected Map<String, EntityFieldWrapper> references = new HashMap<>();
-    protected Map<String, EntityFieldWrapper> embedded = new HashMap<>();
-    protected final Class<?> cls;
+  private static final Map<Class<?>, EntityClassWrapper> catalog = new HashMap<>();
+  protected EntityMethodWrapper id;
+  protected Map<String, EntityMethodWrapper> methods = new HashMap<>();
+  protected Map<String, EntityMethodWrapper> references = new HashMap<>();
+  protected Map<String, EntityMethodWrapper> embedded = new HashMap<>();
+  protected final Class<?> virtualClass;
 
-    protected EntityClassWrapper(Class<?> cls) {
-        this.cls = cls;
-        Map<String, Field> map = Reflections.findFields(cls);
-        for (String fieldName : map.keySet()) {
-            fields.put(fieldName, new EntityFieldWrapper(map.get(fieldName), false));
+  private EntityClassWrapper(Class<?> cls) {
+    this.virtualClass = cls;
+    Map<String, Method> map = Reflections.findGetterMethods(cls);
+    for (String methodName : map.keySet()) {
+      String name = getNameFromMethod(map.get(methodName));
+      methods.put(name, new EntityMethodWrapper(map.get(methodName), false));
+    }
+
+    Map<Method, Annotation> annotation = Reflections.findGetterMethods(cls, Id.class);
+    if (annotation.size() != 0) {
+      this.id = new EntityMethodWrapper(annotation.keySet().iterator().next(), false);
+      methods.remove(id.getName());
+    }
+    // embedded fields must be check first because if field is Entity
+    // we must still treat it as embedded, not as an Entity
+    Guavas.newArrayList(methods.values()).stream().filter(method -> method.getAnnotation(Embedded.class) != null).forEach(method -> {
+      methods.remove(method.getName());
+      embedded.put(method.getName(), new EntityMethodWrapper(method.getMethod(), true));
+    });
+
+    for (EntityMethodWrapper method : Guavas.newArrayList(methods.values())) {
+      Class<?> type = method.getType();
+      if (cls.getSimpleName().equals("C") && type.getSimpleName().equals("B")) {
+        System.out.println("");
+      }
+      Id id = findAnnotation(type, Id.class);
+      if (id != null) {
+        methods.remove(method.getName());
+        System.out.println(cls + " " + method.getName());
+        references.put(method.getName(), new EntityMethodWrapper(method.getMethod(), true));
+      }
+    }
+  }
+
+  public static EntityClassWrapper get(Class<?> cls) {
+    cls = getVirtualValueClass(cls);
+    if (catalog.containsKey(cls)) {
+      return catalog.get(cls);
+    }
+    catalog.put(cls, new EntityClassWrapper(cls));
+    return catalog.get(cls);
+  }
+
+  private static Class<?> getVirtualValueClass(Class<?> virtualValueClass) {
+    // TODO: cache
+    for (Method m : virtualValueClass.getMethods()) {
+      if (m.isAnnotationPresent(Id.class)) {
+        return virtualValueClass;
+      }
+    }
+    for (Class<?> cls : virtualValueClass.getInterfaces()) {
+      for (Method m : cls.getMethods()) {
+        if (m.isAnnotationPresent(Id.class)) {
+          return cls;
         }
+      }
+    }
+    throw new IllegalArgumentException("Class must be a @VirtualValue interface and have one @Id method.");
+  }
 
-        Map<Field, Annotation> annotation = Reflections.findFields(cls, Id.class);
-        if (annotation.size() != 0) {
-            this.id = new EntityFieldWrapper(annotation.keySet().iterator().next(), false);
-            fields.remove(id.getName());
+  public EntityMethodWrapper getId() {
+    return id;
+  }
+
+  public Map<String, EntityMethodWrapper> getMethods() {
+    return methods;
+  }
+
+    public Map<String, EntityMethodWrapper> getReferences() {
+    return references;
+  }
+
+  public boolean isReference(String name) {
+    return references.containsKey(name);
+  }
+
+  public boolean isMethod(String name) {
+    return methods.containsKey(name);
+  }
+
+  public Map<String, EntityMethodWrapper> getEmbedded() {
+    return embedded;
+  }
+
+  public boolean isEmbedded(String name) {
+    return embedded.containsKey(name);
+  }
+
+  @Override
+  public String toString() {
+    return virtualClass.getName();
+  }
+
+  public EntityMethodWrapper getReference(String methodName) {
+    return references.get(methodName);
+  }
+
+  public EntityMethodWrapper getEmbedded(String methodName) {
+    return embedded.get(methodName);
+  }
+
+  public Class<?> getVirtualClass() {
+    return virtualClass;
+  }
+
+  private static String getNameFromMethod(Method method) {
+    String name = method.getName();
+    name = name.substring(3, name.length());
+    name = Character.toLowerCase(name.charAt(0)) + (name.length() > 1 ? name.substring(1) : "");
+    return name;
+  }
+
+  public static class EntityMethodWrapper {
+    private Method method;
+    private String name;
+    private boolean isCollection;
+    private boolean isMap;
+    private boolean isReference;
+    private boolean basicType;
+    private boolean anEnum;
+
+    EntityMethodWrapper(Method method, boolean isReference) {
+      this.method = method;
+      this.name = getNameFromMethod(method);
+      this.isCollection = Collection.class.isAssignableFrom(method.getReturnType());
+      this.isMap = Map.class.isAssignableFrom(method.getReturnType());
+      this.isReference = isReference;
+    }
+
+    public Class<?> getType() {
+      if (!isCollection) {
+        return method.getReturnType();
+      }
+      List<Class<?>> p = getParameterizedType(method);
+      if (p.size() == 0) {
+        throw new UnsupportedOperationException("Collection of method [" + method
+                + "] does not have parameterized arguments, which is not allowed.");
+      }
+      return p.get(0);
+    }
+
+    public List<Class<?>> getMapParamTypes() {
+      if (!isMap) {
+        throw new UnsupportedOperationException("Method return type [" + method + "] is not a map.");
+      }
+      List<Class<?>> p = getParameterizedType(method);
+      if (p.size() == 0) {
+        throw new UnsupportedOperationException("Map of method return type [" + method
+                + "] does not have parameterized arguments, which is not allowed.");
+      }
+      return p;
+    }
+
+    public boolean isCollection() {
+      return isCollection;
+    }
+
+    public boolean isMap() {
+      return isMap;
+    }
+
+    public boolean isFinal() {
+      return Modifier.isFinal(method.getModifiers());
+    }
+
+    public boolean isStatic() {
+      return Modifier.isStatic(method.getModifiers());
+    }
+
+    public boolean isTransient() {
+      return Modifier.isTransient(method.getModifiers());
+    }
+
+    public List<String> getEnums() {
+      if (!isCollection) {
+        if (method.getReturnType().isEnum()) {
+          List<String> s = new ArrayList<>();
+          for (Object o : method.getReturnType().getEnumConstants()) {
+            s.add(o.toString());
+          }
+          return s;
+        } else {
+          return new ArrayList<>();
         }
-        // embedded fields must be check first because if field is Entity
-        // we must still treat it as embedded, not as an Entity
-        for (EntityFieldWrapper field : Lists.newArrayList(fields.values())) {
-            if (field.getAnnotation(Embedded.class) != null) {
-                fields.remove(field.getName());
-                embedded.put(field.getName(), new EntityFieldWrapper(field.getField(), true));
-            }
+      }
+      List<Class<?>> p = getParameterizedType(method);
+      if (p.size() == 0) {
+        throw new UnsupportedOperationException("Collection of method [" + method
+                + "] does not have parameterized arguments, which is not allowed.");
+      }
+      if (p.get(0).isEnum()) {
+        List<String> s = new ArrayList<>();
+        for (Object o : p.get(0).getEnumConstants()) {
+          s.add(o.toString());
         }
-
-        for (EntityFieldWrapper field : Lists.newArrayList(fields.values())) {
-            if (field.getType().getAnnotation(Entity.class) != null) {
-                fields.remove(field.getName());
-                references.put(field.getName(), new EntityFieldWrapper(field.getField(), true));
-            }
-        }
-
+        return s;
+      }
+      return new ArrayList<>();
     }
 
-    public EntityFieldWrapper getId() {
-        return id;
+    public String getName() {
+      return name;
     }
 
-    public Map<String, EntityFieldWrapper> getFields() {
-        return fields;
+    public Method getMethod() {
+      return method;
     }
 
-    public boolean isField(String name) {
-        return fields.containsKey(name);
+    public boolean isPrimitive() {
+      return Types.isPrimitive(getType());
     }
 
-    public Map<String, EntityFieldWrapper> getReferences() {
-        return references;
+    public boolean isReference() {
+      return isReference;
     }
 
-    public boolean isReference(String name) {
-        return references.containsKey(name);
+    public boolean isBasicType() {
+      return Types.isBasicType(getType());
     }
 
-    public Map<String, EntityFieldWrapper> getEmbedded() {
-        return embedded;
+    public boolean isEnum() {
+      return getType().isEnum();
     }
 
-    public boolean isEmbedded(String name) {
-        return embedded.containsKey(name);
-    }
-
-    public static EntityClassWrapper get(Class<?> cls) {
-        if (catalog.containsKey(cls)) {
-            return catalog.get(cls);
-        }
-        catalog.put(cls, new EntityClassWrapper(cls));
-        return catalog.get(cls);
+    public Object getAnnotation(Class<? extends Annotation> annotation) {
+      return method.getAnnotation(annotation);
     }
 
     @Override
     public String toString() {
-        return cls.getName();
+      return String.valueOf(method);
     }
+  }
 
-    public static class EntityFieldWrapper {
-        private Field field;
-        private boolean isCollection;
-        private boolean isMap;
-        private boolean isReference;
-        private boolean basicType;
-        private boolean anEnum;
-
-        EntityFieldWrapper(Field field, boolean isReference) {
-            this.field = field;
-            this.isCollection = Collection.class.isAssignableFrom(field.getType());
-            this.isMap = Map.class.isAssignableFrom(field.getType());
-            this.isReference = isReference;
-        }
-
-        public Class<?> getType() {
-            if (!isCollection) {
-                return field.getType();
-            }
-            List<Class<?>> p = getParameterizedType(field);
-            if (p.size() == 0) {
-                throw new UnsupportedOperationException("Collection of field [" + field
-                        + "] does not have parameterized arguments, which is not allowed.");
-            }
-            return p.get(0);
-        }
-
-        public List<Class<?>> getMapParamTypes() {
-            if (!isMap) {
-                throw new UnsupportedOperationException("Field [" + field + "] is not a map.");
-            }
-            List<Class<?>> p = getParameterizedType(field);
-            if (p.size() == 0) {
-                throw new UnsupportedOperationException("Map of field [" + field
-                        + "] does not have parameterized arguments, which is not allowed.");
-            }
-            return p;
-        }
-
-        public boolean isCollection() {
-            return isCollection;
-        }
-
-        public boolean isMap() {
-            return isMap;
-        }
-
-        public boolean isFinal() {
-            return Modifier.isFinal(field.getModifiers());
-        }
-
-        public boolean isStatic() {
-            return Modifier.isStatic(field.getModifiers());
-        }
-
-        public boolean isTransient() {
-            return Modifier.isTransient(field.getModifiers());
-        }
-
-        public List<String> getEnums() {
-            if (!isCollection) {
-                if (field.getType().isEnum()) {
-                    List<String> s = new ArrayList<>();
-                    for (Object o : field.getType().getEnumConstants()) {
-                        s.add(o.toString());
-                    }
-                    return s;
-                } else {
-                    return new ArrayList<>();
-                }
-            }
-            List<Class<?>> p = getParameterizedType(field);
-            if (p.size() == 0) {
-                throw new UnsupportedOperationException("Collection of field [" + field
-                        + "] does not have parameterized arguments, which is not allowed.");
-            }
-            if (p.get(0).isEnum()) {
-                List<String> s = new ArrayList<>();
-                for (Object o : p.get(0).getEnumConstants()) {
-                    s.add(o.toString());
-                }
-                return s;
-            }
-            return new ArrayList<>();
-        }
-
-        public String getName() {
-            return field.getName();
-        }
-
-        public Field getField() {
-            return field;
-        }
-
-        public boolean isPrimitive() {
-            return Types.isPrimitive(getType());
-        }
-
-        public boolean isReference() {
-            return isReference;
-        }
-
-        public boolean isBasicType() {
-            return Types.isBasicType(getType());
-        }
-
-        public boolean isEnum() {
-            return getType().isEnum();
-        }
-
-        public Object getAnnotation(Class<? extends Annotation> annotation) {
-            return field.getAnnotation(annotation);
-        }
-
-        @Override
-        public String toString() {
-            return String.valueOf(field);
-        }
-    }
 }

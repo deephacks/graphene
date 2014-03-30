@@ -1,6 +1,5 @@
 package org.deephacks.graphene.internal;
 
-import com.google.common.base.Optional;
 import com.sleepycat.je.Cursor;
 import com.sleepycat.je.Database;
 import com.sleepycat.je.DatabaseEntry;
@@ -12,6 +11,7 @@ import org.deephacks.graphene.TransactionManager;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 public class DatabaseWrapper {
     private final Handle<Graphene> graphene = Graphene.get();
@@ -26,9 +26,9 @@ public class DatabaseWrapper {
         DatabaseEntry dbKey = new DatabaseEntry(key);
         DatabaseEntry dbValue = new DatabaseEntry();
         if (OperationStatus.NOTFOUND == db.get().get(tm.peek(), dbKey, dbValue, LockMode.RMW)) {
-            return Optional.absent();
+            return Optional.empty();
         }
-        return Optional.fromNullable(dbValue.getData());
+        return Optional.ofNullable(dbValue.getData());
     }
 
     public boolean put(byte[] key, byte[] value) {

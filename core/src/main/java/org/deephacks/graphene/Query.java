@@ -13,9 +13,10 @@
  */
 package org.deephacks.graphene;
 
-import com.google.common.base.Optional;
 import com.sleepycat.je.Cursor;
 import org.deephacks.graphene.ResultSet.DefaultResultSet;
+
+import java.util.Optional;
 
 public abstract class Query<T> {
     /**
@@ -58,13 +59,13 @@ public abstract class Query<T> {
 
         DefaultQuery(Class<E> entityClass, EntityRepository repository, Criteria criteria) {
             this.entityClass = entityClass;
-            this.criteria = Optional.fromNullable(criteria);
+            this.criteria = Optional.ofNullable(criteria);
             this.repository = repository;
         }
 
         DefaultQuery(Class<E> entityClass, EntityRepository repository) {
             this.entityClass = entityClass;
-            this.criteria = Optional.absent();
+            this.criteria = Optional.empty();
             this.repository = repository;
         }
 

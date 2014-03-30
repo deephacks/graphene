@@ -1,7 +1,5 @@
 package org.deephacks.graphene;
 
-import com.google.common.base.Optional;
-import com.google.common.base.Preconditions;
 import com.sleepycat.je.Database;
 import com.sleepycat.je.DatabaseConfig;
 import com.sleepycat.je.DatabaseEntry;
@@ -23,6 +21,7 @@ import org.deephacks.graphene.internal.UniqueIds;
 import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 public class Graphene {
@@ -73,15 +72,15 @@ public class Graphene {
         try {
             validator = Optional.of(new EntityValidator());
         } catch (Throwable e) {
-            validator = Optional.absent();
+            validator = Optional.empty();
         }
     }
 
     private Graphene(Environment env, String primaryName, String secondaryName) {
-        Preconditions.checkNotNull(env);
-        Preconditions.checkNotNull(primaryName);
-        Preconditions.checkNotNull(secondary);
-        Preconditions.checkArgument(env.getConfig().getTransactional(), "Environment must be transactional");
+        Guavas.checkNotNull(env);
+        Guavas.checkNotNull(primaryName);
+        Guavas.checkNotNull(secondary);
+        Guavas.checkArgument(env.getConfig().getTransactional(), "Environment must be transactional");
         this.env = env;
         this.primaryName = primaryName;
         this.secondaryName = secondaryName;
@@ -89,15 +88,15 @@ public class Graphene {
         try {
             validator = Optional.of(new EntityValidator());
         } catch (Throwable e) {
-            validator = Optional.absent();
+            validator = Optional.empty();
         }
     }
 
     private Graphene(Environment env, String primaryName, DatabaseConfig primaryConfig, String secondaryName, SecondaryConfig secondaryConfig) {
-        Preconditions.checkNotNull(env);
-        Preconditions.checkNotNull(primaryName);
-        Preconditions.checkNotNull(secondaryName);
-        Preconditions.checkArgument(env.getConfig().getTransactional(), "Environment must be transactional");
+        Guavas.checkNotNull(env);
+        Guavas.checkNotNull(primaryName);
+        Guavas.checkNotNull(secondaryName);
+        Guavas.checkArgument(env.getConfig().getTransactional(), "Environment must be transactional");
         this.env = env;
         this.primaryConfig = primaryConfig;
         this.primaryName = primaryName;
@@ -107,7 +106,7 @@ public class Graphene {
         try {
             validator = Optional.of(new EntityValidator());
         } catch (Throwable e) {
-            validator = Optional.absent();
+            validator = Optional.empty();
         }
     }
 
@@ -158,7 +157,7 @@ public class Graphene {
     }
 
     public Handle<Database> getPrimary() {
-        Preconditions.checkArgument(getPrimaryConfig().getTransactional(), "Primary must be transactional");
+        Guavas.checkArgument(getPrimaryConfig().getTransactional(), "Primary must be transactional");
         if (primary.get() == null) {
             primary.set(env.openDatabase(null, primaryName, primaryConfig));
         }
@@ -178,7 +177,7 @@ public class Graphene {
     }
 
     public Handle<SecondaryDatabase> getSecondary() {
-        Preconditions.checkArgument(getSecondaryConfig().getTransactional(), "Secondary must be transactional");
+        Guavas.checkArgument(getSecondaryConfig().getTransactional(), "Secondary must be transactional");
         if (secondary.get() == null) {
             SecondaryDatabase db = env.openSecondaryDatabase(null, secondaryName, getPrimary().get(), secondaryConfig);
             secondary.set(db);

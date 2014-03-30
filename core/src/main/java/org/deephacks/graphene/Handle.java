@@ -1,12 +1,10 @@
 package org.deephacks.graphene;
 
-import com.google.common.base.Preconditions;
-
 public class Handle<T> {
     private T instance;
 
     public Handle(T instance) {
-        Preconditions.checkNotNull(instance);
+        Guavas.checkNotNull(instance);
         this.instance = instance;
     }
 
