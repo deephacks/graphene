@@ -11,6 +11,7 @@ import java.util.stream.Stream;
 import static org.deephacks.graphene.Criteria.*;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 public class SelectTest extends BaseTest {
 
@@ -46,13 +47,16 @@ public class SelectTest extends BaseTest {
       instances.add(a);
       repository.put(a);
     }
-    try (ResultSet<A> resultSet = repository.select(A.class, field("buildEmbedded.stringValue").is(equal(value))).retrieve()) {
-      ArrayList<A> objects = Guavas.newArrayList(resultSet);
-      for (int i = 0; i < objects.size(); i++) {
-        A expected = instances.get(i);
-        assertEquals(expected, objects.get(i));
-      }
+
+    List<A> result = new ArrayList<>();
+    try (Stream<A> stream = repository.stream(A.class)) {
+      stream.filter(a -> a.getEmbedded().getStringValue().equals(value)).forEach(result::add);
     }
+    for (int i = 0; i < result.size(); i++) {
+      A expected = instances.get(i);
+      assertEquals(expected, result.get(i));
+    }
+
     repository.commit();
   }
 
@@ -66,15 +70,17 @@ public class SelectTest extends BaseTest {
     map.values().forEach(repository::put);
     repository.commit();
     repository.beginTransaction();
-    ArrayList<B> objects;
-    try (ResultSet<B> resultSet = repository.select(B.class, field("a.stringValue").is(equal("value"))).retrieve()) {
-      objects = Guavas.newArrayList(resultSet);
-      for (int i = 0; i < objects.size(); i++) {
-        StandardProperties expected = map.get(objects.get(i).getId());
-        assertEquals(objects.get(i), expected);
-      }
+
+    List<B> result = new ArrayList<>();
+    try (Stream<B> stream = repository.stream(B.class)) {
+      stream.filter(b -> b.getA() != null && b.getA().getStringValue().equals("value")).forEach(result::add);
     }
-    assertThat(objects.size(), is(2));
+
+    for (B aResult : result) {
+      StandardProperties expected = map.get(aResult.getId());
+      assertEquals(aResult, expected);
+    }
+    assertThat(result.size(), is(2));
     repository.commit();
   }
 
