@@ -91,7 +91,7 @@ public class SelectTest extends BaseTest {
 
     List<B> result = new ArrayList<>();
     try (Stream<B> stream = repository.stream(B.class)) {
-      stream.filter(b -> b.getA().getId().equals("a1")).forEach(result::add);
+      stream.filter(b -> b.getA() != null && b.getA().getId().equals("a1")).forEach(result::add);
     }
 
     for (int i = 0; i < result.size(); i++) {

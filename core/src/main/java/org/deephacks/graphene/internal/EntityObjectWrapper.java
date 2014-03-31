@@ -67,7 +67,7 @@ public class EntityObjectWrapper {
         return method.getMethod().invoke(object);
       } else if (method.getType().isEnum()) {
         return method.getMethod().invoke(object);
-      } else if (method.getAnnotation(Embedded.class) != null) {
+      } else if (method.getType().getAnnotation(Embedded.class) != null) {
         return method.getMethod().invoke(object);
       } else if (method.isReference()) {
         Object ref = method.getMethod().invoke(object);

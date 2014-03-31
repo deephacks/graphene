@@ -18,14 +18,16 @@ import static org.deephacks.graphene.internal.Reflections.getParameterizedType;
 
 public class EntityClassWrapper {
   private static final Map<Class<?>, EntityClassWrapper> catalog = new HashMap<>();
-  protected EntityMethodWrapper id;
-  protected Map<String, EntityMethodWrapper> methods = new HashMap<>();
-  protected Map<String, EntityMethodWrapper> references = new HashMap<>();
-  protected Map<String, EntityMethodWrapper> embedded = new HashMap<>();
-  protected final Class<?> virtualClass;
+  private EntityMethodWrapper id;
+  private Map<String, EntityMethodWrapper> methods = new HashMap<>();
+  private Map<String, EntityMethodWrapper> references = new HashMap<>();
+  private Map<String, EntityMethodWrapper> embedded = new HashMap<>();
+  private final Class<?> virtualClass;
+  private final boolean isEmbedded;
 
   private EntityClassWrapper(Class<?> cls) {
     this.virtualClass = cls;
+    this.isEmbedded = this.virtualClass.getAnnotation(Embedded.class) != null;
     Map<String, Method> map = Reflections.findGetterMethods(cls);
     for (String methodName : map.keySet()) {
       String name = getNameFromMethod(map.get(methodName));
@@ -39,10 +41,14 @@ public class EntityClassWrapper {
     }
     // embedded fields must be check first because if field is Entity
     // we must still treat it as embedded, not as an Entity
-    Guavas.newArrayList(methods.values()).stream().filter(method -> method.getAnnotation(Embedded.class) != null).forEach(method -> {
-      methods.remove(method.getName());
-      embedded.put(method.getName(), new EntityMethodWrapper(method.getMethod(), true));
-    });
+    for (EntityMethodWrapper method : Guavas.newArrayList(methods.values())) {
+      Class<?> type = method.getType();
+      Embedded embedded = type.getAnnotation(Embedded.class);
+      if (embedded != null) {
+        methods.remove(method.getName());
+        this.embedded.put(method.getName(), new EntityMethodWrapper(method.getMethod(), true));
+      }
+    }
 
     for (EntityMethodWrapper method : Guavas.newArrayList(methods.values())) {
       Class<?> type = method.getType();
@@ -65,19 +71,25 @@ public class EntityClassWrapper {
 
   private static Class<?> getVirtualValueClass(Class<?> virtualValueClass) {
     // TODO: cache
+    if (virtualValueClass.getAnnotation(Embedded.class) != null) {
+      return virtualValueClass;
+    }
     for (Method m : virtualValueClass.getMethods()) {
       if (m.isAnnotationPresent(Id.class)) {
         return virtualValueClass;
       }
     }
     for (Class<?> cls : virtualValueClass.getInterfaces()) {
+      if (cls.getAnnotation(Embedded.class) != null) {
+        return cls;
+      }
       for (Method m : cls.getMethods()) {
         if (m.isAnnotationPresent(Id.class)) {
           return cls;
         }
       }
     }
-    throw new IllegalArgumentException("Class must be a @VirtualValue interface and have one @Id method.");
+    throw new IllegalArgumentException("Class " + virtualValueClass + " must be a @VirtualValue interface and have one @Id method.");
   }
 
   public EntityMethodWrapper getId() {

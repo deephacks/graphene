@@ -100,11 +100,12 @@ public class BaseTest {
             .withCharValues(Guavas.newArrayList('a', 'b', 'c'))
             .withStringValue(value.length == 0 ? "value" : value[0])
             .withStringValues(Guavas.newArrayList("1a", "2b", "3c"))
+            .withEmbedded(buildEmbedded())
+            .withEmbeddedList(Guavas.newArrayList(buildEmbedded(), buildEmbedded(), buildEmbedded()))
+
             /*
             .withEnumValue(TimeUnit.DAYS)
             .withEnumList(Guavas.newArrayList(TimeUnit.DAYS, TimeUnit.HOURS, TimeUnit.MILLISECONDS))
-            .withEmbedded(buildEmbedded())
-            .withEmbeddedList(Guavas.newArrayList(buildEmbedded(), buildEmbedded(), buildEmbedded()))
             .withDate(new Date())
             .withDateList(Guavas.newArrayList(new Date(1), new Date(2)))
             .withLocalDateTime(LocalDateTime.parse("2014-04-01T12:00"))
@@ -358,13 +359,10 @@ public class BaseTest {
     @Override
     @Id
     String getId();
-    /*
-    @org.deephacks.graphene.Embedded
+
     Embedded getEmbedded();
 
-    @org.deephacks.graphene.Embedded
     List<Embedded> getEmbeddedList();
-    */
 
   }
 
@@ -397,6 +395,7 @@ public class BaseTest {
   }
 
   @VirtualValue
+  @org.deephacks.graphene.Embedded
   public static interface Embedded extends StandardProperties {
   }
 }

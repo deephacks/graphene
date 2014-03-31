@@ -55,7 +55,7 @@ public interface Serializer {
 
     @Override
     public Object deserializeEntity(byte[][] data) {
-      StateMap state = new StateMap(data);
+      StateMap state = new StateMap(data, this);
       RowKey key = new RowKey(data[0]);
       return key.create(state);
     }
@@ -140,7 +140,6 @@ public interface Serializer {
           writer.putValue(id, embedded[1]);
         }
       }
-
       return new byte[][]{key, writer.write()};
     }
 
@@ -155,11 +154,13 @@ public interface Serializer {
     byte[][] state = new byte[0][];
     private RowKey rowkey;
     private EntityClassWrapper wrapper;
+    private Serializer serializer;
 
-    public StateMap(byte[][] state) {
+    public StateMap(byte[][] state, Serializer serializer) {
       this.state = state;
       this.rowkey = new RowKey(state[0]);
       this.wrapper =  EntityClassWrapper.get(rowkey.getCls());
+      this.serializer = serializer;
     }
 
     @Override
@@ -174,7 +175,8 @@ public interface Serializer {
     @Override
     public Object get(Object key) {
       EntityClassWrapper wrapper = EntityClassWrapper.get(rowkey.getCls());
-      if (wrapper.getId().getName().equals(key)) {
+      EntityMethodWrapper idMethod = wrapper.getId();
+      if (idMethod != null &&  idMethod.getName().equals(key)) {
         return rowkey.getInstance();
       }
       ValueReader reader = new ValueReader(state[1]);
@@ -207,25 +209,21 @@ public interface Serializer {
         } else if (wrapper.isMethod(methodName)) {
           return reader.getValue(id[0], header);
         } else if (wrapper.isEmbedded(methodName)) {
-          throw new IllegalArgumentException("not impl");
-          /*
           Object value = reader.getValue(id[0], header);
           Class<?> type = wrapper.getEmbedded(methodName).getType();
           byte[] schemaKey = RowKey.getMinId(type).getKey();
           if (byte[].class.isAssignableFrom(value.getClass())) {
-            Object entity = deserializeEntity(new byte[][]{schemaKey, (byte[]) value});
-            wrapper.set(wrapper.getEmbedded(methodName), entity);
+            return serializer.deserializeEntity(new byte[][]{schemaKey, (byte[]) value});
           } else if (byte[][].class.isAssignableFrom(value.getClass())) {
             ArrayList<Object> entities = new ArrayList<>();
             for (byte[] bytes : (byte[][]) value) {
-              Object entity = deserializeEntity(new byte[][]{schemaKey, bytes});
+              Object entity = serializer.deserializeEntity(new byte[][]{schemaKey, bytes});
               entities.add(entity);
             }
-            wrapper.set(wrapper.getEmbedded(methodName), entities);
+            return entities;
           } else {
             throw new UnsupportedOperationException("Did not recognize embedded type " + value.getClass());
           }
-          */
         }
       }
       return null;
@@ -233,8 +231,8 @@ public interface Serializer {
 
     @Override
     public boolean containsKey(Object key) {
-      // entity must always have a key!
-      if (wrapper.getId().getName().equals(key)) {
+      EntityMethodWrapper id = wrapper.getId();
+      if (id != null && id.getName().equals(key)) {
         return true;
       }
       ValueReader reader = new ValueReader(state[1]);
