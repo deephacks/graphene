@@ -150,8 +150,11 @@ public class EntityClassWrapper {
     private boolean isCollection;
     private boolean isMap;
     private boolean isReference;
-    private boolean basicType;
-    private boolean anEnum;
+    private List<String> enums;
+    private final Class<?> type;
+    private final boolean isPrimitive;
+    private final boolean isBasicType;
+    private final boolean isEnum;
 
     EntityMethodWrapper(Method method, boolean isReference) {
       this.method = method;
@@ -159,9 +162,18 @@ public class EntityClassWrapper {
       this.isCollection = Collection.class.isAssignableFrom(method.getReturnType());
       this.isMap = Map.class.isAssignableFrom(method.getReturnType());
       this.isReference = isReference;
+      this.type = calculateType();
+      this.isPrimitive = Types.isPrimitive(type);
+      this.isBasicType = Types.isBasicType(type);
+      this.isEnum = type.isEnum();
+      this.enums = calculateEnums();
     }
 
     public Class<?> getType() {
+      return type;
+    }
+
+    private Class<?> calculateType() {
       if (!isCollection) {
         return method.getReturnType();
       }
@@ -171,6 +183,33 @@ public class EntityClassWrapper {
                 + "] does not have parameterized arguments, which is not allowed.");
       }
       return p.get(0);
+    }
+
+    private List<String> calculateEnums() {
+      if (!isCollection) {
+        if (method.getReturnType().isEnum()) {
+          List<String> s = new ArrayList<>();
+          for (Object o : method.getReturnType().getEnumConstants()) {
+            s.add(o.toString());
+          }
+          return s;
+        } else {
+          return new ArrayList<>();
+        }
+      }
+      List<Class<?>> p = getParameterizedType(method);
+      if (p.size() == 0) {
+        throw new UnsupportedOperationException("Collection of method [" + method
+                + "] does not have parameterized arguments, which is not allowed.");
+      }
+      if (p.get(0).isEnum()) {
+        List<String> s = new ArrayList<>();
+        for (Object o : p.get(0).getEnumConstants()) {
+          s.add(o.toString());
+        }
+        return s;
+      }
+      return new ArrayList<>();
     }
 
     public List<Class<?>> getMapParamTypes() {
@@ -206,30 +245,7 @@ public class EntityClassWrapper {
     }
 
     public List<String> getEnums() {
-      if (!isCollection) {
-        if (method.getReturnType().isEnum()) {
-          List<String> s = new ArrayList<>();
-          for (Object o : method.getReturnType().getEnumConstants()) {
-            s.add(o.toString());
-          }
-          return s;
-        } else {
-          return new ArrayList<>();
-        }
-      }
-      List<Class<?>> p = getParameterizedType(method);
-      if (p.size() == 0) {
-        throw new UnsupportedOperationException("Collection of method [" + method
-                + "] does not have parameterized arguments, which is not allowed.");
-      }
-      if (p.get(0).isEnum()) {
-        List<String> s = new ArrayList<>();
-        for (Object o : p.get(0).getEnumConstants()) {
-          s.add(o.toString());
-        }
-        return s;
-      }
-      return new ArrayList<>();
+      return enums;
     }
 
     public String getName() {
@@ -241,7 +257,7 @@ public class EntityClassWrapper {
     }
 
     public boolean isPrimitive() {
-      return Types.isPrimitive(getType());
+      return isPrimitive;
     }
 
     public boolean isReference() {
@@ -249,11 +265,11 @@ public class EntityClassWrapper {
     }
 
     public boolean isBasicType() {
-      return Types.isBasicType(getType());
+      return isBasicType;
     }
 
     public boolean isEnum() {
-      return getType().isEnum();
+      return isEnum;
     }
 
     public Object getAnnotation(Class<? extends Annotation> annotation) {
