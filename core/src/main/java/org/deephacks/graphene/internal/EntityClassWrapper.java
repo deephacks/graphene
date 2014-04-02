@@ -17,17 +17,16 @@ import static org.deephacks.graphene.internal.Reflections.findAnnotation;
 import static org.deephacks.graphene.internal.Reflections.getParameterizedType;
 
 public class EntityClassWrapper {
+  private static final Map<Class<?>, Class<?>> virtualMapping = new HashMap<>();
   private static final Map<Class<?>, EntityClassWrapper> catalog = new HashMap<>();
   private EntityMethodWrapper id;
   private Map<String, EntityMethodWrapper> methods = new HashMap<>();
   private Map<String, EntityMethodWrapper> references = new HashMap<>();
   private Map<String, EntityMethodWrapper> embedded = new HashMap<>();
   private final Class<?> virtualClass;
-  private final boolean isEmbedded;
 
   private EntityClassWrapper(Class<?> cls) {
     this.virtualClass = cls;
-    this.isEmbedded = this.virtualClass.getAnnotation(Embedded.class) != null;
     Map<String, Method> map = Reflections.findGetterMethods(cls);
     for (String methodName : map.keySet()) {
       String name = getNameFromMethod(map.get(methodName));
@@ -69,27 +68,34 @@ public class EntityClassWrapper {
     return catalog.get(cls);
   }
 
-  private static Class<?> getVirtualValueClass(Class<?> virtualValueClass) {
-    // TODO: cache
-    if (virtualValueClass.getAnnotation(Embedded.class) != null) {
-      return virtualValueClass;
+  private static Class<?> getVirtualValueClass(Class<?> clazz) {
+    Class<?> cls = virtualMapping.get(clazz);
+    if (cls != null) {
+      return cls;
     }
-    for (Method m : virtualValueClass.getMethods()) {
+    if (clazz.getAnnotation(Embedded.class) != null) {
+      virtualMapping.put(clazz, clazz);
+      return clazz;
+    }
+    for (Method m : clazz.getMethods()) {
       if (m.isAnnotationPresent(Id.class)) {
-        return virtualValueClass;
+        virtualMapping.put(clazz, clazz);
+        return clazz;
       }
     }
-    for (Class<?> cls : virtualValueClass.getInterfaces()) {
-      if (cls.getAnnotation(Embedded.class) != null) {
-        return cls;
+    for (Class<?> ifClazz : clazz.getInterfaces()) {
+      if (ifClazz.getAnnotation(Embedded.class) != null) {
+        virtualMapping.put(clazz, ifClazz);
+        return ifClazz;
       }
-      for (Method m : cls.getMethods()) {
+      for (Method m : ifClazz.getMethods()) {
         if (m.isAnnotationPresent(Id.class)) {
-          return cls;
+          virtualMapping.put(clazz, ifClazz);
+          return ifClazz;
         }
       }
     }
-    throw new IllegalArgumentException("Class " + virtualValueClass + " must be a @VirtualValue interface and have one @Id method.");
+    throw new IllegalArgumentException("Class " + clazz + " must be a @VirtualValue interface and have one @Id method.");
   }
 
   public EntityMethodWrapper getId() {

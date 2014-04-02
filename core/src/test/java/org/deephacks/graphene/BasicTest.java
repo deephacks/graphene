@@ -20,11 +20,11 @@ public class BasicTest extends BaseTest {
    */
   @Test
   public void test_basic_put_get_delete() {
-    repository.beginTransaction();
-    putAndGetAssert(buildA("a"), A.class);
-    putAndGetAssert(buildB("b"), B.class);
-    putAndGetAssert(buildC("c"), C.class);
-    repository.commit();
+    repository.withTx(tx -> {
+      putAndGetAssert(buildA("a"), A.class);
+      putAndGetAssert(buildB("b"), B.class);
+      putAndGetAssert(buildC("c"), C.class);
+    });
   }
 
   /**
@@ -32,14 +32,14 @@ public class BasicTest extends BaseTest {
    */
   @Test
   public void test_put_noOverwrite() {
-    repository.beginTransaction();
-    A a = buildA("a");
-    repository.putNoOverwrite(a);
-    assertFalse(repository.putNoOverwrite(a));
-    a = buildA("a");
-    Optional<A> result = repository.get("a", A.class);
-    assertEquals(a, result.get());
-    repository.commit();
+    repository.withTx(tx -> {
+      A a = buildA("a");
+      repository.putNoOverwrite(a);
+      assertFalse(repository.putNoOverwrite(a));
+      a = buildA("a");
+      Optional<A> result = repository.get("a", A.class);
+      assertEquals(a, result.get());
+    });
   }
 
   /**
@@ -47,10 +47,10 @@ public class BasicTest extends BaseTest {
    */
   @Test
   public void test_delete_non_existin_instances() {
-    repository.beginTransaction();
-    final Optional<A> a = repository.delete(UUID.randomUUID().toString(), A.class);
-    assertFalse(a.isPresent());
-    repository.commit();
+    repository.withTx(tx -> {
+      final Optional<A> a = repository.delete(UUID.randomUUID().toString(), A.class);
+      assertFalse(a.isPresent());
+    });
   }
 
   public <T extends StandardProperties> void putAndGetAssert(T object, Class<T> cls) {

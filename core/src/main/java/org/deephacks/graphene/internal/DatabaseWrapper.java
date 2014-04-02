@@ -25,7 +25,7 @@ public class DatabaseWrapper {
     public Optional<byte[]> get(byte[] key) {
         DatabaseEntry dbKey = new DatabaseEntry(key);
         DatabaseEntry dbValue = new DatabaseEntry();
-        if (OperationStatus.NOTFOUND == db.get().get(tm.peek(), dbKey, dbValue, LockMode.RMW)) {
+        if (OperationStatus.NOTFOUND == db.get().get(tm.peek().getTx(), dbKey, dbValue, LockMode.RMW)) {
             return Optional.empty();
         }
         return Optional.ofNullable(dbValue.getData());
@@ -34,7 +34,7 @@ public class DatabaseWrapper {
     public boolean put(byte[] key, byte[] value) {
         DatabaseEntry dbKey = new DatabaseEntry(key);
         DatabaseEntry dbValue = new DatabaseEntry(value);
-        if (OperationStatus.KEYEXIST == db.get().putNoOverwrite(tm.peek(), dbKey, dbValue)) {
+        if (OperationStatus.KEYEXIST == db.get().putNoOverwrite(tm.peek().getTx(), dbKey, dbValue)) {
             return false;
         }
         return true;
@@ -42,7 +42,7 @@ public class DatabaseWrapper {
 
     public Map<byte[], byte[]> listAll() {
         Map<byte[], byte[]> map = new HashMap<>();
-        try(Cursor cursor = db.get().openCursor(tm.peek(), null)) {
+        try(Cursor cursor = db.get().openCursor(tm.peek().getTx(), null)) {
             DatabaseEntry firstKey = new DatabaseEntry(RowKey.getMinId().getKey());
             DatabaseEntry entry = new DatabaseEntry();
             if (cursor.getSearchKeyRange(firstKey, entry, LockMode.RMW) == OperationStatus.SUCCESS) {
@@ -57,7 +57,7 @@ public class DatabaseWrapper {
     }
 
     public void deleteAll() {
-        try(Cursor cursor = db.get().openCursor(tm.peek(), null)) {
+        try(Cursor cursor = db.get().openCursor(tm.peek().getTx(), null)) {
             DatabaseEntry firstKey = new DatabaseEntry(RowKey.getMinId().getKey());
 
             if (cursor.getSearchKeyRange(firstKey, new DatabaseEntry(), LockMode.RMW) == OperationStatus.SUCCESS) {

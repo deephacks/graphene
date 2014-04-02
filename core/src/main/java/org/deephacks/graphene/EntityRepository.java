@@ -25,6 +25,7 @@ import com.sleepycat.je.SecondaryDatabase;
 import com.sleepycat.je.SecondaryMultiKeyCreator;
 import com.sleepycat.je.Transaction;
 import org.deephacks.graphene.Query.DefaultQuery;
+import org.deephacks.graphene.TransactionManager.Tx;
 import org.deephacks.graphene.internal.EntityClassWrapper;
 import org.deephacks.graphene.internal.EntityClassWrapper.EntityMethodWrapper;
 import org.deephacks.graphene.internal.EntityValidator;
@@ -40,6 +41,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.Spliterator;
 import java.util.Spliterators;
+import java.util.function.Function;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
@@ -224,7 +226,38 @@ public class EntityRepository {
     Spliterator<E> spliterator = Spliterators.spliterator(objects.iterator(), Long.MAX_VALUE, Spliterator.SIZED);
     Stream<E> stream = StreamSupport.stream(spliterator, false);
     stream.onClose(cursor::close);
+    tm.push(cursor);
     return stream;
+  }
+
+  public <T> T withTxReturn(Function<Tx, T> function) {
+    Tx tx = tm.beginTransaction();
+    try {
+      T result = function.apply(tx);
+      tm.commit();
+      return result;
+    } catch (Throwable e) {
+      try {
+        tm.rollback();
+      } catch (Throwable e1) {
+        throw new IllegalStateException(e1);
+      }
+      if (e instanceof RuntimeException) {
+        throw (RuntimeException) e;
+      }
+      throw new RuntimeException(e);
+    }
+  }
+
+  public void withTx(Transactional transactional) {
+    withTxReturn(tx -> {
+      transactional.execute(tx);
+      return null;
+    });
+  }
+
+  public static interface Transactional {
+    void execute(Tx tx);
   }
 
   /**
@@ -299,7 +332,11 @@ public class EntityRepository {
    * @return the transaction.
    */
   public Transaction getTx() {
-    return tm.peek();
+    Tx tx = tm.peek();
+    if (tx == null) {
+      throw new NullPointerException("No active transaction.");
+    }
+    return tx.getTx();
   }
 
   /**
