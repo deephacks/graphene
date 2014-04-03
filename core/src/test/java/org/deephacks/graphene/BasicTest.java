@@ -6,6 +6,7 @@ import org.junit.Test;
 import java.util.Optional;
 import java.util.UUID;
 
+import static org.deephacks.graphene.EntityRepository.withTx;
 import static org.junit.Assert.*;
 
 /**
@@ -20,7 +21,7 @@ public class BasicTest extends BaseTest {
    */
   @Test
   public void test_basic_put_get_delete() {
-    repository.withTx(tx -> {
+    withTx(tx -> {
       putAndGetAssert(buildA("a"), A.class);
       putAndGetAssert(buildB("b"), B.class);
       putAndGetAssert(buildC("c"), C.class);
@@ -32,7 +33,7 @@ public class BasicTest extends BaseTest {
    */
   @Test
   public void test_put_noOverwrite() {
-    repository.withTx(tx -> {
+    withTx(tx -> {
       A a = buildA("a");
       repository.putNoOverwrite(a);
       assertFalse(repository.putNoOverwrite(a));
@@ -47,7 +48,7 @@ public class BasicTest extends BaseTest {
    */
   @Test
   public void test_delete_non_existin_instances() {
-    repository.withTx(tx -> {
+    withTx(tx -> {
       final Optional<A> a = repository.delete(UUID.randomUUID().toString(), A.class);
       assertFalse(a.isPresent());
     });

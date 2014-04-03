@@ -14,14 +14,14 @@ public class TransactionManager {
     this.environment = environment;
   }
 
-  public Tx beginTransaction() {
+  Tx beginTransaction() {
     Transaction transaction = environment.beginTransaction(null, null);
     Tx tx = new Tx(transaction);
     push(tx);
     return tx;
   }
 
-  public void commit() {
+  void commit() {
     Tx tx = pop();
     if (tx == null) {
       return;
@@ -29,7 +29,7 @@ public class TransactionManager {
     tx.commit();
   }
 
-  public void rollback() {
+  void rollback() {
     Tx tx = pop();
     if (tx == null) {
       return;
@@ -37,7 +37,7 @@ public class TransactionManager {
     tx.rollback();
   }
 
-  public void push(Tx value) {
+  void push(Tx value) {
     Stack<Tx> stack = threadLocal.get();
     if (stack == null) {
       stack = new Stack<>();
@@ -46,7 +46,7 @@ public class TransactionManager {
     threadLocal.set(stack);
   }
 
-  public Tx peek() {
+  Tx peek() {
     Stack<Tx> stack = threadLocal.get();
     if (stack == null || stack.isEmpty()) {
       return null;
@@ -54,7 +54,7 @@ public class TransactionManager {
     return stack.peek();
   }
 
-  public Tx pop() {
+  Tx pop() {
     Stack<Tx> stack = threadLocal.get();
     if (stack == null || stack.isEmpty()) {
       return null;
@@ -62,18 +62,26 @@ public class TransactionManager {
     return stack.pop();
   }
 
-  public void clear() {
+  void clear() {
     Stack<Tx> stack = threadLocal.get();
     stack.clear();
     threadLocal.set(null);
   }
 
-  public void push(Cursor cursor) {
+  void push(Cursor cursor) {
     Tx tx = peek();
     if (tx == null) {
       throw new NullPointerException("No active transaction!");
     }
     tx.push(cursor);
+  }
+
+  public Transaction getInternalTx() {
+    Tx tx = peek();
+    if (tx == null) {
+      return null;
+    }
+    return tx.getTx();
   }
 
   public static class Tx {
@@ -90,7 +98,9 @@ public class TransactionManager {
 
     public void commit() {
       closeCursors();
-      tx.commit();
+      if (tx.isValid()) {
+        tx.commit();
+      }
     }
 
     public void rollback() {

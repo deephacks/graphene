@@ -10,6 +10,8 @@ import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 
+import static org.deephacks.graphene.EntityRepository.withTx;
+
 public class BaseTest {
   protected static final EntityRepository repository = new EntityRepository();
 
@@ -28,13 +30,13 @@ public class BaseTest {
 
   @Before
   public void before() {
-    repository.beginTransaction();
-    UniqueIds ids = new UniqueIds();
-    repository.deleteAll(C.class);
-    repository.deleteAll(B.class);
-    repository.deleteAll(A.class);
-    ids.deleteAll();
-    repository.commit();
+    withTx(tx -> {
+      UniqueIds ids = new UniqueIds();
+      repository.deleteAll(C.class);
+      repository.deleteAll(B.class);
+      repository.deleteAll(A.class);
+      ids.deleteAll();
+    });
   }
 
   static class ShutdownHook {

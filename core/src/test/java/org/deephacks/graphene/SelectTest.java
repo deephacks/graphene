@@ -10,6 +10,7 @@ import java.util.stream.Collectors;
 
 import static org.deephacks.graphene.Criteria.equal;
 import static org.deephacks.graphene.Criteria.field;
+import static org.deephacks.graphene.EntityRepository.withTx;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.*;
 
@@ -20,7 +21,7 @@ public class SelectTest extends BaseTest {
    */
   @Test
   public void test_select_all() {
-    repository.withTx(tx -> {
+    withTx(tx -> {
       int numInstances = 10;
       for (int i = 0; i < numInstances; i++) {
         repository.put(buildA("a" + i));
@@ -38,7 +39,7 @@ public class SelectTest extends BaseTest {
    */
   @Test
   public void test_select_single_embedded() {
-    repository.withTx(tx -> {
+    withTx(tx -> {
       int numInstances = 10;
       String value = UUID.randomUUID().toString();
       ArrayList<A> instances = new ArrayList<>();
@@ -65,9 +66,9 @@ public class SelectTest extends BaseTest {
   @Test
   public void test_select_single_reference() {
     LinkedHashMap<String, StandardProperties> map = defaultReferences();
-    repository.withTx(tx -> {
+    withTx(tx -> {
       map.values().forEach(repository::put);
-      List<B> result =repository.stream(B.class)
+      List<B> result = repository.stream(B.class)
               .filter(b -> b.getA() != null && b.getA().getStringValue().equals("value"))
               .collect(Collectors.toList());
       for (B b : result) {
@@ -84,7 +85,7 @@ public class SelectTest extends BaseTest {
   @Test
   public void test_select_single_reference_key() {
     LinkedHashMap<String, StandardProperties> map = defaultReferences();
-    repository.withTx(tx -> {
+    withTx(tx -> {
       map.values().forEach(repository::put);
       List<B> result = repository.stream(B.class)
               .filter(b -> b.getA() != null && b.getA().getId().equals("a1"))
@@ -103,7 +104,7 @@ public class SelectTest extends BaseTest {
    */
   @Test
   public void test_select_min_max() {
-    repository.withTx(tx -> {
+    withTx(tx -> {
       int numInstances = 10;
       for (int i = 0; i < numInstances; i++) {
         repository.put(buildA("a" + i));
@@ -128,7 +129,7 @@ public class SelectTest extends BaseTest {
    */
   @Test
   public void test_select_min_max_and_max_results() {
-    repository.withTx(tx -> {
+    withTx(tx -> {
       int numInstances = 10;
       // reverse order which instances are inserted to check that sorted order is respected
       for (int i = 0; i < numInstances; i++) {
@@ -151,7 +152,7 @@ public class SelectTest extends BaseTest {
    */
   @Test
   public void test_select_or_predicate() {
-    repository.withTx(tx -> {
+    withTx(tx -> {
       A a1 = buildA("a1", "v1");
       if (!repository.put(a1)) {
         throw new IllegalStateException("Could not create");
@@ -172,7 +173,7 @@ public class SelectTest extends BaseTest {
    */
   @Test
   public void test_select_not_predicate() {
-    repository.withTx(tx -> {
+    withTx(tx -> {
       A a1 = buildA("a1", "v1");
       repository.put(a1);
       A a2 = buildA("a2", "v2");
@@ -192,7 +193,7 @@ public class SelectTest extends BaseTest {
    */
   @Test
   public void test_select_and_predicate() {
-    repository.withTx(tx -> {
+    withTx(tx -> {
       A a1 = buildA("a1", "v1");
       repository.put(a1);
       A a2 = buildA("a2", "v2");
@@ -209,7 +210,7 @@ public class SelectTest extends BaseTest {
    */
   @Test
   public void test_select_min_max_and_max_results_predicate() {
-    repository.withTx(tx -> {
+    withTx(tx -> {
       int numInstances = 10;
       // reverse order which instances are inserted to check that sorted order is respected
       for (int i = 0; i < numInstances; i++) {
@@ -236,7 +237,7 @@ public class SelectTest extends BaseTest {
    */
   @Test
   public void test_select_predicate_outside_min_max() {
-    repository.withTx(tx -> {
+    withTx(tx -> {
       int numInstances = 10;
       // reverse order which instances are inserted to check that sorted order is respected
       for (int i = numInstances; i > -1; i--) {

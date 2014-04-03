@@ -9,6 +9,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static org.deephacks.graphene.EntityRepository.withTx;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.*;
 
@@ -19,10 +20,11 @@ public class TxTest extends BaseTest {
    */
   @Test
   public void test_put_get_rollback() {
-    repository.beginTransaction();
-    assertFalse(repository.get(buildA("a1"), A.class).isPresent());
-    assertTrue(repository.put(buildA("a1")));
-    repository.rollback();
+    withTx(tx -> {
+      assertFalse(repository.get(buildA("a1"), A.class).isPresent());
+      assertTrue(repository.put(buildA("a1")));
+      tx.rollback();
+    });
     assertFalse(repository.get("a1", A.class).isPresent());
   }
 
@@ -31,37 +33,28 @@ public class TxTest extends BaseTest {
    */
   @Test
   public void test_put_select_rollback() {
-    repository.beginTransaction();
-    int numInstances = 10;
-    // reverse order which instances are inserted to check that sorted order is respected
-    for (int i = numInstances; i > 0; i--) {
-      repository.put(buildA("a" + i));
-      repository.put(buildB("b" + i));
-      repository.put(buildC("c" + i));
-    }
+    withTx(tx -> {
+      int numInstances = 10;
+      // reverse order which instances are inserted to check that sorted order is respected
+      for (int i = numInstances; i > 0; i--) {
+        repository.put(buildA("a" + i));
+        repository.put(buildB("b" + i));
+        repository.put(buildC("c" + i));
+      }
 
-    try (ResultSet<A> result = repository.select(A.class).retrieve()) {
-      assertThat(Guavas.newArrayList(result).size(), is(numInstances));
-    }
-    try (ResultSet<B> result = repository.select(B.class).retrieve()) {
-      assertThat(Guavas.newArrayList(result).size(), is(numInstances));
-    }
-    try (ResultSet<C> result = repository.select(C.class).retrieve()) {
-      assertThat(Guavas.newArrayList(result).size(), is(numInstances));
-    }
-    repository.rollback();
-    repository.beginTransaction();
-    new UniqueIds().printAllSchemaAndInstances();
-    try (ResultSet<A> result = repository.select(A.class).retrieve()) {
-      assertThat(Guavas.newArrayList(result).size(), is(0));
-    }
-    try (ResultSet<B> result = repository.select(B.class).retrieve()) {
-      assertThat(Guavas.newArrayList(result).size(), is(0));
-    }
-    try (ResultSet<C> result = repository.select(C.class).retrieve()) {
-      assertThat(Guavas.newArrayList(result).size(), is(0));
-    }
-    repository.commit();
+      assertThat(repository.selectAll(A.class).size(), is(numInstances));
+      assertThat(repository.selectAll(B.class).size(), is(numInstances));
+      assertThat(repository.selectAll(C.class).size(), is(numInstances));
+
+      tx.rollback();
+    });
+
+    withTx(tx -> {
+      new UniqueIds().printAllSchemaAndInstances();
+      assertThat(repository.selectAll(A.class).size(), is(0));
+      assertThat(repository.selectAll(B.class).size(), is(0));
+      assertThat(repository.selectAll(C.class).size(), is(0));
+    });
   }
 
   /**
@@ -69,26 +62,25 @@ public class TxTest extends BaseTest {
    */
   @Test
   public void test_put_delete_rollback() {
-    repository.beginTransaction();
-    int numInstances = 10;
-    // reverse order which instances are inserted to check that sorted order is respected
-    for (int i = numInstances; i > 0; i--) {
-      repository.put(buildA("a" + i));
-    }
-    repository.commit();
-
-    repository.beginTransaction();
-    assertTrue(repository.put(buildA("a100")));
-    assertTrue(repository.get("a100", A.class).isPresent());
-    assertTrue(repository.delete("a1", A.class).isPresent());
-    assertFalse(repository.get("a1", A.class).isPresent());
-
-    // undo put (a100) and delete (a1) operation above
-    repository.rollback();
-    repository.beginTransaction();
-    assertTrue(repository.get("a1", A.class).isPresent());
-    assertFalse(repository.get("a100", A.class).isPresent());
-    repository.commit();
+    withTx(tx -> {
+      int numInstances = 10;
+      // reverse order which instances are inserted to check that sorted order is respected
+      for (int i = numInstances; i > 0; i--) {
+        repository.put(buildA("a" + i));
+      }
+    });
+    withTx(tx -> {
+      assertTrue(repository.put(buildA("a100")));
+      assertTrue(repository.get("a100", A.class).isPresent());
+      assertTrue(repository.delete("a1", A.class).isPresent());
+      assertFalse(repository.get("a1", A.class).isPresent());
+      // undo put (a100) and delete (a1) operation above
+      tx.rollback();
+    });
+    withTx(tx -> {
+      assertTrue(repository.get("a1", A.class).isPresent());
+      assertFalse(repository.get("a100", A.class).isPresent());
+    });
   }
 
   static Exception failure;
@@ -100,53 +92,43 @@ public class TxTest extends BaseTest {
   @Test
   public void test_tx_write_isolation() throws Exception {
     for (int i = 0; i < 100; i++) {
-      repository.beginTransaction();
       final CountDownLatch latch = new CountDownLatch(2);
       final SynchronousQueue<String> queue = new SynchronousQueue<>();
-      repository.delete("a", A.class);
-      repository.commit();
+      withTx(tx -> {
+        repository.delete("a", A.class);
+      });
       final A a1 = buildA("a", "a1");
       failure = null;
-      Thread t1 = new Thread(new Runnable() {
-        @Override
-        public void run() {
-          try {
-            repository.beginTransaction();
-            repository.put(a1);
-            // signal t2 wake up
-            queue.put("wakeup");
-            // sleep a little while to make sure that there is
-            // a chance that t2 calls get before t1 does commit
-            Thread.sleep(10);
-            repository.commit();
-          } catch (Exception e) {
-            repository.rollback();
-            failure = e;
-            throw new RuntimeException(e);
-          } finally {
-            latch.countDown();
-          }
+      Thread t1 = new Thread(() -> withTx(tx -> {
+        try {
+          repository.put(a1);
+          // signal t2 wake up
+          queue.put("wakeup");
+          // sleep a little while to make sure that there is
+          // a chance that t2 calls get before t1 does commit
+          Thread.sleep(10);
+        } catch (Exception e) {
+          tx.rollback();
+          failure = e;
+          throw new RuntimeException(e);
+        } finally {
+          latch.countDown();
         }
-      }, "Thread 1");
-      Thread t2 = new Thread(new Runnable() {
-        @Override
-        public void run() {
-          try {
-            repository.beginTransaction();
-            // wait for a1.put(a)
-            queue.take();
-            // t2 should be forced to wait until t1 does commit
-            assertTrue(repository.get("a", A.class).isPresent());
-            repository.commit();
-          } catch (Exception e) {
-            repository.rollback();
-            failure = e;
-            throw new RuntimeException(e);
-          } finally {
-            latch.countDown();
-          }
+      }), "Thread 1");
+      Thread t2 = new Thread(() -> withTx(tx -> {
+        try {
+          // wait for a1.put(a)
+          queue.take();
+          // t2 should be forced to wait until t1 does commit
+          assertTrue(repository.get("a", A.class).isPresent());
+        } catch (Exception e) {
+          tx.rollback();
+          failure = e;
+          throw new RuntimeException(e);
+        } finally {
+          latch.countDown();
         }
-      }, "Thread 2");
+      }), "Thread 2");
       t1.start();
       t2.start();
       latch.await();
@@ -167,25 +149,18 @@ public class TxTest extends BaseTest {
     final AtomicInteger counter = new AtomicInteger(0);
     final CountDownLatch latch = new CountDownLatch(numRounds);
     for (int i = 0; i < numRounds; i++) {
-      executor.execute(new Runnable() {
-        @Override
-        public void run() {
-          try {
-            repository.beginTransaction();
-            repository.put(instance);
-            repository.commit();
-            repository.beginTransaction();
-            assertEquals(instance, repository.getForUpdate("a1", A.class).get());
-            repository.commit();
-            counter.incrementAndGet();
-          } catch (Exception e) {
-            repository.rollback();
-            throw new RuntimeException(e);
-          } finally {
-            latch.countDown();
-          }
+      executor.execute(() -> withTx(tx -> {
+        try {
+          repository.put(instance);
+          assertEquals(instance, repository.getForUpdate("a1", A.class).get());
+          counter.incrementAndGet();
+        } catch (Exception e) {
+          tx.rollback();
+          throw new RuntimeException(e);
+        } finally {
+          latch.countDown();
         }
-      });
+      }));
     }
     latch.await();
     assertThat(counter.get(), is(numRounds));

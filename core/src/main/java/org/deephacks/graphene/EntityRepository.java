@@ -23,7 +23,6 @@ import com.sleepycat.je.LockMode;
 import com.sleepycat.je.OperationStatus;
 import com.sleepycat.je.SecondaryDatabase;
 import com.sleepycat.je.SecondaryMultiKeyCreator;
-import com.sleepycat.je.Transaction;
 import org.deephacks.graphene.Query.DefaultQuery;
 import org.deephacks.graphene.TransactionManager.Tx;
 import org.deephacks.graphene.internal.EntityClassWrapper;
@@ -42,6 +41,7 @@ import java.util.Set;
 import java.util.Spliterator;
 import java.util.Spliterators;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
@@ -49,9 +49,9 @@ import java.util.stream.StreamSupport;
  * EntityRepository will never commit or rollback a transactions.
  */
 public class EntityRepository {
+  private static final Handle<Graphene> graphene = Graphene.get();
+  private static final TransactionManager tm = graphene.get().getTransactionManager();
   private static final Object WRITE_LOCK = new Object();
-  private final Handle<Graphene> graphene = Graphene.get();
-  private final TransactionManager tm = graphene.get().getTransactionManager();
   private final Handle<Database> db;
   private final Handle<SecondaryDatabase> secondary;
   private final Optional<EntityValidator> validator;
@@ -117,7 +117,7 @@ public class EntityRepository {
         }
         DatabaseEntry key = new DatabaseEntry(data[0]);
         DatabaseEntry value = new DatabaseEntry(data[1]);
-        if (OperationStatus.SUCCESS != db.get().put(getTx(), key, value)) {
+        if (OperationStatus.SUCCESS != db.get().put(tm.getInternalTx(), key, value)) {
           return false;
         }
         return true;
@@ -148,7 +148,7 @@ public class EntityRepository {
         }
         DatabaseEntry key = new DatabaseEntry(data[0]);
         DatabaseEntry value = new DatabaseEntry(data[1]);
-        return OperationStatus.SUCCESS == db.get().putNoOverwrite(getTx(), key, value);
+        return OperationStatus.SUCCESS == db.get().putNoOverwrite(tm.getInternalTx(), key, value);
       } catch (ForeignConstraintException e) {
         throw new ForeignKeyConstraintException(e);
       }
@@ -171,7 +171,7 @@ public class EntityRepository {
         return Optional.empty();
       }
       try {
-        OperationStatus status = db.get().delete(getTx(), new DatabaseEntry(optional.get()[0]));
+        OperationStatus status = db.get().delete(tm.getInternalTx(), new DatabaseEntry(optional.get()[0]));
         if (status == OperationStatus.NOTFOUND) {
           return Optional.empty();
         }
@@ -230,11 +230,25 @@ public class EntityRepository {
     return stream;
   }
 
-  public <T> T withTxReturn(Function<Tx, T> function) {
+  public static <T> T withTxReturn(Function<Tx, T> function) {
     Tx tx = tm.beginTransaction();
     try {
       T result = function.apply(tx);
-      tm.commit();
+      switch (tx.getTx().getState()) {
+        case OPEN:
+          tm.commit();
+          break;
+        case POSSIBLY_COMMITTED:
+          break;
+        case COMMITTED:
+          break;
+        case MUST_ABORT:
+          tm.rollback();
+          break;
+        case ABORTED:
+          tm.rollback();
+          break;
+      }
       return result;
     } catch (Throwable e) {
       try {
@@ -249,7 +263,7 @@ public class EntityRepository {
     }
   }
 
-  public void withTx(Transactional transactional) {
+  public static void withTx(Transactional transactional) {
     withTxReturn(tx -> {
       transactional.execute(tx);
       return null;
@@ -268,8 +282,8 @@ public class EntityRepository {
    * @return instances match criteria
    */
   public <E> List<E> selectAll(Class<E> entityClass) {
-    try (ResultSet<E> result = new DefaultQuery<>(entityClass, this).retrieve()) {
-      return Guavas.newArrayList(result);
+    try (Stream<E> stream = stream(entityClass)) {
+      return stream.collect(Collectors.toList());
     }
   }
 
@@ -312,47 +326,6 @@ public class EntityRepository {
     return db.get().count();
   }
 
-  /**
-   * @return the current transaction manager
-   */
-  public TransactionManager getTransactionManager() {
-    return tm;
-  }
-
-  /**
-   * Start a transaction.
-   */
-  public void beginTransaction() {
-    tm.beginTransaction();
-  }
-
-  /**
-   * Get the current transaction associated with this thread or create a new one.
-   *
-   * @return the transaction.
-   */
-  public Transaction getTx() {
-    Tx tx = tm.peek();
-    if (tx == null) {
-      throw new NullPointerException("No active transaction.");
-    }
-    return tx.getTx();
-  }
-
-  /**
-   * Commit the transaction associated with the current thread.
-   */
-  public void commit() {
-    tm.commit();
-  }
-
-  /**
-   * Rollback the transaction associated with the current thread.
-   */
-  public void rollback() {
-    tm.rollback();
-  }
-
   public <E> Optional<byte[][]> getKv(Object key, Class<E> entityClass, LockMode mode) {
     return getKv(new RowKey(entityClass, key), mode);
   }
@@ -361,7 +334,7 @@ public class EntityRepository {
     byte[] dataKey = getSerializer(key.getClass()).serializeRowKey(key);
     DatabaseEntry entryKey = new DatabaseEntry(dataKey);
     DatabaseEntry entryValue = new DatabaseEntry();
-    if (OperationStatus.SUCCESS == db.get().get(getTx(), entryKey, entryValue, mode)) {
+    if (OperationStatus.SUCCESS == db.get().get(tm.getInternalTx(), entryKey, entryValue, mode)) {
       byte[][] kv = new byte[][]{entryKey.getData(), entryValue.getData()};
       return Optional.ofNullable(kv);
     }
@@ -371,13 +344,13 @@ public class EntityRepository {
   Cursor openPrimaryCursor() {
     CursorConfig config = new CursorConfig();
     config.setReadCommitted(true);
-    return db.get().openCursor(getTx(), config);
+    return db.get().openCursor(tm.getInternalTx(), config);
   }
 
   Cursor openForeignCursor() {
     CursorConfig config = new CursorConfig();
     config.setReadCommitted(true);
-    return secondary.get().openCursor(getTx(), config);
+    return secondary.get().openCursor(tm.getInternalTx(), config);
   }
 
   private Serializer getSerializer(Class<?> entityClass) {
