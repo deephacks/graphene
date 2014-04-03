@@ -6,7 +6,7 @@ import org.junit.Test;
 import java.util.Optional;
 import java.util.UUID;
 
-import static org.deephacks.graphene.EntityRepository.withTx;
+import static org.deephacks.graphene.TransactionManager.withTx;
 import static org.junit.Assert.*;
 
 /**

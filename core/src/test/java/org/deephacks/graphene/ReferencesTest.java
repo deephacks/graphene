@@ -5,7 +5,7 @@ import org.junit.Test;
 import java.util.LinkedHashMap;
 import java.util.Optional;
 
-import static org.deephacks.graphene.EntityRepository.withTx;
+import static org.deephacks.graphene.TransactionManager.withTx;
 import static org.junit.Assert.*;
 
 public class ReferencesTest extends BaseTest {

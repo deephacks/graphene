@@ -9,7 +9,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static org.deephacks.graphene.EntityRepository.withTx;
+import static org.deephacks.graphene.TransactionManager.withTx;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.*;
 

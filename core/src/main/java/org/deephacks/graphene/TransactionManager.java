@@ -5,14 +5,63 @@ import com.sleepycat.je.Environment;
 import com.sleepycat.je.Transaction;
 
 import java.util.Stack;
+import java.util.function.Function;
 
 public class TransactionManager {
+  private static final Handle<Graphene> graphene = Graphene.get();
+  private static final TransactionManager tm = graphene.get().getTransactionManager();
   private static final ThreadLocal<Stack<Tx>> threadLocal = new ThreadLocal<>();
   private final Environment environment;
+
 
   public TransactionManager(Environment environment) {
     this.environment = environment;
   }
+
+  public static <T> T withTxReturn(Function<Tx, T> function) {
+    Tx tx = tm.beginTransaction();
+    try {
+      T result = function.apply(tx);
+      switch (tx.getTx().getState()) {
+        case OPEN:
+          tm.commit();
+          break;
+        case POSSIBLY_COMMITTED:
+          break;
+        case COMMITTED:
+          break;
+        case MUST_ABORT:
+          tm.rollback();
+          break;
+        case ABORTED:
+          tm.rollback();
+          break;
+      }
+      return result;
+    } catch (Throwable e) {
+      try {
+        tm.rollback();
+      } catch (Throwable e1) {
+        throw new IllegalStateException(e1);
+      }
+      if (e instanceof RuntimeException) {
+        throw (RuntimeException) e;
+      }
+      throw new RuntimeException(e);
+    }
+  }
+
+  public static void withTx(Transactional transactional) {
+    withTxReturn(tx -> {
+      transactional.execute(tx);
+      return null;
+    });
+  }
+
+  public static interface Transactional {
+    void execute(Tx tx);
+  }
+
 
   Tx beginTransaction() {
     Transaction transaction = environment.beginTransaction(null, null);

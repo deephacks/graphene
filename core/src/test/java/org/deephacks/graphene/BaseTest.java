@@ -10,7 +10,7 @@ import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 
-import static org.deephacks.graphene.EntityRepository.withTx;
+import static org.deephacks.graphene.TransactionManager.withTx;
 
 public class BaseTest {
   protected static final EntityRepository repository = new EntityRepository();

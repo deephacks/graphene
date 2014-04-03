@@ -23,8 +23,6 @@ import com.sleepycat.je.LockMode;
 import com.sleepycat.je.OperationStatus;
 import com.sleepycat.je.SecondaryDatabase;
 import com.sleepycat.je.SecondaryMultiKeyCreator;
-import org.deephacks.graphene.Query.DefaultQuery;
-import org.deephacks.graphene.TransactionManager.Tx;
 import org.deephacks.graphene.internal.EntityClassWrapper;
 import org.deephacks.graphene.internal.EntityClassWrapper.EntityMethodWrapper;
 import org.deephacks.graphene.internal.EntityValidator;
@@ -40,7 +38,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.Spliterator;
 import java.util.Spliterators;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -184,42 +181,12 @@ public class EntityRepository {
   }
 
   /**
-   * Select instances based on the provided Criteria.
-   *
-   * @param entityClass the type which is target for selection
-   * @param criteria    criteria used for selecting instances
-   * @param <E>         instance type
-   * @return instances match criteria
-   */
-  public <E> Query<E> select(final Class<E> entityClass, final Criteria criteria) {
-    return new DefaultQuery<>(entityClass, this, criteria);
-  }
-
-  /**
-   * Select and return instances based on the provided Criteria.
-   *
-   * @param entityClass the type which is target for selection
-   * @param criteria    criteria used for selecting instances
-   * @param <E>         instance type
-   * @return instances match criteria
-   */
-  public <E> List<E> selectAll(Class<E> entityClass, final Criteria criteria) {
-    try (ResultSet<E> result = new DefaultQuery<>(entityClass, this, criteria).retrieve()) {
-      return Guavas.newArrayList(result);
-    }
-  }
-
-  /**
-   * Select all instances.
+   * Stream instances.
    *
    * @param entityClass the type which is target for selection
    * @param <E>         instance type
-   * @return instances match criteria
+   * @return stream of instances.
    */
-  public <E> Query<E> select(Class<E> entityClass) {
-    return new DefaultQuery<>(entityClass, this);
-  }
-
   public <E> Stream<E> stream(Class<E> entityClass) {
     final Cursor cursor = openPrimaryCursor();
     StreamResultSet<E> objects = new StreamResultSet<>(entityClass, cursor);
@@ -228,50 +195,6 @@ public class EntityRepository {
     stream.onClose(cursor::close);
     tm.push(cursor);
     return stream;
-  }
-
-  public static <T> T withTxReturn(Function<Tx, T> function) {
-    Tx tx = tm.beginTransaction();
-    try {
-      T result = function.apply(tx);
-      switch (tx.getTx().getState()) {
-        case OPEN:
-          tm.commit();
-          break;
-        case POSSIBLY_COMMITTED:
-          break;
-        case COMMITTED:
-          break;
-        case MUST_ABORT:
-          tm.rollback();
-          break;
-        case ABORTED:
-          tm.rollback();
-          break;
-      }
-      return result;
-    } catch (Throwable e) {
-      try {
-        tm.rollback();
-      } catch (Throwable e1) {
-        throw new IllegalStateException(e1);
-      }
-      if (e instanceof RuntimeException) {
-        throw (RuntimeException) e;
-      }
-      throw new RuntimeException(e);
-    }
-  }
-
-  public static void withTx(Transactional transactional) {
-    withTxReturn(tx -> {
-      transactional.execute(tx);
-      return null;
-    });
-  }
-
-  public static interface Transactional {
-    void execute(Tx tx);
   }
 
   /**
