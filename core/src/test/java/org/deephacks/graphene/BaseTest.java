@@ -8,6 +8,9 @@ import org.junit.Before;
 import javax.annotation.Nullable;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.time.Period;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.LinkedHashMap;
@@ -116,10 +119,12 @@ public class BaseTest {
             .withEnumList(Guavas.newArrayList(TimeUnit.DAYS, TimeUnit.HOURS, TimeUnit.MILLISECONDS))
             .withDate(new Date(1))
             .withDateList(Guavas.newArrayList(new Date(1), new Date(2)))
-            /*
             .withLocalDateTime(LocalDateTime.parse("2014-04-01T12:00"))
             .withLocalDateTimeList(Guavas.newArrayList(LocalDateTime.parse("2014-04-01T12:00"), LocalDateTime.parse("2014-04-02T12:00")))
-            */
+            .withPeriod(Period.parse("P1Y2M3D"))
+            .withPeriods(Guavas.newArrayList(Period.parse("P1Y2M3D"), Period.parse("P1Y2M3D")))
+            .withDuration(Duration.parse("PT15M"))
+            .withDurations(Guavas.newArrayList(Duration.parse("PT15M"), Duration.parse("PT15M")))
             .build();
   }
 
@@ -173,11 +178,12 @@ public class BaseTest {
             .withEnumList(Guavas.newArrayList(TimeUnit.DAYS, TimeUnit.HOURS, TimeUnit.MILLISECONDS))
             .withDate(new Date(1))
             .withDateList(Guavas.newArrayList(new Date(1), new Date(2)))
-            /*
+            .withPeriod(Period.parse("P1Y2M3D"))
+            .withPeriods(Guavas.newArrayList(Period.parse("P1Y2M3D"), Period.parse("P1Y2M3D")))
+            .withDuration(Duration.parse("PT15M"))
+            .withDurations(Guavas.newArrayList(Duration.parse("PT15M"), Duration.parse("PT15M")))
             .withLocalDateTime(LocalDateTime.parse("2014-04-01T12:00"))
-            .withLocalDateTimeList(Guavas.newArrayList(LocalDateTime.parse("2014-04-01T12:00"), LocalDateTime.parse("2014-04-02T12:00")))
-            */
-            ;
+            .withLocalDateTimeList(Guavas.newArrayList(LocalDateTime.parse("2014-04-01T12:00"), LocalDateTime.parse("2014-04-02T12:00")));
   }
 
   public static C buildC(String id, B b, List<B> listOfB) {
@@ -229,11 +235,12 @@ public class BaseTest {
             .withEnumList(Guavas.newArrayList(TimeUnit.DAYS, TimeUnit.HOURS, TimeUnit.MILLISECONDS))
             .withDate(new Date(1))
             .withDateList(Guavas.newArrayList(new Date(1), new Date(2)))
-            /*
+            .withPeriod(Period.parse("P1Y2M3D"))
+            .withPeriods(Guavas.newArrayList(Period.parse("P1Y2M3D"), Period.parse("P1Y2M3D")))
+            .withDuration(Duration.parse("PT15M"))
+            .withDurations(Guavas.newArrayList(Duration.parse("PT15M"), Duration.parse("PT15M")))
             .withLocalDateTime(LocalDateTime.parse("2014-04-01T12:00"))
-            .withLocalDateTimeList(Guavas.newArrayList(LocalDateTime.parse("2014-04-01T12:00"), LocalDateTime.parse("2014-04-02T12:00")))
-            */
-            ;
+            .withLocalDateTimeList(Guavas.newArrayList(LocalDateTime.parse("2014-04-01T12:00"), LocalDateTime.parse("2014-04-02T12:00")));
   }
 
 
@@ -273,12 +280,14 @@ public class BaseTest {
             .withStringValues(Guavas.newArrayList("1a", "2b", "3c"))
             .withEnumValue(TimeUnit.DAYS)
             .withEnumList(Guavas.newArrayList(TimeUnit.DAYS, TimeUnit.HOURS, TimeUnit.MILLISECONDS))
+            .withPeriod(Period.parse("P1Y2M3D"))
+            .withPeriods(Guavas.newArrayList(Period.parse("P1Y2M3D"), Period.parse("P1Y2M3D")))
+            .withDuration(Duration.parse("PT15M"))
+            .withDurations(Guavas.newArrayList(Duration.parse("PT15M"), Duration.parse("PT15M")))
             .withDate(new Date(1))
             .withDateList(Guavas.newArrayList(new Date(1), new Date(2)))
-            /*
             .withLocalDateTime(LocalDateTime.parse("2014-04-01T12:00"))
             .withLocalDateTimeList(Guavas.newArrayList(LocalDateTime.parse("2014-04-01T12:00"), LocalDateTime.parse("2014-04-02T12:00")))
-            */
             .build();
   }
 
@@ -377,12 +386,17 @@ public class BaseTest {
 
     List<Date> getDateList();
 
-    /*
     LocalDateTime getLocalDateTime();
 
     List<LocalDateTime> getLocalDateTimeList();
-    */
 
+    Period getPeriod();
+
+    List<Period> getPeriods();
+
+    Duration getDuration();
+
+    List<Duration> getDurations();
   }
 
   @VirtualValue

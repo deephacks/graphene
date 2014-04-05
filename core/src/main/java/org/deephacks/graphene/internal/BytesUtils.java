@@ -27,6 +27,9 @@ import java.nio.LongBuffer;
 import java.nio.charset.Charset;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.time.Period;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -682,7 +685,8 @@ public class BytesUtils {
 
   public static enum DataType {
     BYTE(1), SHORT(2), INTEGER(3), LONG(4), FLOAT(5), DOUBLE(6), BOOLEAN(7), STRING(8),
-    CHAR(9), BYTE_ARRAY(10), ENUM(11), BIG_INTEGER(12), BIG_DECIMAL(13), DATE(14), OBJECT(15),
+    CHAR(9), BYTE_ARRAY(10), ENUM(11), BIG_INTEGER(12), BIG_DECIMAL(13), DATE(14),
+    LOCAL_DATE_TIME(15), PEROID(16), DURATION(17), OBJECT(17),
 
     BYTE_LIST(20), SHORT_LIST(21), INTEGER_LIST(22), LONG_LIST(23), FLOAT_LIST(24),
     DOUBLE_LIST(25), BOOLEAN_LIST(26), STRING_LIST(27), CHAR_LIST(28), BYTE_ARRAY_LIST(29), OBJECT_LIST(30);
@@ -753,6 +757,12 @@ public class BytesUtils {
         return BIG_INTEGER;
       } else if (Date.class.isAssignableFrom(cls)) {
         return DATE;
+      } else if (LocalDateTime.class.isAssignableFrom(cls)) {
+        return LOCAL_DATE_TIME;
+      } else if (Period.class.isAssignableFrom(cls)) {
+        return PEROID;
+      } else if (Duration.class.isAssignableFrom(cls)) {
+        return DURATION;
       } else {
         return OBJECT;
       }

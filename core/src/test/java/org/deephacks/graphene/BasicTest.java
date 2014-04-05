@@ -65,8 +65,6 @@ public class BasicTest extends BaseTest {
       assertFalse(repository.putNoOverwrite(a));
       a = buildA("a");
       Optional<A> result = repository.get("a", A.class);
-      System.out.println(result.get());
-      System.out.println(a);
       assertEquals(a, result.get());
     });
   }

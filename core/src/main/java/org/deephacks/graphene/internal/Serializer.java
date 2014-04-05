@@ -24,6 +24,9 @@ import org.deephacks.graphene.internal.ValueSerialization.ValueWriter;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.charset.Charset;
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.time.Period;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -280,6 +283,15 @@ public interface Serializer {
     } else if (type == DataType.ENUM) {
       String string = object.toString();
       return string.getBytes(charset);
+    } else if (type == DataType.LOCAL_DATE_TIME) {
+      String string = object.toString();
+      return string.getBytes(charset);
+    } else if (type == DataType.PEROID) {
+      String string = object.toString();
+      return string.getBytes(charset);
+    } else if (type == DataType.DURATION) {
+      String string = object.toString();
+      return string.getBytes(charset);
     } else {
       throw new IllegalArgumentException("Did not recognize type " + cls);
     }
@@ -296,10 +308,14 @@ public interface Serializer {
       return new BigInteger(string);
     } else if (type == DataType.ENUM) {
       return Enum.valueOf((Class) cls, new String(value));
+    } else if (type == DataType.LOCAL_DATE_TIME) {
+      return LocalDateTime.parse(new String(value));
+    } else if (type == DataType.PEROID) {
+      return Period.parse(new String(value));
+    } else if (type == DataType.DURATION) {
+      return Duration.parse(new String(value));
     } else {
       throw new IllegalArgumentException("Did not recognize type " + cls);
     }
-
   }
-
 }
