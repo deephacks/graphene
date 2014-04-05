@@ -9,6 +9,7 @@ import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import static org.deephacks.graphene.TransactionManager.withTx;
 
@@ -104,10 +105,9 @@ public class BaseTest {
             .withStringValues(Guavas.newArrayList("1a", "2b", "3c"))
             .withEmbedded(buildEmbedded())
             .withEmbeddedList(Guavas.newArrayList(buildEmbedded(), buildEmbedded(), buildEmbedded()))
-
-            /*
             .withEnumValue(TimeUnit.DAYS)
             .withEnumList(Guavas.newArrayList(TimeUnit.DAYS, TimeUnit.HOURS, TimeUnit.MILLISECONDS))
+            /*
             .withDate(new Date())
             .withDateList(Guavas.newArrayList(new Date(1), new Date(2)))
             .withLocalDateTime(LocalDateTime.parse("2014-04-01T12:00"))
@@ -158,9 +158,9 @@ public class BaseTest {
             .withCharValues(Guavas.newArrayList('a', 'b', 'c'))
             .withStringValue(value.length == 0 ? "value" : value[0])
             .withStringValues(Guavas.newArrayList("1a", "2b", "3c"))
-            /*
             .withEnumValue(TimeUnit.DAYS)
             .withEnumList(Guavas.newArrayList(TimeUnit.DAYS, TimeUnit.HOURS, TimeUnit.MILLISECONDS))
+            /*
             .withDate(new Date())
             .withDateList(Guavas.newArrayList(new Date(1), new Date(2)))
             .withLocalDateTime(LocalDateTime.parse("2014-04-01T12:00"))
@@ -210,9 +210,9 @@ public class BaseTest {
             .withCharValues(Guavas.newArrayList('a', 'b', 'c'))
             .withStringValue("value")
             .withStringValues(Guavas.newArrayList("1a", "2b", "3c"))
-            /*
             .withEnumValue(TimeUnit.DAYS)
             .withEnumList(Guavas.newArrayList(TimeUnit.DAYS, TimeUnit.HOURS, TimeUnit.MILLISECONDS))
+            /*
             .withDate(new Date())
             .withDateList(Guavas.newArrayList(new Date(1), new Date(2)))
             .withLocalDateTime(LocalDateTime.parse("2014-04-01T12:00"))
@@ -251,9 +251,9 @@ public class BaseTest {
             .withCharValues(Guavas.newArrayList('a', 'b', 'c'))
             .withStringValue("value")
             .withStringValues(Guavas.newArrayList("1a", "2b", "3c"))
-            /*
             .withEnumValue(TimeUnit.DAYS)
             .withEnumList(Guavas.newArrayList(TimeUnit.DAYS, TimeUnit.HOURS, TimeUnit.MILLISECONDS))
+            /*
             .withDate(new Date())
             .withDateList(Guavas.newArrayList(new Date(1), new Date(2)))
             .withLocalDateTime(LocalDateTime.parse("2014-04-01T12:00"))
@@ -340,11 +340,12 @@ public class BaseTest {
     String getStringValue();
 
     List<String> getStringValues();
-    /*
+
     TimeUnit getEnumValue();
 
     List<TimeUnit> getEnumList();
 
+    /*
     Date getDate();
 
     List<Date> getDateList();

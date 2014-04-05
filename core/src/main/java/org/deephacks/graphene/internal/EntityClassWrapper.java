@@ -150,6 +150,10 @@ public class EntityClassWrapper {
     return name;
   }
 
+  public EntityMethodWrapper getMethod(String methodName) {
+    return methods.get(methodName);
+  }
+
   public static class EntityMethodWrapper {
     private Method method;
     private String name;

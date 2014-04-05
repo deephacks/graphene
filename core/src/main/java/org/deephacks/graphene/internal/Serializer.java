@@ -30,6 +30,7 @@ import java.util.stream.Collectors;
 
 public interface Serializer {
 
+
   public RowKey deserializeRowKey(byte[] key);
 
   public byte[] serializeRowKey(RowKey key);
@@ -39,7 +40,7 @@ public interface Serializer {
   public byte[][] serializeEntity(Object entity);
 
   public static class UnsafeSerializer implements Serializer {
-
+    private static final Conversion conversion = Conversion.get();
     private static final UniqueIds ids = new UniqueIds();
     private static final EntityRepository repository = new EntityRepository();
 
@@ -149,6 +150,7 @@ public interface Serializer {
   }
 
   public static class StateMap extends AbstractMap<String, Object> {
+    private static final Conversion conversion = Conversion.get();
     private static final UniqueIds ids = new UniqueIds();
     private static final EntityRepository repository = new EntityRepository();
     byte[][] state = new byte[0][];
@@ -207,7 +209,16 @@ public interface Serializer {
             return optional.get();
           }
         } else if (wrapper.isMethod(methodName)) {
-          return reader.getValue(id[0], header);
+          EntityMethodWrapper method = wrapper.getMethod(methodName);
+          if (method.isEnum() ) {
+            if (!method.isCollection()) {
+              return conversion.convert(reader.getValue(id[0], header), method.getType());
+            } else {
+              return conversion.convert((Collection) reader.getValue(id[0], header), method.getType());
+            }
+          } else {
+            return reader.getValue(id[0], header);
+          }
         } else if (wrapper.isEmbedded(methodName)) {
           Object value = reader.getValue(id[0], header);
           Class<?> type = wrapper.getEmbedded(methodName).getType();

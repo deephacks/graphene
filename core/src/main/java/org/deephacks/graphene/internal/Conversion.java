@@ -492,9 +492,9 @@ public final class Conversion {
       }
 
       public String getPossibleValueString(Class<?> clazz) {
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
         Field[] fields = clazz.getDeclaredFields();
-        List<String> values = new ArrayList<String>();
+        List<String> values = new ArrayList<>();
         for (int i = 0; i < fields.length; i++) {
           if (fields[i].isEnumConstant()) {
             try {
