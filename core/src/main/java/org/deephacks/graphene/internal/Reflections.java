@@ -223,15 +223,15 @@ public final class Reflections {
    * Returns the parameterized type of a class, if exists. Wild cards, type
    * variables and raw types will be returned as an empty list.
    * <p>
-   * If a field is of type Set<String> then java.lang.String is returned.
+   * If a field is of type Set of String then java.lang.String is returned.
    * </p>
    * <p>
-   * If a field is of type Map<String, Integer> then [java.lang.String,
+   * If a field is of type Map String+Integer then [java.lang.String,
    * java.lang.Integer] is returned.
    * </p>
    *
    * @param ownerClass the implementing target class to check against
-   * @param ownerClass generic interface to resolve the type argument from
+   * @param genericSuperClass generic interface to resolve the type argument from
    * @return A list of classes of the parameterized type.
    */
   public static List<Class<?>> getParameterizedType(final Class<?> ownerClass,

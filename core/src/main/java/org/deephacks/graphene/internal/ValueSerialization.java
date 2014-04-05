@@ -45,7 +45,7 @@ public class ValueSerialization {
      *
      * @param id         id of the property.
      * @param collection values
-     * @param cls        type of values in the collection.
+     * @param type        type of values in the collection.
      */
     public void putValues(int id, Collection<?> collection, DataType type) {
       try {
@@ -149,6 +149,7 @@ public class ValueSerialization {
      *
      * @param id    id of the property.
      * @param value value of the property
+     * @param type datatype
      */
     public void putValue(int id, Object value, DataType type) {
       try {

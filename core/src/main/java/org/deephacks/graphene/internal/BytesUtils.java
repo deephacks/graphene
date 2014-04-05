@@ -606,7 +606,7 @@ public class BytesUtils {
    * @param offset2 Where to beginTransaction comparing in the right buffer
    * @param length1 How much to compare from the left buffer
    * @param length2 How much to compare from the right buffer
-   * @return 0 if equal, < 0 if left is less than right, etc.
+   * @return 0 if equal, less 0 if left is less than right, etc.
    */
   public static int compareTo(byte[] buffer1, int offset1, int length1,
                               byte[] buffer2, int offset2, int length2) {

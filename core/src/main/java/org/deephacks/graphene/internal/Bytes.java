@@ -179,6 +179,7 @@ public class Bytes {
     /**
     * Writes a big-endian 4-byte int at an offset in the given array.
     * @param b The array to write to.
+    * @param n An integer.
     * @param offset The offset in the array to beginTransaction writing at.
     * @throws IndexOutOfBoundsException if the byte array is too small.
     */
@@ -237,6 +238,7 @@ public class Bytes {
     /**
     * Writes a big-endian 8-byte long at an offset in the given array.
     * @param b The array to write to.
+    * @param n A long integer.
     * @param offset The offset in the array to beginTransaction writing at.
     * @throws IndexOutOfBoundsException if the byte array is too small.
     */
@@ -283,6 +285,7 @@ public class Bytes {
     // either, so let's put it close to the other pretty-printing functions.
     /**
     * Pretty-prints a {@code long} into a fixed-width hexadecimal number.
+    * @param v A long integer.
     * @return A string of the form {@code 0x0123456789ABCDEF}.
     */
     public static String hex(long v) {
