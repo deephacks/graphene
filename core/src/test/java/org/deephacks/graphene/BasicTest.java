@@ -36,6 +36,7 @@ public class BasicTest extends BaseTest {
     try (Stream<A> stream = repository.stream(A.class)) {
       List<A> result = stream.filter(a -> a.getId().endsWith("2")).collect(Collectors.toList());
       assertThat(result.size(), is(1));
+
     }
   }
 
@@ -64,6 +65,8 @@ public class BasicTest extends BaseTest {
       assertFalse(repository.putNoOverwrite(a));
       a = buildA("a");
       Optional<A> result = repository.get("a", A.class);
+      System.out.println(result.get());
+      System.out.println(a);
       assertEquals(a, result.get());
     });
   }
@@ -90,3 +93,4 @@ public class BasicTest extends BaseTest {
     assertFalse(optional.isPresent());
   }
 }
+

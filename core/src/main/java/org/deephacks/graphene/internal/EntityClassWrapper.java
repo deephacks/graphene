@@ -3,6 +3,7 @@ package org.deephacks.graphene.internal;
 import org.deephacks.graphene.Embedded;
 import org.deephacks.graphene.Guavas;
 import org.deephacks.graphene.Id;
+import org.deephacks.graphene.internal.BytesUtils.DataType;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
@@ -162,6 +163,7 @@ public class EntityClassWrapper {
     private boolean isReference;
     private List<String> enums;
     private final Class<?> type;
+    private final DataType dataType;
     private final boolean isPrimitive;
     private final boolean isBasicType;
     private final boolean isEnum;
@@ -173,6 +175,7 @@ public class EntityClassWrapper {
       this.isMap = Map.class.isAssignableFrom(method.getReturnType());
       this.isReference = isReference;
       this.type = calculateType();
+      this.dataType = DataType.getDataType(type);
       this.isPrimitive = Types.isPrimitive(type);
       this.isBasicType = Types.isBasicType(type);
       this.isEnum = type.isEnum();
@@ -181,6 +184,10 @@ public class EntityClassWrapper {
 
     public Class<?> getType() {
       return type;
+    }
+
+    public DataType getDataType() {
+      return dataType;
     }
 
     private Class<?> calculateType() {

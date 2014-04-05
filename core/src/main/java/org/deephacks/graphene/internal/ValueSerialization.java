@@ -47,12 +47,11 @@ public class ValueSerialization {
      * @param collection values
      * @param cls        type of values in the collection.
      */
-    public void putValues(int id, Collection<?> collection, Class<?> cls) {
+    public void putValues(int id, Collection<?> collection, DataType type) {
       try {
         if (collection == null) {
           return;
         }
-        DataType type = DataType.getDataType(cls);
         ByteArrayOutputStream bytes = new ByteArrayOutputStream();
         int size = collection.size();
         switch (type) {
@@ -151,12 +150,11 @@ public class ValueSerialization {
      * @param id    id of the property.
      * @param value value of the property
      */
-    public void putValue(int id, Object value) {
+    public void putValue(int id, Object value, DataType type) {
       try {
         if (value == null) {
           return;
         }
-        DataType type = DataType.getDataType(value.getClass());
         ByteArrayOutputStream bytes = new ByteArrayOutputStream();
         switch (type) {
           case BYTE:
@@ -219,41 +217,6 @@ public class ValueSerialization {
       } catch (IOException e) {
         throw new RuntimeException(e);
       }
-    }
-
-    public boolean isBasicType(Class<?> type) {
-      if (String.class.isAssignableFrom(type)) {
-        return true;
-      } else if (Byte.class.isAssignableFrom(type)) {
-        return true;
-      } else if (byte.class.isAssignableFrom(type)) {
-        return true;
-      } else if (Short.class.isAssignableFrom(type)) {
-        return true;
-      } else if (short.class.isAssignableFrom(type)) {
-        return true;
-      } else if (Integer.class.isAssignableFrom(type)) {
-        return true;
-      } else if (int.class.isAssignableFrom(type)) {
-        return true;
-      } else if (Long.class.isAssignableFrom(type)) {
-        return true;
-      } else if (long.class.isAssignableFrom(type)) {
-        return true;
-      } else if (Float.class.isAssignableFrom(type)) {
-        return true;
-      } else if (float.class.isAssignableFrom(type)) {
-        return true;
-      } else if (Double.class.isAssignableFrom(type)) {
-        return true;
-      } else if (double.class.isAssignableFrom(type)) {
-        return true;
-      } else if (Boolean.class.isAssignableFrom(type)) {
-        return true;
-      } else if (boolean.class.isAssignableFrom(type)) {
-        return true;
-      }
-      return false;
     }
 
     /**
@@ -336,12 +299,11 @@ public class ValueSerialization {
       return header;
     }
 
-    public Object getValue(int id, int[][] header) {
+    public Object getValue(int id, int[][] header, DataType type) {
       int idx = getValueIndex(id, header);
       if (idx < 0) {
         return null;
       }
-      DataType type = DataType.getDataType(data[idx]);
       idx = idx + 1;
       switch (type) {
         case BYTE:
@@ -364,25 +326,38 @@ public class ValueSerialization {
           return data[idx] != 0;
         case STRING:
           return BytesUtils.getString(data, idx);
-        case BYTE_LIST:
+        default:
+          throw new UnsupportedOperationException("Could not recognize " + type);
+      }
+    }
+
+
+    public Object getValues(int id, int[][] header, DataType type) {
+      int idx = getValueIndex(id, header);
+      if (idx < 0) {
+        return null;
+      }
+      idx = idx + 1;
+      switch (type) {
+        case BYTE:
           return BytesUtils.toByteList(data, idx);
-        case BYTE_ARRAY_LIST:
+        case BYTE_ARRAY:
           return BytesUtils.toBytesList(data, idx);
-        case SHORT_LIST:
+        case SHORT:
           return BytesUtils.toShortList(data, idx);
-        case CHAR_LIST:
+        case CHAR:
           return BytesUtils.toCharList(data, idx);
-        case INTEGER_LIST:
+        case INTEGER:
           return BytesUtils.toIntList(data, idx);
-        case LONG_LIST:
+        case LONG:
           return BytesUtils.toLongList(data, idx);
-        case FLOAT_LIST:
+        case FLOAT:
           return BytesUtils.toFloatList(data, idx);
-        case DOUBLE_LIST:
+        case DOUBLE:
           return BytesUtils.toDoubleList(data, idx);
-        case BOOLEAN_LIST:
+        case BOOLEAN:
           return BytesUtils.toBooleanList(data, idx);
-        case STRING_LIST:
+        case STRING:
           return BytesUtils.toStringList(data, idx);
         default:
           throw new UnsupportedOperationException("Could not recognize " + type);

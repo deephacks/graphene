@@ -24,7 +24,6 @@ import org.deephacks.graphene.internal.Serializer;
 
 import java.io.Closeable;
 import java.util.Iterator;
-import java.util.Optional;
 
 /**
  * A lazy evaluated result set iterator matching a certain query that created this
@@ -43,7 +42,6 @@ public abstract class ResultSet<T> implements Iterable<T>, Closeable {
         private int maxResult = Integer.MAX_VALUE;
         private int matches = 0;
         private final Cursor cursor;
-        private final Optional<Criteria> criteria;
         private final Serializer serializer;
         private DatabaseEntry key;
         private DatabaseEntry value;
@@ -51,7 +49,7 @@ public abstract class ResultSet<T> implements Iterable<T>, Closeable {
         private byte[] last;
         private boolean lastReached = false;
 
-        public DefaultResultSet(Class<?> entityClass, Object first, Object last, int maxResult, Optional<Criteria> criteria, Cursor cursor) {
+        public DefaultResultSet(Class<?> entityClass, Object first, Object last, int maxResult, Cursor cursor) {
             this.maxResult = maxResult;
             this.key = new DatabaseEntry();
             this.serializer = graphene.get().getSerializer(entityClass);
@@ -71,8 +69,6 @@ public abstract class ResultSet<T> implements Iterable<T>, Closeable {
                 this.last = serializer.serializeRowKey(RowKey.getMaxId(entityClass));
             }
             this.cursor = cursor;
-            this.criteria = criteria;
-
         }
 
         @Override

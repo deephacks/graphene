@@ -19,6 +19,8 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.LongBuffer;
@@ -27,6 +29,7 @@ import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -678,9 +681,11 @@ public class BytesUtils {
   }
 
   public static enum DataType {
-    BYTE(1), SHORT(2), INTEGER(3), LONG(4), FLOAT(5), DOUBLE(6), BOOLEAN(7), STRING(8), CHAR(9),
-    BYTE_ARRAY(10), BYTE_LIST(11), SHORT_LIST(12), INTEGER_LIST(13), LONG_LIST(14), FLOAT_LIST(15),
-    DOUBLE_LIST(16), BOOLEAN_LIST(17), STRING_LIST(18), CHAR_LIST(19), BYTE_ARRAY_LIST(20);
+    BYTE(1), SHORT(2), INTEGER(3), LONG(4), FLOAT(5), DOUBLE(6), BOOLEAN(7), STRING(8),
+    CHAR(9), BYTE_ARRAY(10), ENUM(11), BIG_INTEGER(12), BIG_DECIMAL(13), DATE(14), OBJECT(15),
+
+    BYTE_LIST(20), SHORT_LIST(21), INTEGER_LIST(22), LONG_LIST(23), FLOAT_LIST(24),
+    DOUBLE_LIST(25), BOOLEAN_LIST(26), STRING_LIST(27), CHAR_LIST(28), BYTE_ARRAY_LIST(29), OBJECT_LIST(30);
     private int id;
 
     DataType(int id) {
@@ -736,10 +741,20 @@ public class BytesUtils {
         return BOOLEAN;
       } else if (String.class.isAssignableFrom(cls)) {
         return STRING;
+      } else if (char.class.isAssignableFrom(cls)) {
+        return CHAR;
       } else if (Character.class.isAssignableFrom(cls)) {
         return CHAR;
+      } else if (Enum.class.isAssignableFrom(cls)) {
+        return ENUM;
+      } else if (BigDecimal.class.isAssignableFrom(cls)) {
+        return BIG_DECIMAL;
+      } else if (BigInteger.class.isAssignableFrom(cls)) {
+        return BIG_INTEGER;
+      } else if (Date.class.isAssignableFrom(cls)) {
+        return DATE;
       } else {
-        throw new UnsupportedOperationException("Did not recognize " + cls);
+        return OBJECT;
       }
     }
   }

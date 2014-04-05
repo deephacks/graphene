@@ -6,7 +6,10 @@ import org.deephacks.vals.VirtualValue;
 import org.junit.Before;
 
 import javax.annotation.Nullable;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -97,6 +100,10 @@ public class BaseTest {
             .withFloatValues(Guavas.newArrayList(Float.MAX_VALUE, Float.MIN_VALUE, Float.MAX_VALUE))
             .withDoubleValue(Double.MIN_VALUE)
             .withDoubleValues(Guavas.newArrayList(Double.MAX_VALUE, Double.MIN_VALUE, Double.MAX_VALUE))
+            .withBigDecimal(new BigDecimal("0127392183723987.12938712983723976"))
+            .withBigDecimals(Guavas.newArrayList(new BigDecimal("0127392183723987.12938712983723976"), new BigDecimal("0127392183723987.12938712983723976")))
+            .withBigInteger(new BigInteger("012739218372398712938712983723976"))
+            .withBigIntegers(Guavas.newArrayList(new BigInteger("012739218372398712938712983723976"), new BigInteger("012739218372398712938712983723976")))
             .withBoolValue(false)
             .withBoolValues(Guavas.newArrayList(true, false, true))
             .withCharValue('q')
@@ -107,9 +114,9 @@ public class BaseTest {
             .withEmbeddedList(Guavas.newArrayList(buildEmbedded(), buildEmbedded(), buildEmbedded()))
             .withEnumValue(TimeUnit.DAYS)
             .withEnumList(Guavas.newArrayList(TimeUnit.DAYS, TimeUnit.HOURS, TimeUnit.MILLISECONDS))
-            /*
-            .withDate(new Date())
+            .withDate(new Date(1))
             .withDateList(Guavas.newArrayList(new Date(1), new Date(2)))
+            /*
             .withLocalDateTime(LocalDateTime.parse("2014-04-01T12:00"))
             .withLocalDateTimeList(Guavas.newArrayList(LocalDateTime.parse("2014-04-01T12:00"), LocalDateTime.parse("2014-04-02T12:00")))
             */
@@ -158,11 +165,15 @@ public class BaseTest {
             .withCharValues(Guavas.newArrayList('a', 'b', 'c'))
             .withStringValue(value.length == 0 ? "value" : value[0])
             .withStringValues(Guavas.newArrayList("1a", "2b", "3c"))
+            .withBigDecimal(new BigDecimal("0127392183723987.12938712983723976"))
+            .withBigDecimals(Guavas.newArrayList(new BigDecimal("0127392183723987.12938712983723976"), new BigDecimal("0127392183723987.12938712983723976")))
+            .withBigInteger(new BigInteger("012739218372398712938712983723976"))
+            .withBigIntegers(Guavas.newArrayList(new BigInteger("012739218372398712938712983723976"), new BigInteger("012739218372398712938712983723976")))
             .withEnumValue(TimeUnit.DAYS)
             .withEnumList(Guavas.newArrayList(TimeUnit.DAYS, TimeUnit.HOURS, TimeUnit.MILLISECONDS))
-            /*
-            .withDate(new Date())
+            .withDate(new Date(1))
             .withDateList(Guavas.newArrayList(new Date(1), new Date(2)))
+            /*
             .withLocalDateTime(LocalDateTime.parse("2014-04-01T12:00"))
             .withLocalDateTimeList(Guavas.newArrayList(LocalDateTime.parse("2014-04-01T12:00"), LocalDateTime.parse("2014-04-02T12:00")))
             */
@@ -204,6 +215,10 @@ public class BaseTest {
             .withFloatValues(Guavas.newArrayList(Float.MAX_VALUE, Float.MIN_VALUE, Float.MAX_VALUE))
             .withDoubleValue(Double.MIN_VALUE)
             .withDoubleValues(Guavas.newArrayList(Double.MAX_VALUE, Double.MIN_VALUE, Double.MAX_VALUE))
+            .withBigDecimal(new BigDecimal("0127392183723987.12938712983723976"))
+            .withBigDecimals(Guavas.newArrayList(new BigDecimal("0127392183723987.12938712983723976"), new BigDecimal("0127392183723987.12938712983723976")))
+            .withBigInteger(new BigInteger("012739218372398712938712983723976"))
+            .withBigIntegers(Guavas.newArrayList(new BigInteger("012739218372398712938712983723976"), new BigInteger("012739218372398712938712983723976")))
             .withBoolValue(false)
             .withBoolValues(Guavas.newArrayList(true, false, true))
             .withCharValue('q')
@@ -212,9 +227,9 @@ public class BaseTest {
             .withStringValues(Guavas.newArrayList("1a", "2b", "3c"))
             .withEnumValue(TimeUnit.DAYS)
             .withEnumList(Guavas.newArrayList(TimeUnit.DAYS, TimeUnit.HOURS, TimeUnit.MILLISECONDS))
-            /*
-            .withDate(new Date())
+            .withDate(new Date(1))
             .withDateList(Guavas.newArrayList(new Date(1), new Date(2)))
+            /*
             .withLocalDateTime(LocalDateTime.parse("2014-04-01T12:00"))
             .withLocalDateTimeList(Guavas.newArrayList(LocalDateTime.parse("2014-04-01T12:00"), LocalDateTime.parse("2014-04-02T12:00")))
             */
@@ -245,6 +260,11 @@ public class BaseTest {
             .withFloatValues(Guavas.newArrayList(Float.MAX_VALUE, Float.MIN_VALUE, Float.MAX_VALUE))
             .withDoubleValue(Double.MIN_VALUE)
             .withDoubleValues(Guavas.newArrayList(Double.MAX_VALUE, Double.MIN_VALUE, Double.MAX_VALUE))
+            .withBigDecimal(new BigDecimal("0127392183723987.12938712983723976"))
+            .withBigDecimals(Guavas.newArrayList(new BigDecimal("0127392183723987.12938712983723976"), new BigDecimal("0127392183723987.12938712983723976")))
+            .withBigInteger(new BigInteger("012739218372398712938712983723976"))
+            .withBigIntegers(Guavas.newArrayList(new BigInteger("012739218372398712938712983723976"), new BigInteger("012739218372398712938712983723976")))
+            .withDoubleValues(Guavas.newArrayList(Double.MAX_VALUE, Double.MIN_VALUE, Double.MAX_VALUE))
             .withBoolValue(false)
             .withBoolValues(Guavas.newArrayList(true, false, true))
             .withCharValue('q')
@@ -253,9 +273,9 @@ public class BaseTest {
             .withStringValues(Guavas.newArrayList("1a", "2b", "3c"))
             .withEnumValue(TimeUnit.DAYS)
             .withEnumList(Guavas.newArrayList(TimeUnit.DAYS, TimeUnit.HOURS, TimeUnit.MILLISECONDS))
-            /*
-            .withDate(new Date())
+            .withDate(new Date(1))
             .withDateList(Guavas.newArrayList(new Date(1), new Date(2)))
+            /*
             .withLocalDateTime(LocalDateTime.parse("2014-04-01T12:00"))
             .withLocalDateTimeList(Guavas.newArrayList(LocalDateTime.parse("2014-04-01T12:00"), LocalDateTime.parse("2014-04-02T12:00")))
             */
@@ -329,6 +349,14 @@ public class BaseTest {
 
     List<Double> getDoubleValues();
 
+    BigDecimal getBigDecimal();
+
+    List<BigDecimal> getBigDecimals();
+
+    BigInteger getBigInteger();
+
+    List<BigInteger> getBigIntegers();
+
     Boolean getBoolValue();
 
     List<Boolean> getBoolValues();
@@ -345,11 +373,11 @@ public class BaseTest {
 
     List<TimeUnit> getEnumList();
 
-    /*
     Date getDate();
 
     List<Date> getDateList();
 
+    /*
     LocalDateTime getLocalDateTime();
 
     List<LocalDateTime> getLocalDateTimeList();

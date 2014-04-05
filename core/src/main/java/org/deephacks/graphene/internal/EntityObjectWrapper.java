@@ -4,6 +4,7 @@ package org.deephacks.graphene.internal;
 import org.deephacks.graphene.Embedded;
 import org.deephacks.graphene.internal.EntityClassWrapper.EntityMethodWrapper;
 
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
@@ -15,6 +16,14 @@ public class EntityObjectWrapper {
   private Object object;
   public EntityObjectWrapper(Object object) {
     this.object = object;
+    try {
+      Field field = object.getClass().getDeclaredField("state");
+      field.setAccessible(true);
+      this.state = (Map<String, Object>) field.get(object);
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+
     this.classWrapper = EntityClassWrapper.get(object.getClass());
     try {
       // embedded entities may not have an id
@@ -42,35 +51,14 @@ public class EntityObjectWrapper {
   public Object getValue(EntityMethodWrapper method) {
     try {
 
-      if (method.isPrimitive()) {
-        Class<?> cls = method.getType();
-        if(byte.class.isAssignableFrom(cls)) {
-          return method.getMethod().invoke(object);
-        } else if (short.class.isAssignableFrom(cls)) {
-          return method.getMethod().invoke(object);
-        } else if (int.class.isAssignableFrom(cls)) {
-          return method.getMethod().invoke(object);
-        } else if (long.class.isAssignableFrom(cls)) {
-          return method.getMethod().invoke(object);
-        } else if (float.class.isAssignableFrom(cls)) {
-          return method.getMethod().invoke(object);
-        } else if (double.class.isAssignableFrom(cls)) {
-          return method.getMethod().invoke(object);
-        } else if (boolean.class.isAssignableFrom(cls)) {
-          return method.getMethod().invoke(object);
-        } else if (char.class.isAssignableFrom(cls)) {
-          return method.getMethod().invoke(object);
-        } else {
-          throw new UnsupportedOperationException("Did not recognize " + cls);
-        }
-      } else if (method.isBasicType()) {
-        return method.getMethod().invoke(object);
+      if (method.isBasicType()) {
+        return state.get(method.getName());
       } else if (method.getType().isEnum()) {
-        return method.getMethod().invoke(object);
+        return state.get(method.getName());
       } else if (method.getType().getAnnotation(Embedded.class) != null) {
-        return method.getMethod().invoke(object);
+        return state.get(method.getName());
       } else if (method.isReference()) {
-        Object ref = method.getMethod().invoke(object);
+        Object ref = state.get(method.getName());
         if (ref == null) {
           return null;
         }
@@ -90,7 +78,7 @@ public class EntityObjectWrapper {
           return instanceId;
         }
       } else {
-        return method.getMethod().invoke(object);
+        return state.get(method.getName());
       }
     } catch (Exception e) {
       throw new RuntimeException(e);

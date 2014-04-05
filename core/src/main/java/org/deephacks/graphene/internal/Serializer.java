@@ -16,14 +16,20 @@ package org.deephacks.graphene.internal;
 
 
 import org.deephacks.graphene.EntityRepository;
+import org.deephacks.graphene.internal.BytesUtils.DataType;
 import org.deephacks.graphene.internal.EntityClassWrapper.EntityMethodWrapper;
 import org.deephacks.graphene.internal.ValueSerialization.ValueReader;
 import org.deephacks.graphene.internal.ValueSerialization.ValueWriter;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.nio.charset.Charset;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Date;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -40,9 +46,7 @@ public interface Serializer {
   public byte[][] serializeEntity(Object entity);
 
   public static class UnsafeSerializer implements Serializer {
-    private static final Conversion conversion = Conversion.get();
     private static final UniqueIds ids = new UniqueIds();
-    private static final EntityRepository repository = new EntityRepository();
 
     @Override
     public RowKey deserializeRowKey(byte[] key) {
@@ -80,20 +84,20 @@ public interface Serializer {
           continue;
         }
         if (value instanceof Collection) {
-          if (method.isEnum()) {
-            writer.putValues(id, toStrings((Collection) value), String.class);
-          } else if (method.isBasicType()) {
-            writer.putValues(id, (Collection) value, method.getType());
+          Collection<Object> values = (Collection<Object>) value;
+          if (method.isBasicType()) {
+            writer.putValues(id, values, method.getDataType());
           } else {
-            writer.putValues(id, toStrings((Collection) value), String.class);
+            values = values.stream().map(v -> convert(v, method.getDataType())).collect(Collectors.toList());
+            writer.putValues(id, values, DataType.BYTE_ARRAY);
           }
         } else {
-          if (method.getType().isEnum()) {
-            writer.putValue(id, value.toString());
-          } else if (method.isBasicType()) {
-            writer.putValue(id, value);
+          if (method.isBasicType()) {
+            writer.putValue(id, value, method.getDataType());
           } else {
-            writer.putValue(id, value.toString());
+            byte[] convert = convert(value, method.getDataType());
+            writer.putValue(id, convert, DataType.BYTE_ARRAY);
+
           }
         }
       }
@@ -106,19 +110,9 @@ public interface Serializer {
           continue;
         }
         if (value instanceof Collection) {
-          if (method.getType().isEnum()) {
-            writer.putValues(id, toStrings((Collection) value), String.class);
-          } else if (method.isReference()) {
-            writer.putValues(id, (Collection) value, String.class);
-          } else {
-            writer.putValues(id, (Collection) value, method.getType());
-          }
+          writer.putValues(id, (Collection) value, DataType.STRING);
         } else {
-          if (method.getType().isEnum()) {
-            writer.putValue(id, value.toString());
-          } else {
-            writer.putValue(id, value);
-          }
+          writer.putValue(id, value.toString(), DataType.STRING);
         }
       }
 
@@ -135,10 +129,10 @@ public interface Serializer {
             byte[][] embedded = serializeEntity(val);
             values.add(embedded[1]);
           }
-          writer.putValues(id, values, byte[].class);
+          writer.putValues(id, values, DataType.BYTE_ARRAY);
         } else {
           byte[][] embedded = serializeEntity(value);
-          writer.putValue(id, embedded[1]);
+          writer.putValue(id, embedded[1], DataType.BYTE_ARRAY);
         }
       }
       return new byte[][]{key, writer.write()};
@@ -150,7 +144,6 @@ public interface Serializer {
   }
 
   public static class StateMap extends AbstractMap<String, Object> {
-    private static final Conversion conversion = Conversion.get();
     private static final UniqueIds ids = new UniqueIds();
     private static final EntityRepository repository = new EntityRepository();
     byte[][] state = new byte[0][];
@@ -189,7 +182,13 @@ public interface Serializer {
           continue;
         }
         if (wrapper.isReference(methodName)) {
-          Object value = reader.getValue(id[0], header);
+          boolean isCollection = wrapper.getReference(methodName).isCollection();
+          Object value;
+          if (!isCollection) {
+            value = reader.getValue(id[0], header, DataType.STRING);
+          } else {
+            value = reader.getValues(id[0], header, DataType.STRING);
+          }
           if (value == null) {
             continue;
           }
@@ -210,30 +209,39 @@ public interface Serializer {
           }
         } else if (wrapper.isMethod(methodName)) {
           EntityMethodWrapper method = wrapper.getMethod(methodName);
-          if (method.isEnum() ) {
-            if (!method.isCollection()) {
-              return conversion.convert(reader.getValue(id[0], header), method.getType());
+          if (method.isBasicType()) {
+            if (method.isCollection()) {
+              return reader.getValues(id[0], header, method.getDataType());
             } else {
-              return conversion.convert((Collection) reader.getValue(id[0], header), method.getType());
+              return reader.getValue(id[0], header, method.getDataType());
             }
           } else {
-            return reader.getValue(id[0], header);
+            if (method.isCollection()) {
+              byte[][] array = (byte[][]) reader.getValues(id[0], header, DataType.BYTE_ARRAY);
+              List<Object> objects = new ArrayList<>();
+              for (byte[] bytes : array) {
+                objects.add(convert(bytes, method.getDataType(), method.getType()));
+              }
+              return objects;
+            } else {
+              byte[] array = (byte[]) reader.getValue(id[0], header, DataType.BYTE_ARRAY);
+              return convert(array, method.getDataType(), method.getType());
+            }
           }
         } else if (wrapper.isEmbedded(methodName)) {
-          Object value = reader.getValue(id[0], header);
-          Class<?> type = wrapper.getEmbedded(methodName).getType();
-          byte[] schemaKey = RowKey.getMinId(type).getKey();
-          if (byte[].class.isAssignableFrom(value.getClass())) {
+          EntityMethodWrapper method = wrapper.getEmbedded(methodName);
+          byte[] schemaKey = RowKey.getMinId(method.getType()).getKey();
+          if (!method.isCollection()) {
+            Object value = reader.getValue(id[0], header, DataType.BYTE_ARRAY);
             return serializer.deserializeEntity(new byte[][]{schemaKey, (byte[]) value});
-          } else if (byte[][].class.isAssignableFrom(value.getClass())) {
+          } else {
+            Object value = reader.getValues(id[0], header, DataType.BYTE_ARRAY);
             ArrayList<Object> entities = new ArrayList<>();
             for (byte[] bytes : (byte[][]) value) {
               Object entity = serializer.deserializeEntity(new byte[][]{schemaKey, bytes});
               entities.add(entity);
             }
             return entities;
-          } else {
-            throw new UnsupportedOperationException("Did not recognize embedded type " + value.getClass());
           }
         }
       }
@@ -255,4 +263,43 @@ public interface Serializer {
       this.state = values;
     }
   }
+
+  static Charset charset = Charset.forName("UTF-8");
+
+  static byte[] convert(Object object, DataType type) {
+    Class<?> cls = object.getClass();
+    if (type == DataType.DATE) {
+      long time = ((Date) object).getTime();
+      return Bytes.fromLong(time);
+    } else if (type == DataType.BIG_DECIMAL) {
+      String string = object.toString();
+      return string.getBytes(charset);
+    } else if (type == DataType.BIG_INTEGER) {
+      String string = object.toString();
+      return string.getBytes(charset);
+    } else if (type == DataType.ENUM) {
+      String string = object.toString();
+      return string.getBytes(charset);
+    } else {
+      throw new IllegalArgumentException("Did not recognize type " + cls);
+    }
+  }
+
+  static Object convert(byte[] value, DataType type, Class<?> cls) {
+    if (type == DataType.DATE) {
+      return new Date(Bytes.getLong(value));
+    } else if (type == DataType.BIG_DECIMAL) {
+      String string = new String(value);
+      return new BigDecimal(string);
+    } else if (type == DataType.BIG_INTEGER) {
+      String string = new String(value);
+      return new BigInteger(string);
+    } else if (type == DataType.ENUM) {
+      return Enum.valueOf((Class) cls, new String(value));
+    } else {
+      throw new IllegalArgumentException("Did not recognize type " + cls);
+    }
+
+  }
+
 }

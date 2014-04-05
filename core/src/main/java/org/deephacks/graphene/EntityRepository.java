@@ -24,6 +24,7 @@ import com.sleepycat.je.OperationStatus;
 import com.sleepycat.je.SecondaryDatabase;
 import com.sleepycat.je.SecondaryMultiKeyCreator;
 import com.sleepycat.je.Transaction;
+import org.deephacks.graphene.internal.BytesUtils.DataType;
 import org.deephacks.graphene.internal.EntityClassWrapper;
 import org.deephacks.graphene.internal.EntityClassWrapper.EntityMethodWrapper;
 import org.deephacks.graphene.internal.EntityValidator;
@@ -301,7 +302,12 @@ public class EntityRepository {
       int[][] header = reader.getHeader();
       for (EntityMethodWrapper method : cls.getReferences().values()) {
         int fieldId = uniqueIds.getSchemaId(method.getName());
-        Object value = reader.getValue(fieldId, header);
+        Object value;
+        if (!method.isCollection()) {
+          value = reader.getValue(fieldId, header, DataType.STRING);
+        } else {
+          value = reader.getValues(fieldId, header, DataType.STRING);
+        }
         if (value != null) {
           if (value instanceof Collection) {
             // TODO: make string an LONG instance id instead
