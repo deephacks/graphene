@@ -5,7 +5,7 @@
   <artifactId>graphene-root</artifactId>
   <name>graphene</name>
   <packaging>pom</packaging>
-  <version>0.2.2</version>
+  <version>0.2.3-SNAPSHOT</version>
   <description>Simple Persistence Framework.</description>
   <url>http://graphene.deephacks.org</url>
   <inceptionYear>2013</inceptionYear>
