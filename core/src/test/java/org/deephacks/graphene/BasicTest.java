@@ -3,10 +3,14 @@ package org.deephacks.graphene;
 
 import org.junit.Test;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static org.deephacks.graphene.TransactionManager.withTx;
+import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.*;
 
 /**
@@ -14,6 +18,27 @@ import static org.junit.Assert.*;
  * are supported like primitive and object types, enums, custom and buildEmbedded types.
  */
 public class BasicTest extends BaseTest {
+
+  @Test
+  public void test_put_and_delete_without_tx() {
+    putAndGetAssert(buildA("a"), A.class);
+    putAndGetAssert(buildB("b"), B.class);
+    putAndGetAssert(buildC("c"), C.class);
+  }
+
+  @Test
+  public void test_select_without_tx() {
+    repository.put(buildA("a1"));
+    repository.put(buildA("a2"));
+    repository.put(buildA("a3"));
+    assertThat(repository.selectAll(A.class).size(), is(3));
+
+    try (Stream<A> stream = repository.stream(A.class)) {
+      List<A> result = stream.filter(a -> a.getId().endsWith("2")).collect(Collectors.toList());
+      assertThat(result.size(), is(1));
+    }
+  }
+
 
   /**
    * Test that it is possible to put, get and delete instances of

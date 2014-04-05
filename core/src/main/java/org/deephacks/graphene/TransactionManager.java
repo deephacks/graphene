@@ -6,6 +6,7 @@ import com.sleepycat.je.Transaction;
 
 import java.util.Stack;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 public class TransactionManager {
   private static final Handle<Graphene> graphene = Graphene.get();
@@ -56,6 +57,10 @@ public class TransactionManager {
       transactional.execute(tx);
       return null;
     });
+  }
+
+  public static <T> T inTx(Supplier<T> supplier) {
+    return withTxReturn(tx -> supplier.get());
   }
 
   public static interface Transactional {

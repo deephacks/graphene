@@ -23,6 +23,7 @@ import com.sleepycat.je.LockMode;
 import com.sleepycat.je.OperationStatus;
 import com.sleepycat.je.SecondaryDatabase;
 import com.sleepycat.je.SecondaryMultiKeyCreator;
+import com.sleepycat.je.Transaction;
 import org.deephacks.graphene.internal.EntityClassWrapper;
 import org.deephacks.graphene.internal.EntityClassWrapper.EntityMethodWrapper;
 import org.deephacks.graphene.internal.EntityValidator;
@@ -100,7 +101,7 @@ public class EntityRepository {
    * @param <E>    instance type
    * @return true if writing the instance was successful
    */
-  public <E> boolean put(E entity) {
+  public <E> boolean put(final E entity) {
     synchronized (WRITE_LOCK) {
       try {
         Guavas.checkNotNull(entity);
@@ -193,7 +194,9 @@ public class EntityRepository {
     Spliterator<E> spliterator = Spliterators.spliterator(objects.iterator(), Long.MAX_VALUE, Spliterator.SIZED);
     Stream<E> stream = StreamSupport.stream(spliterator, false);
     stream.onClose(cursor::close);
-    tm.push(cursor);
+    if (tm.peek() != null) {
+      tm.push(cursor);
+    }
     return stream;
   }
 
@@ -257,7 +260,9 @@ public class EntityRepository {
     byte[] dataKey = getSerializer(key.getClass()).serializeRowKey(key);
     DatabaseEntry entryKey = new DatabaseEntry(dataKey);
     DatabaseEntry entryValue = new DatabaseEntry();
-    if (OperationStatus.SUCCESS == db.get().get(tm.getInternalTx(), entryKey, entryValue, mode)) {
+    Transaction tx = tm.getInternalTx();
+    LockMode lockMode = tx == null ? LockMode.DEFAULT : mode;
+    if (OperationStatus.SUCCESS == db.get().get(tx, entryKey, entryValue, lockMode)) {
       byte[][] kv = new byte[][]{entryKey.getData(), entryValue.getData()};
       return Optional.ofNullable(kv);
     }
