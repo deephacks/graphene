@@ -24,6 +24,7 @@ import com.sleepycat.je.OperationStatus;
 import com.sleepycat.je.SecondaryDatabase;
 import com.sleepycat.je.SecondaryMultiKeyCreator;
 import com.sleepycat.je.Transaction;
+import deephacks.streamql.Query;
 import org.deephacks.graphene.internal.BytesUtils.DataType;
 import org.deephacks.graphene.internal.EntityClassWrapper;
 import org.deephacks.graphene.internal.EntityClassWrapper.EntityMethodWrapper;
@@ -179,6 +180,21 @@ public class EntityRepository {
         throw new org.deephacks.graphene.DeleteConstraintException(
                 new RowKey(e.getPrimaryKey().getData()) + " have a reference to " + new RowKey(e.getSecondaryKey().getData()), e);
       }
+    }
+  }
+
+  @SuppressWarnings("unchecked")
+  public <T> List<T> query(String query, Class<T> cls) {
+    final Cursor cursor = openPrimaryCursor();
+    Query<T> q = Query.parse(query, cls);
+    StreamResultSet objects = new StreamResultSet<>(q.getType(), cursor);
+    Spliterator spliterator = objects.spliterator();
+    try (Stream stream = StreamSupport.stream(spliterator, false)) {
+      stream.onClose(cursor::close);
+      if (tm.peek() != null) {
+        tm.push(cursor);
+      }
+      return q.collect(stream);
     }
   }
 
