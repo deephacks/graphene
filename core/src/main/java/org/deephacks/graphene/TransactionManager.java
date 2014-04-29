@@ -52,6 +52,15 @@ public class TransactionManager {
     }
   }
 
+  public static <T> T joinTxReturn(Function<Tx, T> function) {
+    Tx tx = tm.peek();
+    if (tx == null) {
+      return withTxReturn(function);
+    } else {
+      return function.apply(tx);
+    }
+  }
+
   public static void withTx(Transactional transactional) {
     withTxReturn(tx -> {
       transactional.execute(tx);
@@ -59,8 +68,26 @@ public class TransactionManager {
     });
   }
 
+  public static void joinTx(Transactional transactional) {
+    Tx tx = tm.peek();
+    if (tx == null) {
+      withTx(transactional);
+    } else {
+      transactional.execute(tx);
+    }
+  }
+
   public static <T> T inTx(Supplier<T> supplier) {
     return withTxReturn(tx -> supplier.get());
+  }
+
+  public static <T> T joinTx(Supplier<T> supplier) {
+    Tx tx = tm.peek();
+    if (tx == null) {
+      return inTx(supplier);
+    } else {
+      return supplier.get();
+    }
   }
 
   public static interface Transactional {

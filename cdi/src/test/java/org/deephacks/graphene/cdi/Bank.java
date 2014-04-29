@@ -9,7 +9,6 @@ import javax.inject.Inject;
 @ApplicationScoped
 @Transaction
 public class Bank {
-
     @Inject
     private Accounts accounts;
 
@@ -23,14 +22,11 @@ public class Bank {
 
     public void deposit(Account account, int amount) {
         account = accounts.lockAccount(account.getUser());
-        account.deposit(amount);
-        accounts.save(account);
+        accounts.save(account.deposit(amount));
     }
 
     public void withdraw(Account account, int amount) {
         account = accounts.lockAccount(account.getUser());
-        account.withdraw(amount);
-        accounts.save(account);
+        accounts.save(account.withdraw(amount));
     }
-
 }
