@@ -59,7 +59,6 @@ public class CdiTest {
   /**
    * Test that transaction interceptor is able to join transactions between cdi services.
    */
-
   @Test
   public void test_join_transaction() {
     bank.deposit(a1, 10);

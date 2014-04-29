@@ -14,22 +14,18 @@ import static org.deephacks.graphene.cdi.TransactionAttribute.REQUIRES_NEW;
 @Transaction
 public class Users {
 
-    @Inject
-    private EntityRepository repository;
+  @Inject
+  private EntityRepository repository;
 
-    public void createUser(User user) {
-        repository.put(user);
-    }
+  public void createUser(User user) {
+    repository.put(user);
+  }
 
-    @Transaction(REQUIRES_NEW)
-    public User get(String ssn) {
-        return repository.get(ssn, User.class).get();
-    }
+  @Transaction(REQUIRES_NEW)
+  public User get(String ssn) {
+    return repository.get(ssn, User.class).get();
+  }
 
-    @Entity @VirtualValue
-    public static interface User {
-        @Id
-        String getSsn();
-        String getFullName();
-    }
+  @Entity @VirtualValue
+  public static interface User { @Id String getSsn(); String getFullName(); }
 }

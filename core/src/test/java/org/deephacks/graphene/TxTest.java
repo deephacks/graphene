@@ -3,12 +3,14 @@ package org.deephacks.graphene;
 import org.deephacks.graphene.internal.UniqueIds;
 import org.junit.Test;
 
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static java.util.concurrent.CompletableFuture.allOf;
+import static java.util.concurrent.CompletableFuture.runAsync;
 import static org.deephacks.graphene.TransactionManager.withTx;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.*;
@@ -83,8 +85,6 @@ public class TxTest extends BaseTest {
     });
   }
 
-  static Exception failure;
-
   /**
    * Test that operations between different threads/transactions are not visible
    * to other concurrent operations.
@@ -92,14 +92,12 @@ public class TxTest extends BaseTest {
   @Test
   public void test_tx_write_isolation() throws Exception {
     for (int i = 0; i < 100; i++) {
-      final CountDownLatch latch = new CountDownLatch(2);
       final SynchronousQueue<String> queue = new SynchronousQueue<>();
       withTx(tx -> {
         repository.delete("a", A.class);
       });
       final A a1 = buildA("a", "a1");
-      failure = null;
-      Thread t1 = new Thread(() -> withTx(tx -> {
+      CompletableFuture<Void> f1 = runAsync(() -> withTx(tx -> {
         try {
           repository.put(a1);
           // signal t2 wake up
@@ -108,33 +106,24 @@ public class TxTest extends BaseTest {
           // a chance that t2 calls get before t1 does commit
           Thread.sleep(10);
         } catch (Exception e) {
-          tx.rollback();
-          failure = e;
           throw new RuntimeException(e);
-        } finally {
-          latch.countDown();
         }
-      }), "Thread 1");
-      Thread t2 = new Thread(() -> withTx(tx -> {
+      }));
+
+      CompletableFuture<Void> f2 = runAsync(() -> withTx(tx -> {
         try {
           // wait for a1.put(a)
           queue.take();
           // t2 should be forced to wait until t1 does commit
           assertTrue(repository.get("a", A.class).isPresent());
         } catch (Exception e) {
-          tx.rollback();
-          failure = e;
           throw new RuntimeException(e);
-        } finally {
-          latch.countDown();
         }
-      }), "Thread 2");
-      t1.start();
-      t2.start();
-      latch.await();
-      if (failure != null) {
-        throw failure;
-      }
+      }));
+
+      allOf(f1, f2).exceptionally(throwable -> {
+        throw new RuntimeException(throwable);
+      }).get();
     }
   }
 
@@ -142,27 +131,27 @@ public class TxTest extends BaseTest {
    * Test that highly concurrent transactions does not break when accessing the same entity.
    */
   @Test
-  public void test_concurrent_txs_put_and_get_same_entity() throws InterruptedException {
-    ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() * 4);
+  public void test_concurrent_txs_put_and_get_same_entity() throws InterruptedException, ExecutionException {
     final A instance = buildA("a1");
     final int numRounds = 500;
     final AtomicInteger counter = new AtomicInteger(0);
     final CountDownLatch latch = new CountDownLatch(numRounds);
-    for (int i = 0; i < numRounds; i++) {
-      executor.execute(() -> withTx(tx -> {
-        try {
-          repository.put(instance);
-          assertEquals(instance, repository.getForUpdate("a1", A.class).get());
-          counter.incrementAndGet();
-        } catch (Exception e) {
-          tx.rollback();
-          throw new RuntimeException(e);
-        } finally {
-          latch.countDown();
-        }
-      }));
+
+    Runnable runnable = () -> withTx(tx -> {
+      try {
+        repository.put(instance);
+        assertEquals(instance, repository.getForUpdate("a1", A.class).get());
+        counter.incrementAndGet();
+      } finally {
+        latch.countDown();
+      }
+    });
+
+    CompletableFuture<Void> f = runAsync(runnable);
+    for (int i = 0; i < numRounds - 1; i++) {
+      f = f.thenRunAsync(runnable);
     }
-    latch.await();
+    f.exceptionally(throwable -> { throw new RuntimeException(throwable);} ).get();
     assertThat(counter.get(), is(numRounds));
   }
 }

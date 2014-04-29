@@ -12,25 +12,25 @@ import javax.inject.Singleton;
 @ApplicationScoped
 public class Application {
 
-    @Inject
-    private Graphene graphene;
+  @Inject
+  private Graphene graphene;
 
-    @Produces
-    @Singleton
-    public static Graphene produceGraphene() {
-        return Graphene.get().get();
-    }
+  @Produces
+  @Singleton
+  public static Graphene produceGraphene() {
+    return Graphene.get().get();
+  }
 
-    @Produces
-    @ApplicationScoped
-    public EntityRepository produceRepository() {
-        return new EntityRepository();
-    }
+  @Produces
+  @ApplicationScoped
+  public EntityRepository produceRepository() {
+    return new EntityRepository();
+  }
 
-    @PreDestroy
-    public void closing() {
-        System.out.println("Closing graphene...");
-        graphene.close();
-        System.out.println("Closing graphene success");
-    }
+  @PreDestroy
+  public void closing() {
+    System.out.println("Closing graphene...");
+    graphene.close();
+    System.out.println("Closing graphene success");
+  }
 }
