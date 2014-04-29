@@ -50,7 +50,6 @@
   </developers>
 
   <properties>
-    <version.graphene>0.1.0</version.graphene>
     <!-- plugins -->
     <version.surefire-plugin>2.10</version.surefire-plugin>
     <version.eclipse-plugin>2.8</version.eclipse-plugin>
@@ -208,25 +207,19 @@
       <dependency>
         <groupId>org.deephacks</groupId>
         <artifactId>graphene-core</artifactId>
-        <version>${version.graphene}</version>
+        <version>0.2.3-SNAPSHOT</version>
         <scope>compile</scope>
       </dependency>
       <dependency>
         <groupId>org.deephacks</groupId>
         <artifactId>graphene-cdi</artifactId>
-        <version>${version.graphene}</version>
+        <version>0.2.3-SNAPSHOT</version>
         <scope>compile</scope>
       </dependency>
       <dependency>
         <groupId>org.slf4j</groupId>
         <artifactId>graphene-cdi</artifactId>
-        <version>${version.graphene}</version>
-        <scope>compile</scope>
-      </dependency>
-      <dependency>
-        <groupId>com.google.guava</groupId>
-        <artifactId>guava</artifactId>
-        <version>14.0.1</version>
+        <version>0.2.3-SNAPSHOT</version>
         <scope>compile</scope>
       </dependency>
       <dependency>
