@@ -10,37 +10,50 @@ Simple and lightweight object persistence framework.
 #### A builder class is generated automatically at compile time.
 ```java
 @Entity @VirtualValue
-interface User { @Id String getSsn(); String getName(); }
+interface User { 
+  
+  @Id String getSsn(); 
+  
+  String getName(); 
+  
+  UserBuilder copy() { return UserBuilder.builderFrom(this); }
+
+}
 
 User user = new UserBuilder().withSsn("12345").withName("James").build();
 ```
+========
 
 #### Put entity
-
 ```java
 EntityRepository repository = new EntityRepository();
 repository.put(user);
+
 ```
 ========
 
 #### Get entity
-
 ```java
 Optional<User> user = repository.get("12345", User.class);
 ```
 ========
 
-#### Delete entity
-
+#### Update entity
 ```java
-repository.delete(user);
+User user = repository.get("12345", User.class).get();
+User updated = user.copy().withName("Eric").build();
+repository.put(updated);
+```
+========
+
+#### Delete entity
+```java
+repository.delete("12345", User.class);
 ```
 ========
 
 #### Type-safe query
-
 ```java
-
 List<User> result = repository.stream(User.class)
                               .filter(b -> b.getName().equals("James"))
                               .collect(Collectors.toList());
@@ -49,7 +62,6 @@ List<User> result = repository.stream(User.class)
 ========
 
 #### Query language
-
 ```java
 List<User> result = repository.query("filter name == 'James' ordered name", User.class);
 ```
@@ -57,7 +69,6 @@ List<User> result = repository.query("filter name == 'James' ordered name", User
 ========
 
 #### Transactions
-
 ```java
 
 withTx(tx -> {
