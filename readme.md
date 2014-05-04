@@ -23,6 +23,13 @@ repository.put(user);
 ```
 ========
 
+#### Get entity
+
+```java
+Optional<User> user = repository.get("12345", User.class);
+```
+========
+
 #### Delete entity
 
 ```java
