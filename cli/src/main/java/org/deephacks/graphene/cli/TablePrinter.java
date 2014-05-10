@@ -5,17 +5,27 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class TablePrinter {
-  private List<Header> headers = new ArrayList<>();
-  private List<List<String>> values = new ArrayList<>();
+  private List<String> headers = new ArrayList<>();
+  private List<List<String>> rows = new ArrayList<>();
+  private List<Integer> widths = new ArrayList<>();
 
-  public void addHeader(String name, int width) {
-    headers.add(new Header(name, width));
+  public void addHeader(String name) {
+    headers.add(name);
   }
-  public void addValues(List<String> values) {
-    this.values.add(values);
+
+  public void addRow(List<String> values) {
+    rows.add(values);
   }
 
   public void print() {
+    for (int i = 0; i < headers.size(); i++) {
+      Integer width = headers.get(i).length();
+      for (int j = 0; j < rows.size(); j++) {
+        String value = rows.get(j).get(i);
+        width = value.length() > width ? value.length() : width;
+      }
+      widths.add(width);
+    }
     String rowSeparator = createRowSeparator();
     String rowForHeaders = rowForValues(headers);
     PrintStream printStream = System.out;
@@ -23,7 +33,7 @@ public class TablePrinter {
     printStream.println(rowForHeaders);
     printStream.println(rowSeparator);
 
-    for (List<?> row : values) {
+    for (List<?> row : rows) {
       String rowText = rowForValues(row);
       printStream.println(rowText);
     }
@@ -34,14 +44,10 @@ public class TablePrinter {
     StringBuilder sb = new StringBuilder();
     sb.append("|");
 
-    for (int index = 0; index < headers.size(); index++) {
+    for (int index = 0; index < values.size(); index++) {
       Object value = values.get(index);
-      int length = headers.get(index).getWidth();
       String output = value.toString();
-      if (value instanceof Header) {
-        output = ((Header) value).getName();
-      }
-      String padded = StringUtils.fix(output, length);
+      String padded = StringUtils.fix(output, widths.get(index));
       sb.append(padded);
       sb.append("|");
     }
@@ -49,45 +55,14 @@ public class TablePrinter {
   }
 
   private String createRowSeparator() {
-    List<Integer> lengths = getLengths();
-    String[] segments = new String[lengths.size()];
-    for (int index = 0; index < lengths.size(); index++) {
-      segments[index] = StringUtils.repeat("-", lengths.get(index));
+    String[] segments = new String[headers.size()];
+    for (int index = 0; index < headers.size(); index++) {
+      segments[index] = StringUtils.repeat("-", widths.get(index));
     }
     return StringUtils.join(segments, "+", "+", "+");
   }
 
-  private List<Integer> getLengths() {
-    List<Integer> lengths = new ArrayList<>();
-    for (Header header : headers) {
-      lengths.add(header.getWidth());
-    }
-    return lengths;
-  }
-
-  public static class Header {
-    private String name;
-    private int width;
-
-    public Header(String name, int width) {
-      this.name = name;
-      this.width = width;
-    }
-
-    public String getName() {
-      return name;
-    }
-
-    public int getWidth() {
-      return width;
-    }
-  }
-
   private static class StringUtils {
-
-    public static String repeat(char character, int times) {
-      return repeat(String.valueOf(character), times);
-    }
 
     public static String repeat(String character, int times) {
       StringBuilder sb = new StringBuilder(times);
@@ -111,10 +86,6 @@ public class TablePrinter {
       return input;
     }
 
-    public static String padAndAdd(String input, int length, String sides) {
-      return sides + pad(input, length) + sides;
-    }
-
     public static String join(String[] strings, String inside, String start, String end) {
       return start + join(strings, inside) + end;
     }
@@ -129,15 +100,6 @@ public class TablePrinter {
       }
       sb.append(strings[strings.length - 1]);
       return sb.toString();
-    }
-
-    public static String repeatAndJoin(String text, int width, String connector, int times) {
-      String connectee = repeat(text, width);
-      String[] strings = new String[times];
-      for (int index = 0; index < times; index++) {
-        strings[index] = connectee;
-      }
-      return join(strings, connector);
     }
   }
 }

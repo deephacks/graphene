@@ -117,6 +117,10 @@ public class EntityRepository {
         if (data == null || data.length != 2) {
           throw new IllegalArgumentException("Could not serialize entity");
         }
+        if (data[0].length == 0 && EntityClassWrapper.get(entityClass).isEmbedded()) {
+          String msg = "Cannot store @Embedded classes " + entityClass.getName();
+          throw new IllegalArgumentException(msg);
+        }
         DatabaseEntry key = new DatabaseEntry(data[0]);
         DatabaseEntry value = new DatabaseEntry(data[1]);
         if (OperationStatus.SUCCESS != db.get().put(getInternalTx(), key, value)) {
@@ -147,6 +151,10 @@ public class EntityRepository {
         byte[][] data = getSerializer(entityClass).serializeEntity(entity);
         if (data == null || data.length != 2) {
           throw new IllegalArgumentException("Could not serialize entity");
+        }
+        if (data[0].length == 0 && EntityClassWrapper.get(entityClass).isEmbedded()) {
+          String msg = "Cannot store @Embedded classes " + entityClass.getName();
+          throw new IllegalArgumentException(msg);
         }
         DatabaseEntry key = new DatabaseEntry(data[0]);
         DatabaseEntry value = new DatabaseEntry(data[1]);

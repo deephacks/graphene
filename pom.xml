@@ -53,7 +53,7 @@
     <module>core</module>
     <module>cdi</module>
     <module>cli</module>
-    <!-- <module>examples</module> -->
+    <module>examples</module>
   </modules>
 
 

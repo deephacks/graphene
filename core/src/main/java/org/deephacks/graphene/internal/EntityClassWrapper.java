@@ -25,9 +25,11 @@ public class EntityClassWrapper {
   private Map<String, EntityMethodWrapper> references = new HashMap<>();
   private Map<String, EntityMethodWrapper> embedded = new HashMap<>();
   private final Class<?> virtualClass;
+  private final boolean isEmbedded;
 
   private EntityClassWrapper(Class<?> cls) {
     this.virtualClass = cls;
+    isEmbedded = cls.getDeclaredAnnotation(Embedded.class) != null;
     Map<String, Method> map = Reflections.findGetterMethods(cls);
     for (String methodName : map.keySet()) {
       String name = getNameFromMethod(map.get(methodName));
@@ -125,6 +127,10 @@ public class EntityClassWrapper {
 
   public boolean isEmbedded(String name) {
     return embedded.containsKey(name);
+  }
+
+  public boolean isEmbedded() {
+    return isEmbedded;
   }
 
   @Override
