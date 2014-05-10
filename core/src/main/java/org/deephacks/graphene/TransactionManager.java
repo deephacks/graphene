@@ -9,39 +9,32 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 public class TransactionManager {
-  private static final Handle<Graphene> graphene = Graphene.get();
-  private static final TransactionManager tm = graphene.get().getTransactionManager();
-  private static final ThreadLocal<Stack<Tx>> threadLocal = new ThreadLocal<>();
-  private final Environment environment;
-
-
-  public TransactionManager(Environment environment) {
-    this.environment = environment;
-  }
+  private static ThreadLocal<Stack<Tx>> threadLocal = new ThreadLocal<>();
+  static Environment environment;
 
   public static <T> T withTxReturn(Function<Tx, T> function) {
-    Tx tx = tm.beginTransaction();
+    Tx tx = beginTransaction();
     try {
       T result = function.apply(tx);
       switch (tx.getTx().getState()) {
         case OPEN:
-          tm.commit();
+          commit();
           break;
         case POSSIBLY_COMMITTED:
           break;
         case COMMITTED:
           break;
         case MUST_ABORT:
-          tm.rollback();
+          rollback();
           break;
         case ABORTED:
-          tm.rollback();
+          rollback();
           break;
       }
       return result;
     } catch (Throwable e) {
       try {
-        tm.rollback();
+        rollback();
       } catch (Throwable e1) {
         throw new IllegalStateException(e1);
       }
@@ -53,7 +46,7 @@ public class TransactionManager {
   }
 
   public static <T> T joinTxReturn(Function<Tx, T> function) {
-    Tx tx = tm.peek();
+    Tx tx = peek();
     if (tx == null) {
       return withTxReturn(function);
     } else {
@@ -69,7 +62,7 @@ public class TransactionManager {
   }
 
   public static void joinTx(Transactional transactional) {
-    Tx tx = tm.peek();
+    Tx tx = peek();
     if (tx == null) {
       withTx(transactional);
     } else {
@@ -82,7 +75,7 @@ public class TransactionManager {
   }
 
   public static <T> T joinTx(Supplier<T> supplier) {
-    Tx tx = tm.peek();
+    Tx tx = peek();
     if (tx == null) {
       return inTx(supplier);
     } else {
@@ -95,14 +88,14 @@ public class TransactionManager {
   }
 
 
-  Tx beginTransaction() {
+  static Tx beginTransaction() {
     Transaction transaction = environment.beginTransaction(null, null);
     Tx tx = new Tx(transaction);
     push(tx);
     return tx;
   }
 
-  void commit() {
+  static void commit() {
     Tx tx = pop();
     if (tx == null) {
       return;
@@ -110,7 +103,7 @@ public class TransactionManager {
     tx.commit();
   }
 
-  void rollback() {
+  static void rollback() {
     Tx tx = pop();
     if (tx == null) {
       return;
@@ -118,7 +111,7 @@ public class TransactionManager {
     tx.rollback();
   }
 
-  void push(Tx value) {
+  static void push(Tx value) {
     Stack<Tx> stack = threadLocal.get();
     if (stack == null) {
       stack = new Stack<>();
@@ -127,7 +120,7 @@ public class TransactionManager {
     threadLocal.set(stack);
   }
 
-  Tx peek() {
+  static Tx peek() {
     Stack<Tx> stack = threadLocal.get();
     if (stack == null || stack.isEmpty()) {
       return null;
@@ -135,7 +128,7 @@ public class TransactionManager {
     return stack.peek();
   }
 
-  Tx pop() {
+  static Tx pop() {
     Stack<Tx> stack = threadLocal.get();
     if (stack == null || stack.isEmpty()) {
       return null;
@@ -143,13 +136,13 @@ public class TransactionManager {
     return stack.pop();
   }
 
-  void clear() {
+  static void clear() {
     Stack<Tx> stack = threadLocal.get();
     stack.clear();
     threadLocal.set(null);
   }
 
-  void push(Cursor cursor) {
+  static void push(Cursor cursor) {
     Tx tx = peek();
     if (tx == null) {
       throw new NullPointerException("No active transaction!");
@@ -157,7 +150,7 @@ public class TransactionManager {
     tx.push(cursor);
   }
 
-  public Transaction getInternalTx() {
+  public static Transaction getInternalTx() {
     Tx tx = peek();
     if (tx == null) {
       return null;

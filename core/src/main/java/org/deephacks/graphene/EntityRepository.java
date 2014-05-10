@@ -45,12 +45,14 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
+import static org.deephacks.graphene.TransactionManager.*;
+import static org.deephacks.graphene.TransactionManager.getInternalTx;
+
 /**
  * EntityRepository will never commit or rollback a transactions.
  */
 public class EntityRepository {
   private static final Handle<Graphene> graphene = Graphene.get();
-  private static final TransactionManager tm = graphene.get().getTransactionManager();
   private static final Object WRITE_LOCK = new Object();
   private final Handle<Database> db;
   private final Handle<SecondaryDatabase> secondary;
@@ -117,7 +119,7 @@ public class EntityRepository {
         }
         DatabaseEntry key = new DatabaseEntry(data[0]);
         DatabaseEntry value = new DatabaseEntry(data[1]);
-        if (OperationStatus.SUCCESS != db.get().put(tm.getInternalTx(), key, value)) {
+        if (OperationStatus.SUCCESS != db.get().put(getInternalTx(), key, value)) {
           return false;
         }
         return true;
@@ -148,7 +150,7 @@ public class EntityRepository {
         }
         DatabaseEntry key = new DatabaseEntry(data[0]);
         DatabaseEntry value = new DatabaseEntry(data[1]);
-        return OperationStatus.SUCCESS == db.get().putNoOverwrite(tm.getInternalTx(), key, value);
+        return OperationStatus.SUCCESS == db.get().putNoOverwrite(getInternalTx(), key, value);
       } catch (ForeignConstraintException e) {
         throw new ForeignKeyConstraintException(e);
       }
@@ -171,7 +173,7 @@ public class EntityRepository {
         return Optional.empty();
       }
       try {
-        OperationStatus status = db.get().delete(tm.getInternalTx(), new DatabaseEntry(optional.get()[0]));
+        OperationStatus status = db.get().delete(getInternalTx(), new DatabaseEntry(optional.get()[0]));
         if (status == OperationStatus.NOTFOUND) {
           return Optional.empty();
         }
@@ -191,8 +193,8 @@ public class EntityRepository {
     Spliterator spliterator = objects.spliterator();
     try (Stream stream = StreamSupport.stream(spliterator, false)) {
       stream.onClose(cursor::close);
-      if (tm.peek() != null) {
-        tm.push(cursor);
+      if (peek() != null) {
+        push(cursor);
       }
       return q.collect(stream);
     }
@@ -211,8 +213,8 @@ public class EntityRepository {
     Spliterator<E> spliterator = Spliterators.spliterator(objects.iterator(), Long.MAX_VALUE, Spliterator.SIZED);
     Stream<E> stream = StreamSupport.stream(spliterator, false);
     stream.onClose(cursor::close);
-    if (tm.peek() != null) {
-      tm.push(cursor);
+    if (peek() != null) {
+      push(cursor);
     }
     return stream;
   }
@@ -277,7 +279,7 @@ public class EntityRepository {
     byte[] dataKey = getSerializer(key.getClass()).serializeRowKey(key);
     DatabaseEntry entryKey = new DatabaseEntry(dataKey);
     DatabaseEntry entryValue = new DatabaseEntry();
-    Transaction tx = tm.getInternalTx();
+    Transaction tx = getInternalTx();
     LockMode lockMode = tx == null ? LockMode.DEFAULT : mode;
     if (OperationStatus.SUCCESS == db.get().get(tx, entryKey, entryValue, lockMode)) {
       byte[][] kv = new byte[][]{entryKey.getData(), entryValue.getData()};
@@ -289,13 +291,13 @@ public class EntityRepository {
   Cursor openPrimaryCursor() {
     CursorConfig config = new CursorConfig();
     config.setReadCommitted(true);
-    return db.get().openCursor(tm.getInternalTx(), config);
+    return db.get().openCursor(getInternalTx(), config);
   }
 
   Cursor openForeignCursor() {
     CursorConfig config = new CursorConfig();
     config.setReadCommitted(true);
-    return secondary.get().openCursor(tm.getInternalTx(), config);
+    return secondary.get().openCursor(getInternalTx(), config);
   }
 
   private Serializer getSerializer(Class<?> entityClass) {

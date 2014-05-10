@@ -8,26 +8,25 @@ import com.sleepycat.je.OperationStatus;
 import com.sleepycat.je.Transaction;
 import org.deephacks.graphene.Graphene;
 import org.deephacks.graphene.Handle;
-import org.deephacks.graphene.TransactionManager;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
+import static org.deephacks.graphene.TransactionManager.getInternalTx;
+
 public class DatabaseWrapper {
   private final Handle<Graphene> graphene = Graphene.get();
   private final Handle<Database> db;
-  private final TransactionManager tm;
 
   public DatabaseWrapper(Handle<Database> db) {
     this.db = db;
-    this.tm = graphene.get().getTransactionManager();
   }
 
   public Optional<byte[]> get(byte[] key) {
     DatabaseEntry dbKey = new DatabaseEntry(key);
     DatabaseEntry dbValue = new DatabaseEntry();
-    Transaction tx = tm.getInternalTx();
+    Transaction tx = getInternalTx();
     LockMode lockMode = tx == null ? LockMode.DEFAULT : LockMode.RMW ;
     if (OperationStatus.NOTFOUND == db.get().get(tx, dbKey, dbValue, lockMode)) {
       return Optional.empty();
@@ -38,7 +37,7 @@ public class DatabaseWrapper {
   public boolean put(byte[] key, byte[] value) {
     DatabaseEntry dbKey = new DatabaseEntry(key);
     DatabaseEntry dbValue = new DatabaseEntry(value);
-    if (OperationStatus.KEYEXIST == db.get().putNoOverwrite(tm.getInternalTx(), dbKey, dbValue)) {
+    if (OperationStatus.KEYEXIST == db.get().putNoOverwrite(getInternalTx(), dbKey, dbValue)) {
       return false;
     }
     return true;
@@ -46,7 +45,7 @@ public class DatabaseWrapper {
 
   public Map<byte[], byte[]> listAll() {
     Map<byte[], byte[]> map = new HashMap<>();
-    try (Cursor cursor = db.get().openCursor(tm.getInternalTx(), null)) {
+    try (Cursor cursor = db.get().openCursor(getInternalTx(), null)) {
       DatabaseEntry firstKey = new DatabaseEntry(RowKey.getMinId().getKey());
       DatabaseEntry entry = new DatabaseEntry();
       if (cursor.getSearchKeyRange(firstKey, entry, LockMode.RMW) == OperationStatus.SUCCESS) {
@@ -61,7 +60,7 @@ public class DatabaseWrapper {
   }
 
   public void deleteAll() {
-    try (Cursor cursor = db.get().openCursor(tm.getInternalTx(), null)) {
+    try (Cursor cursor = db.get().openCursor(getInternalTx(), null)) {
       DatabaseEntry firstKey = new DatabaseEntry(RowKey.getMinId().getKey());
 
       if (cursor.getSearchKeyRange(firstKey, new DatabaseEntry(), LockMode.RMW) == OperationStatus.SUCCESS) {
