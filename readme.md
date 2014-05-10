@@ -84,3 +84,22 @@ withTx(tx -> {
 
 ```
 
+
+========
+
+#### Console
+```sh
+$ graphene console
+$ filter city.name contains 'holm' ordered streetName org.deephacks.graphene.Entities$Street
+
++----+--------+----------+----------+------------+
+|city|location|postalCode|streetName|streetNumber|
++----+--------+----------+----------+------------+
+| .. | ..     | ..       | ..       | ..         |
+| .. | ..     | ..       | ..       | ..         |
++----+--------+----------+----------+------------+
+19 rows in set (0.01 sec)
+
+
+
+```
