@@ -18,12 +18,6 @@
       <artifactId>graphene-core</artifactId>
     </dependency>
     <dependency>
-      <groupId>org.deephacks.streamql</groupId>
-      <artifactId>streamql</artifactId>
-      <version>0.5.8</version>
-      <scope>compile</scope>
-    </dependency>
-    <dependency>
       <groupId>org.deephacks.launcher</groupId>
       <artifactId>launcher</artifactId>
       <version>0.1.0</version>
