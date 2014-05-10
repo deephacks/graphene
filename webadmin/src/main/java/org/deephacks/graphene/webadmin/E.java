@@ -1,7 +1,12 @@
 package org.deephacks.graphene.webadmin;
 
-/**
- * Created by stoffe on 5/10/14.
- */
-public class E {
+import org.deephacks.graphene.Entity;
+import org.deephacks.graphene.Id;
+import org.deephacks.vals.VirtualValue;
+
+@VirtualValue @Entity
+public interface E {
+  @Id
+  String getId();
+
 }

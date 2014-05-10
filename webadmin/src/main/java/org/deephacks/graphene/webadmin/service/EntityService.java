@@ -5,8 +5,7 @@ import org.deephacks.graphene.EntityRepository;
 import java.util.List;
 
 public class EntityService {
-
-  private EntityRepository repository = new EntityRepository();
+  private final EntityRepository repository = new EntityRepository();
 
 
   public <T> List<T> list(Class<T> cls) {

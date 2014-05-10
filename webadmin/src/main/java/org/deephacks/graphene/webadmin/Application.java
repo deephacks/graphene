@@ -13,9 +13,9 @@ public class Application {
   private Vertx vertx = VertxFactory.newVertx();
   private ObjectMapper mapper = new ObjectMapper();
   private RouteMatcher routeMatcher = new RouteMatcher();
-  private RequestHandler requestHandler = new RequestHandler(mapper, routeMatcher);
+  private RequestHandler requestHandler = new RequestHandler(routeMatcher);
   private EntityService entityService = new EntityService();
-  private EntityEndpoint entityEndpoint = new EntityEndpoint(entityService, requestHandler);
+  private EntityEndpoint entityEndpoint = new EntityEndpoint(mapper, entityService);
 
   public Vertx getVertx() {
     return vertx;

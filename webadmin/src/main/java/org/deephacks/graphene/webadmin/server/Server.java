@@ -1,28 +1,19 @@
 package org.deephacks.graphene.webadmin.server;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.deephacks.graphene.webadmin.TestEntity;
-import org.deephacks.graphene.webadmin.TestEntityBuilder;
-import org.deephacks.graphene.webadmin.service.EntityService;
+import org.deephacks.graphene.webadmin.Application;
+import org.deephacks.graphene.webadmin.service.EntityEndpoint;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.vertx.java.core.Vertx;
-import org.vertx.java.core.VertxFactory;
-import org.vertx.java.core.http.RouteMatcher;
 
 import java.io.File;
-import java.util.UUID;
 
 public class Server {
   public static final String APPLICATION_CONF_PROP = "application.conf";
   public static final String APPLICATION_CONF = System.getProperty(APPLICATION_CONF_PROP);
   private static final Logger log = LoggerFactory.getLogger(Server.class);
-  private Vertx vertx = VertxFactory.newVertx();
-  private ObjectMapper mapper = new ObjectMapper();
-  private RouteMatcher routeMatcher = new RouteMatcher();
-  private RequestHandler requestHandler = new RequestHandler(mapper, routeMatcher);
-  private EntityService entityService = new EntityService();
-
+  private final Application application = new Application();
+  private final RequestHandler requestHandler = application.getRequestHandler();
+  private final EntityEndpoint entityEndpoint = application.getEntityEndpoint();
   public static void main(String[] args) {
     new Server().startup();
   }
@@ -35,20 +26,10 @@ public class Server {
           System.setProperty(APPLICATION_CONF_PROP, conf.getAbsolutePath());
         }
       }
-      requestHandler.get("/list/:cls", req -> {
-        try {
-          return entityService.list(Class.forName(req.params().get("cls")));
-        } catch (ClassNotFoundException e) {
-          throw new RuntimeException(e);
-        }
-      }).post("/put/:cls", req -> {
-        TestEntity entity = new TestEntityBuilder().withId(UUID.randomUUID().toString()).withName(UUID.randomUUID().toString()).build();
-        entityService.put(entity);
-        return null;
-      });
+      entityEndpoint.setupRoutes(requestHandler);
 
-      vertx.createHttpServer().requestHandler(requestHandler.getRouteMatcher()).listen(8081);
-      vertx.createHttpServer().requestHandler(requestHandler.getRouteMatcher()).listen(8081);
+      application.getVertx().createHttpServer().requestHandler(requestHandler.getRouteMatcher()).listen(8081);
+      application.getVertx().createHttpServer().requestHandler(requestHandler.getRouteMatcher()).listen(8081);
 
       ShutdownHook.install(new Thread("ShutdownHook") {
         @Override
@@ -67,8 +48,8 @@ public class Server {
   }
 
   public void shutdown() {
-    if (vertx != null) {
-      vertx.stop();
+    if (application.getVertx() != null) {
+      application.getVertx().stop();
     }
   }
 }
