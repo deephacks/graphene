@@ -176,6 +176,8 @@ public class BaseTest {
             .withBigIntegers(Guavas.newArrayList(new BigInteger("012739218372398712938712983723976"), new BigInteger("012739218372398712938712983723976")))
             .withEnumValue(TimeUnit.DAYS)
             .withEnumList(Guavas.newArrayList(TimeUnit.DAYS, TimeUnit.HOURS, TimeUnit.MILLISECONDS))
+            .withEmbedded(buildEmbedded())
+            .withEmbeddedList(Guavas.newArrayList(buildEmbedded(), buildEmbedded(), buildEmbedded()))
             .withDate(new Date(1))
             .withDateList(Guavas.newArrayList(new Date(1), new Date(2)))
             .withPeriod(Period.parse("P1Y2M3D"))
@@ -233,6 +235,8 @@ public class BaseTest {
             .withStringValues(Guavas.newArrayList("1a", "2b", "3c"))
             .withEnumValue(TimeUnit.DAYS)
             .withEnumList(Guavas.newArrayList(TimeUnit.DAYS, TimeUnit.HOURS, TimeUnit.MILLISECONDS))
+            .withEmbedded(buildEmbedded())
+            .withEmbeddedList(Guavas.newArrayList(buildEmbedded(), buildEmbedded(), buildEmbedded()))
             .withDate(new Date(1))
             .withDateList(Guavas.newArrayList(new Date(1), new Date(2)))
             .withPeriod(Period.parse("P1Y2M3D"))
@@ -406,9 +410,7 @@ public class BaseTest {
     String getId();
 
     Embedded getEmbedded();
-
     List<Embedded> getEmbeddedList();
-
   }
 
   @VirtualValue
@@ -423,6 +425,9 @@ public class BaseTest {
 
     @Nullable
     List<A> getListOfA();
+
+    Embedded getEmbedded();
+    List<Embedded> getEmbeddedList();
   }
 
   @VirtualValue
@@ -437,6 +442,9 @@ public class BaseTest {
 
     @Nullable
     public List<B> getListOfB();
+
+    Embedded getEmbedded();
+    List<Embedded> getEmbeddedList();
   }
 
   @VirtualValue
