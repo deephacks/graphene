@@ -28,8 +28,15 @@ import java.nio.charset.Charset;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.time.Duration;
+import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.Period;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+import java.time.temporal.ChronoField;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -551,6 +558,122 @@ public class BytesUtils {
     System.arraycopy(b, offset, bytes, 0, length);
     return new String(bytes);
   }
+  public static final int LOCAL_TIME_BYTES = 4 + 4 + 4 + 4;
+
+  public static byte[] toBytes(LocalTime localTime) {
+    int hour = localTime.getHour();
+    int min = localTime.getMinute();
+    int sec = localTime.getSecond();
+    int nano = localTime.getNano();
+    byte[] bytes = new byte[LOCAL_TIME_BYTES];
+    System.arraycopy(Bytes.fromInt(hour), 0, bytes, 0, 4);
+    System.arraycopy(Bytes.fromInt(min), 0, bytes, 4, 4);
+    System.arraycopy(Bytes.fromInt(sec), 0, bytes, 8, 4);
+    System.arraycopy(Bytes.fromInt(nano), 0, bytes, 12, 4);
+    return bytes;
+  }
+
+  public static LocalTime getLocalTime(byte[] value, int offset) {
+    int hour = Bytes.getInt(value, offset);
+    int min = Bytes.getInt(value, 4 + offset);
+    int sec = Bytes.getInt(value, 8 + offset);
+    int nano = Bytes.getInt(value, 12 + offset);
+    return LocalTime.of(hour, min, sec, nano);
+  }
+
+  public static final int LOCAL_DATE_BYTES = 4 + 4 + 4;
+
+  public static byte[] toBytes(LocalDate localDate) {
+    int year = localDate.getYear();
+    int month = localDate.getMonthValue();
+    int day = localDate.getDayOfMonth();
+    byte[] bytes = new byte[LOCAL_DATE_BYTES];
+    System.arraycopy(Bytes.fromInt(year), 0, bytes, 0, 4);
+    System.arraycopy(Bytes.fromInt(month), 0, bytes, 4, 4);
+    System.arraycopy(Bytes.fromInt(day), 0, bytes, 8, 4);
+    return bytes;
+  }
+
+  public static LocalDate getLocalDate(byte[] bytes, int offset) {
+    int year = Bytes.getInt(bytes, offset);
+    int month = Bytes.getInt(bytes, 4 + offset);
+    int day = Bytes.getInt(bytes, 8 + offset);
+    return LocalDate.of(year, month, day);
+  }
+
+  public static final int INSTANT_BYTES = 8 + 4;
+
+  public static byte[] toBytes(Instant instant) {
+    long seconds =  instant.getLong(ChronoField.INSTANT_SECONDS);
+    int nanos = instant.get(ChronoField.NANO_OF_SECOND);
+    byte[] bytes = new byte[INSTANT_BYTES];
+    System.arraycopy(Bytes.fromLong(seconds), 0, bytes, 0, 8);
+    System.arraycopy(Bytes.fromInt(nanos), 0, bytes, 8, 4);
+    return bytes;
+  }
+
+  public static Instant getInstant(byte[] bytes) {
+    long seconds = Bytes.getLong(bytes);
+    int nanos = Bytes.getInt(bytes, 8);
+    return Instant.ofEpochSecond(seconds, nanos);
+  }
+
+  public static final int LOCAL_DATE_TIME_BYTES = LOCAL_DATE_BYTES + LOCAL_TIME_BYTES;
+
+  public static byte[] writeBytes(LocalDateTime localDateTime) {
+    LocalDate localDate = localDateTime.toLocalDate();
+    LocalTime localTime = localDateTime.toLocalTime();
+    byte[] dateBytes = BytesUtils.toBytes(localDate);
+    byte[] timeBytes = BytesUtils.toBytes(localTime);
+    byte[] dateTimeBytes = new byte[LOCAL_DATE_TIME_BYTES];
+    System.arraycopy(dateBytes, 0, dateTimeBytes, 0, dateBytes.length);
+    System.arraycopy(timeBytes, 0, dateTimeBytes, dateBytes.length, timeBytes.length);
+    return dateTimeBytes;
+  }
+
+  public static LocalDateTime getLocalDateTime(byte[] bytes) {
+    LocalDate localDate = BytesUtils.getLocalDate(bytes, 0);
+    LocalTime localTime = BytesUtils.getLocalTime(bytes, LOCAL_DATE_BYTES);
+    return LocalDateTime.of(localDate, localTime);
+  }
+
+  public static final int ZONED_OFFSET_BYTES = 4;
+
+  public static byte[] writeBytes(ZoneOffset zoneOffset) {
+    int totalSeconds = zoneOffset.getTotalSeconds();
+    return Bytes.fromInt(totalSeconds);
+  }
+
+  public static ZoneOffset getZoneOffset(byte[] bytes, int offset) {
+    return ZoneOffset.ofTotalSeconds(Bytes.getInt(bytes, offset));
+  }
+
+  public static final int ZONED_DATE_TIME_BYTES = LOCAL_DATE_TIME_BYTES + ZONED_OFFSET_BYTES;
+
+  public static byte[] writeBytes(ZonedDateTime zonedDateTime) {
+    LocalDateTime localDateTime = zonedDateTime.toLocalDateTime();
+    ZoneOffset offset = zonedDateTime.getOffset();
+    ZoneId zone = zonedDateTime.getZone();
+    if (!(zone instanceof ZoneOffset)) {
+      // ZoneRegion is not supported since it is encoded as
+      // a string i.e. Australia/Sydney and ZonedDateTime
+      // must be written on a predefined number of bytes
+      throw new IllegalArgumentException("ZonedDateTime with ZoneRegion is not supported.");
+    }
+    byte[] localDateTimeBytes = BytesUtils.writeBytes(localDateTime);
+    byte[] offsetBytes = BytesUtils.writeBytes(offset);
+    byte[] zonedDateTimeBytes = new byte[ZONED_DATE_TIME_BYTES];
+    System.arraycopy(localDateTimeBytes, 0, zonedDateTimeBytes, 0, localDateTimeBytes.length);
+    System.arraycopy(offsetBytes, 0, zonedDateTimeBytes, localDateTimeBytes.length, offsetBytes.length);
+    return zonedDateTimeBytes;
+  }
+
+  public static ZonedDateTime getZonedDateTime(byte[] bytes) {
+    LocalDate localDate = BytesUtils.getLocalDate(bytes, 0);
+    LocalTime localTime = BytesUtils.getLocalTime(bytes, LOCAL_DATE_BYTES);
+    ZoneOffset offset = BytesUtils.getZoneOffset(bytes, LOCAL_DATE_BYTES + LOCAL_TIME_BYTES);
+    return ZonedDateTime.of(localDate, localTime, offset);
+  }
 
   private static boolean getBoolean(byte b) {
     return b != 0;
@@ -686,10 +809,14 @@ public class BytesUtils {
   public static enum DataType {
     BYTE(1), SHORT(2), INTEGER(3), LONG(4), FLOAT(5), DOUBLE(6), BOOLEAN(7), STRING(8),
     CHAR(9), BYTE_ARRAY(10), ENUM(11), BIG_INTEGER(12), BIG_DECIMAL(13), DATE(14),
-    LOCAL_DATE_TIME(15), PEROID(16), DURATION(17), OBJECT(17),
+    LOCAL_DATE_TIME(15), ZONED_DATE_TIME(16), LOCAL_DATE(17), LOCAL_TIME(18), INSTANT(19),
+    PERIOD(20), DURATION(21),
 
-    BYTE_LIST(20), SHORT_LIST(21), INTEGER_LIST(22), LONG_LIST(23), FLOAT_LIST(24),
-    DOUBLE_LIST(25), BOOLEAN_LIST(26), STRING_LIST(27), CHAR_LIST(28), BYTE_ARRAY_LIST(29), OBJECT_LIST(30);
+    BYTE_LIST(30), SHORT_LIST(31), INTEGER_LIST(32), LONG_LIST(33), FLOAT_LIST(34),
+    DOUBLE_LIST(35), BOOLEAN_LIST(36), STRING_LIST(37), CHAR_LIST(38), BYTE_ARRAY_LIST(39),
+
+    // special treatment
+    OBJECT_LIST(50), OBJECT(51);
     private int id;
 
     DataType(int id) {
@@ -759,8 +886,16 @@ public class BytesUtils {
         return DATE;
       } else if (LocalDateTime.class.isAssignableFrom(cls)) {
         return LOCAL_DATE_TIME;
+      } else if (ZonedDateTime.class.isAssignableFrom(cls)) {
+        return ZONED_DATE_TIME;
+      } else if (LocalDate.class.isAssignableFrom(cls)) {
+        return LOCAL_DATE;
+      } else if (LocalTime.class.isAssignableFrom(cls)) {
+        return LOCAL_TIME;
+      } else if (Instant.class.isAssignableFrom(cls)) {
+        return INSTANT;
       } else if (Period.class.isAssignableFrom(cls)) {
-        return PEROID;
+        return PERIOD;
       } else if (Duration.class.isAssignableFrom(cls)) {
         return DURATION;
       } else {

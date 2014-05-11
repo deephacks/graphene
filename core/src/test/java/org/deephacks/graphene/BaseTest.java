@@ -9,8 +9,12 @@ import javax.annotation.Nullable;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.time.Duration;
+import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.Period;
+import java.time.ZonedDateTime;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.LinkedHashMap;
@@ -121,6 +125,14 @@ public class BaseTest {
             .withDateList(Guavas.newArrayList(new Date(1), new Date(2)))
             .withLocalDateTime(LocalDateTime.parse("2014-04-01T12:00"))
             .withLocalDateTimeList(Guavas.newArrayList(LocalDateTime.parse("2014-04-01T12:00"), LocalDateTime.parse("2014-04-02T12:00")))
+            .withZonedDateTime(ZonedDateTime.parse("2007-12-03T10:15:30+01:00"))
+            .withZonedDateTimeList(Guavas.newArrayList(ZonedDateTime.parse("2007-12-03T10:15:30+01:00"), ZonedDateTime.parse("2007-12-03T10:15:30+01:00")))
+            .withLocalDate(LocalDate.parse("2007-12-03"))
+            .withLocalDateList(Guavas.newArrayList(LocalDate.parse("2007-12-03"), LocalDate.parse("2007-12-03")))
+            .withLocalTime(LocalTime.parse("10:15"))
+            .withLocalTimeList(Guavas.newArrayList(LocalTime.parse("10:15"), LocalTime.parse("10:15")))
+            .withInstant(Instant.parse("2013-06-25T16:22:52.966Z"))
+            .withInstantList(Guavas.newArrayList(Instant.parse("2013-06-25T16:22:52.966Z"), Instant.parse("2013-06-25T16:22:52.966Z")))
             .withPeriod(Period.parse("P1Y2M3D"))
             .withPeriods(Guavas.newArrayList(Period.parse("P1Y2M3D"), Period.parse("P1Y2M3D")))
             .withDuration(Duration.parse("PT15M"))
@@ -178,6 +190,14 @@ public class BaseTest {
             .withEnumList(Guavas.newArrayList(TimeUnit.DAYS, TimeUnit.HOURS, TimeUnit.MILLISECONDS))
             .withEmbedded(buildEmbedded())
             .withEmbeddedList(Guavas.newArrayList(buildEmbedded(), buildEmbedded(), buildEmbedded()))
+            .withZonedDateTime(ZonedDateTime.parse("2007-12-03T10:15:30+01:00"))
+            .withZonedDateTimeList(Guavas.newArrayList(ZonedDateTime.parse("2007-12-03T10:15:30+01:00"), ZonedDateTime.parse("2007-12-03T10:15:30+01:00")))
+            .withLocalDate(LocalDate.parse("2007-12-03"))
+            .withLocalDateList(Guavas.newArrayList(LocalDate.parse("2007-12-03"), LocalDate.parse("2007-12-03")))
+            .withLocalTime(LocalTime.parse("10:15"))
+            .withLocalTimeList(Guavas.newArrayList(LocalTime.parse("10:15"), LocalTime.parse("10:15")))
+            .withInstant(Instant.parse("2013-06-25T16:22:52.966Z"))
+            .withInstantList(Guavas.newArrayList(Instant.parse("2013-06-25T16:22:52.966Z"), Instant.parse("2013-06-25T16:22:52.966Z")))
             .withDate(new Date(1))
             .withDateList(Guavas.newArrayList(new Date(1), new Date(2)))
             .withPeriod(Period.parse("P1Y2M3D"))
@@ -239,6 +259,14 @@ public class BaseTest {
             .withEmbeddedList(Guavas.newArrayList(buildEmbedded(), buildEmbedded(), buildEmbedded()))
             .withDate(new Date(1))
             .withDateList(Guavas.newArrayList(new Date(1), new Date(2)))
+            .withZonedDateTime(ZonedDateTime.parse("2007-12-03T10:15:30+01:00"))
+            .withZonedDateTimeList(Guavas.newArrayList(ZonedDateTime.parse("2007-12-03T10:15:30+01:00"), ZonedDateTime.parse("2007-12-03T10:15:30+01:00")))
+            .withLocalDate(LocalDate.parse("2007-12-03"))
+            .withLocalDateList(Guavas.newArrayList(LocalDate.parse("2007-12-03"), LocalDate.parse("2007-12-03")))
+            .withLocalTime(LocalTime.parse("10:15"))
+            .withLocalTimeList(Guavas.newArrayList(LocalTime.parse("10:15"), LocalTime.parse("10:15")))
+            .withInstant(Instant.parse("2013-06-25T16:22:52.966Z"))
+            .withInstantList(Guavas.newArrayList(Instant.parse("2013-06-25T16:22:52.966Z"), Instant.parse("2013-06-25T16:22:52.966Z")))
             .withPeriod(Period.parse("P1Y2M3D"))
             .withPeriods(Guavas.newArrayList(Period.parse("P1Y2M3D"), Period.parse("P1Y2M3D")))
             .withDuration(Duration.parse("PT15M"))
@@ -284,6 +312,14 @@ public class BaseTest {
             .withStringValues(Guavas.newArrayList("1a", "2b", "3c"))
             .withEnumValue(TimeUnit.DAYS)
             .withEnumList(Guavas.newArrayList(TimeUnit.DAYS, TimeUnit.HOURS, TimeUnit.MILLISECONDS))
+            .withZonedDateTime(ZonedDateTime.parse("2007-12-03T10:15:30+01:00"))
+            .withZonedDateTimeList(Guavas.newArrayList(ZonedDateTime.parse("2007-12-03T10:15:30+01:00"), ZonedDateTime.parse("2007-12-03T10:15:30+01:00")))
+            .withLocalDate(LocalDate.parse("2007-12-03"))
+            .withLocalDateList(Guavas.newArrayList(LocalDate.parse("2007-12-03"), LocalDate.parse("2007-12-03")))
+            .withLocalTime(LocalTime.parse("10:15"))
+            .withLocalTimeList(Guavas.newArrayList(LocalTime.parse("10:15"), LocalTime.parse("10:15")))
+            .withInstant(Instant.parse("2013-06-25T16:22:52.966Z"))
+            .withInstantList(Guavas.newArrayList(Instant.parse("2013-06-25T16:22:52.966Z"), Instant.parse("2013-06-25T16:22:52.966Z")))
             .withPeriod(Period.parse("P1Y2M3D"))
             .withPeriods(Guavas.newArrayList(Period.parse("P1Y2M3D"), Period.parse("P1Y2M3D")))
             .withDuration(Duration.parse("PT15M"))
@@ -393,6 +429,22 @@ public class BaseTest {
     LocalDateTime getLocalDateTime();
 
     List<LocalDateTime> getLocalDateTimeList();
+
+    ZonedDateTime getZonedDateTime();
+
+    List<ZonedDateTime> getZonedDateTimeList();
+
+    LocalDate getLocalDate();
+
+    List<LocalDate> getLocalDateList();
+
+    LocalTime getLocalTime();
+
+    List<LocalTime> getLocalTimeList();
+
+    Instant getInstant();
+
+    List<Instant> getInstantList();
 
     Period getPeriod();
 

@@ -25,8 +25,12 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.charset.Charset;
 import java.time.Duration;
+import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.Period;
+import java.time.ZonedDateTime;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -284,9 +288,16 @@ public interface Serializer {
       String string = object.toString();
       return string.getBytes(charset);
     } else if (type == DataType.LOCAL_DATE_TIME) {
-      String string = object.toString();
-      return string.getBytes(charset);
-    } else if (type == DataType.PEROID) {
+      return BytesUtils.writeBytes((LocalDateTime) object);
+    } else if (type == DataType.ZONED_DATE_TIME) {
+      return BytesUtils.writeBytes((ZonedDateTime) object);
+    } else if (type == DataType.LOCAL_DATE) {
+      return BytesUtils.toBytes((LocalDate) object);
+    } else if (type == DataType.LOCAL_TIME) {
+      return BytesUtils.toBytes((LocalTime) object);
+    } else if (type == DataType.INSTANT) {
+      return BytesUtils.toBytes((Instant) object);
+    } else if (type == DataType.PERIOD) {
       String string = object.toString();
       return string.getBytes(charset);
     } else if (type == DataType.DURATION) {
@@ -309,8 +320,16 @@ public interface Serializer {
     } else if (type == DataType.ENUM) {
       return Enum.valueOf((Class) cls, new String(value));
     } else if (type == DataType.LOCAL_DATE_TIME) {
-      return LocalDateTime.parse(new String(value));
-    } else if (type == DataType.PEROID) {
+      return BytesUtils.getLocalDateTime(value);
+    } else if (type == DataType.ZONED_DATE_TIME) {
+      return BytesUtils.getZonedDateTime(value);
+    } else if (type == DataType.LOCAL_DATE) {
+      return BytesUtils.getLocalDate(value, 0);
+    } else if (type == DataType.LOCAL_TIME) {
+      return BytesUtils.getLocalTime(value, 0);
+    } else if (type == DataType.INSTANT) {
+      return BytesUtils.getInstant(value);
+    } else if (type == DataType.PERIOD) {
       return Period.parse(new String(value));
     } else if (type == DataType.DURATION) {
       return Duration.parse(new String(value));

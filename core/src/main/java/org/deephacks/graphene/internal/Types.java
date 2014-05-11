@@ -30,7 +30,6 @@ public class Types {
     for (Class<?> basicType : Arrays.asList(Character.class, Boolean.class, String.class)) {
       ALL_BASIC_OBJECT_TYPES.put(basicType.getName(), basicType);
     }
-
   }
 
   public static Class<?> getPrimitiveType(String className) {
