@@ -5,7 +5,10 @@ Graphene
 Simple and lightweight object persistence framework.
 
 ========
-#### A builder class is generated automatically at compile time.
+#### Entity
+
+A builder class is generated automatically at compile time.
+
 ```java
 @Entity @VirtualValue
 interface User { 
@@ -16,6 +19,7 @@ interface User {
 
 User user = new UserBuilder().withSsn("12345").withName("James").build();
 ```
+
 ========
 #### Put entity
 
@@ -94,6 +98,22 @@ List<User> result = repository.stream(User.class)
 ```java
 List<User> result = repository.query("filter name == 'James' ordered name", User.class);
 ```
+
+========
+#### Composite Id
+
+TBD
+
+========
+#### Cursor seek and pagination
+
+TBD
+
+========
+#### Ordering
+
+TBD
+
 
 ========
 #### Transactions
