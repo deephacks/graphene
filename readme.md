@@ -11,13 +11,9 @@ Simple and lightweight object persistence framework.
 ```java
 @Entity @VirtualValue
 interface User { 
-  
   @Id String getSsn(); 
-  
   String getName(); 
-  
   UserBuilder copy() { return UserBuilder.builderFrom(this); }
-
 }
 
 User user = new UserBuilder().withSsn("12345").withName("James").build();
@@ -52,6 +48,41 @@ repository.delete("12345", User.class);
 ```
 ========
 
+#### Embedded entities
+```java
+@Entity @VirtualValue
+interface User { 
+  @Id String getSsn(); 
+  Address getAddress(); 
+}
+
+@Embedded @VirtualValue
+interface Address { 
+  String getStreet(); 
+}
+
+```
+
+========
+
+#### Entity references with referential integrity
+```java
+@Entity @VirtualValue
+interface User { 
+  @Id String getSsn(); 
+  Address getAddress(); 
+}
+
+@Entity @VirtualValue
+interface Address { 
+  String getStreet(); 
+}
+
+```
+
+========
+
+
 #### Type-safe query
 ```java
 List<User> result = repository.stream(User.class)
@@ -83,8 +114,6 @@ withTx(tx -> {
 });
 
 ```
-
-
 ========
 
 #### Console
@@ -99,7 +128,4 @@ $ filter city.name contains 'holm' ordered streetName org.deephacks.graphene.Ent
 | .. | ..     | ..       | ..       | ..         |
 +----+--------+----------+----------+------------+
 19 rows in set (0.01 sec)
-
-
-
 ```
