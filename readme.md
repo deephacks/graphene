@@ -136,7 +136,7 @@ withTx(tx -> {
 ========
 #### Supported basic types
 
-Generified collection types of these is also supported.
+Generified collections of these types are also supported.
 
 - java.lang.String
 - java.lang.Character
