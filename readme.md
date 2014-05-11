@@ -138,25 +138,25 @@ withTx(tx -> {
 
 Generified collections of these types are also supported.
 
-- java.lang.String
-- java.lang.Character
-- java.lang.Byte
-- java.lang.Short
-- java.lang.Integer
-- java.lang.Long
-- java.lang.Float
-- java.lang.Double
-- java.lang.Boolean
-- java.math.BigDecimal
-- java.math.BigInteger
-- java.time.LocalTime
-- java.time.LocalDate
-- java.time.LocalDateTime
-- java.time.ZonedDateTime
-- java.time.Instant
-- java.time.Period
-- java.time.Duration
-- Any enum type
+- java.lang.String (UTF-8 encoded)
+- java.lang.Character (2 bytes)
+- java.lang.Byte (1 byte)
+- java.lang.Short (2 bytes)
+- java.lang.Integer (4 bytes)
+- java.lang.Long (8 bytes)
+- java.lang.Float (4 bytes)
+- java.lang.Double (8 bytes)
+- java.lang.Boolean (1 byte)
+- java.math.BigDecimal (UTF-8 encoded)
+- java.math.BigInteger (UTF-8 encoded)
+- java.time.LocalTime (16 bytes, hour + minute + second + nano)
+- java.time.LocalDate (12 bytes, year + month + day)
+- java.time.LocalDateTime (28 bytes, LocalDate + LocalTime)
+- java.time.ZonedDateTime (32 bytes, LocalDate + LocalTime + Offset)
+- java.time.Instant (12 bytes, seconds + nanos)
+- java.time.Period (12 bytes, years + months + days)
+- java.time.Duration (12 bytes, seconds + nanos)
+- Any enum type (UTF-8 encoded)
 
 ========
 #### Console
