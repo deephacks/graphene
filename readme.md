@@ -26,16 +26,30 @@ User user = new UserBuilder().withSsn("12345").withName("James").build();
 ```java
 EntityRepository repository = new EntityRepository();
 repository.put(user);
-
 ```
+
+========
+#### Put without overwrite
+
+Put an entity if it does not exist. If the entity exist, nothing will be written.
+
+```java
+EntityRepository repository = new EntityRepository();
+repository.putNoOverwrite(user);
+```
+
 ========
 #### Get entity
+
+A specific an entity is fetched by providing its @Id.
 
 ```java
 Optional<User> user = repository.get("12345", User.class);
 ```
 ========
 #### Update entity
+
+Entities are updated by replacing the existing entity entirely with the provided entity.
 
 ```java
 User user = repository.get("12345", User.class).get();
@@ -45,11 +59,15 @@ repository.put(updated);
 ========
 #### Delete entity
 
+Deleting an entity does not cascade with regards to references that entities may have. 
+
 ```java
 repository.delete("12345", User.class);
 ```
 ========
 #### Embedded entities
+
+Embedded entities does not have identity and are stored as values as part of other entities.
 
 ```java
 @Entity @VirtualValue
@@ -66,7 +84,16 @@ interface Address {
 ```
 
 ========
+#### Validation
+
+TBD
+
+========
 #### Entity references with referential integrity
+
+References are allowed to be circular and can be single valued, a List or a Map with a string key (the id).
+Referential checks are made to make sure that entities exist, or throw an exception otherwise. 
+The same is true when trying to delete entities already referenced by others.
 
 ```java
 @Entity @VirtualValue
