@@ -5,8 +5,6 @@ Graphene
 Simple and lightweight object persistence framework.
 
 ========
-
-
 #### A builder class is generated automatically at compile time.
 ```java
 @Entity @VirtualValue
@@ -20,7 +18,7 @@ User user = new UserBuilder().withSsn("12345").withName("James").build();
 ```
 ========
 #### Put entity
-========
+
 ```java
 EntityRepository repository = new EntityRepository();
 repository.put(user);
@@ -28,13 +26,13 @@ repository.put(user);
 ```
 ========
 #### Get entity
-========
+
 ```java
 Optional<User> user = repository.get("12345", User.class);
 ```
 ========
 #### Update entity
-========
+
 ```java
 User user = repository.get("12345", User.class).get();
 User updated = user.copy().withName("Eric").build();
@@ -42,13 +40,13 @@ repository.put(updated);
 ```
 ========
 #### Delete entity
-========
+
 ```java
 repository.delete("12345", User.class);
 ```
 ========
 #### Embedded entities
-========
+
 ```java
 @Entity @VirtualValue
 interface User { 
@@ -65,7 +63,7 @@ interface Address {
 
 ========
 #### Entity references with referential integrity
-========
+
 ```java
 @Entity @VirtualValue
 interface User { 
@@ -82,8 +80,8 @@ interface Address {
 ```
 
 ========
-#### Type-safe query
-========
+#### Type-safe cursor queries
+
 ```java
 List<User> result = repository.stream(User.class)
                               .filter(b -> b.getName().equals("James"))
@@ -92,14 +90,14 @@ List<User> result = repository.stream(User.class)
 
 ========
 #### Query language
-========
+
 ```java
 List<User> result = repository.query("filter name == 'James' ordered name", User.class);
 ```
 
 ========
 #### Transactions
-========
+
 ```java
 
 withTx(tx -> {
@@ -116,7 +114,7 @@ withTx(tx -> {
 ```
 ========
 #### Console
-========
+
 ```sh
 $ graphene console
 $ filter city.name contains 'holm' ordered streetName org.deephacks.graphene.Entities$Street
