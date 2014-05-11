@@ -64,6 +64,13 @@ Deleting an entity does not cascade with regards to references that entities may
 ```java
 repository.delete("12345", User.class);
 ```
+
+========
+#### Validation
+
+TBD
+
+
 ========
 #### Embedded entities
 
@@ -82,12 +89,6 @@ interface Address {
 }
 
 ```
-
-========
-#### Validation
-
-TBD
-
 ========
 #### Entity references with referential integrity
 
@@ -159,6 +160,11 @@ withTx(tx -> {
 });
 
 ```
+
+========
+#### Durability
+
+TDB
 
 ========
 #### Supported basic types
