@@ -66,15 +66,15 @@ interface Address {
 
 ```java
 @Entity @VirtualValue
-interface User { 
-  @Id String getSsn(); 
-  Address getAddress(); 
+interface Category { 
+  @Id String getName(); 
+  List<Item> getItems();
 }
 
 @Entity @VirtualValue
-interface Address {
-  @Id
-  String getStreet(); 
+interface Item {
+  @Id String getId();
+  String getDescription();
 }
 
 ```
