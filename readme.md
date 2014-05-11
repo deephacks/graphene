@@ -74,7 +74,8 @@ interface User {
 }
 
 @Entity @VirtualValue
-interface Address { 
+interface Address {
+  @Id
   String getStreet(); 
 }
 
