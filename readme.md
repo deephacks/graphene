@@ -125,7 +125,7 @@ ln -fs /usr/local/graphene-cli-0.3.2 /usr/local/graphene
 alias graphene="/usr/local/graphene/bin/graphene"
 ```
 
-Start the console.
+Copy jar files containing @Entity classes to '/usr/local/graphene/lib' and start the console.
 
 ```sh
 $ graphene console
