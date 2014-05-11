@@ -5,9 +5,11 @@ Graphene
 Simple and lightweight object persistence framework.
 
 ========
-#### Entity
+#### Define entities
 
-A builder class is generated automatically at compile time.
+Create an interface and annotate it with @Entity and @VirtualValue. All non-void, parameterless, getter methods on this interface will be treated as properties, each having same type as the return type of the method. A builder class is generated automatically at compile time. 
+
+See https://github.com/deephacks/vals for more information.
 
 ```java
 @Entity @VirtualValue
@@ -18,6 +20,19 @@ interface User {
 }
 
 User user = new UserBuilder().withSsn("12345").withName("James").build();
+```
+
+========
+#### Default values
+
+Default getter methods returning values are treated as a default values. They are used as fallback values, merged with the entity if no values already exist.
+
+```java
+@Entity @VirtualValue
+interface Account { 
+  @Id String getId(); 
+  default Long getAmount() { return 0; }
+}
 ```
 
 ========
