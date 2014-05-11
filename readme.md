@@ -132,6 +132,32 @@ withTx(tx -> {
 });
 
 ```
+
+========
+#### Supported basic types
+
+Generified collection types of these is also supported.
+
+- java.lang.String
+- java.lang.Character
+- java.lang.Byte
+- java.lang.Short
+- java.lang.Integer
+- java.lang.Long
+- java.lang.Float
+- java.lang.Double
+- java.lang.Boolean
+- java.math.BigDecimal
+- java.math.BigInteger
+- java.time.LocalTime
+- java.time.LocalDate
+- java.time.LocalDateTime
+- java.time.ZonedDateTime
+- java.time.Instant
+- java.time.Period
+- java.time.Duration
+- Any enum type
+
 ========
 #### Console
 
