@@ -115,8 +115,24 @@ withTx(tx -> {
 ========
 #### Console
 
+Install the console using the following steps.
+
+```sh
+
+wget http://search.maven.org/remotecontent?filepath=org/deephacks/graphene/graphene-cli/0.3.2/graphene-cli-0.3.2.tar.gz
+tar xvf graphene-cli-0.3.2.tar.gz -C /usr/local
+ln -fs /usr/local/graphene-cli-0.3.2 /usr/local/graphene
+alias graphene="/usr/local/graphene/bin/graphene"
+```
+
+Start the console.
+
 ```sh
 $ graphene console
+```
+Execute queries from within the console.
+
+```sh
 $ filter city.name contains 'holm' ordered streetName org.deephacks.graphene.Entities$Street
 
 +----+--------+----------+----------+------------+
