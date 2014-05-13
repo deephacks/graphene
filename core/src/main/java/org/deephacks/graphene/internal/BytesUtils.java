@@ -618,6 +618,45 @@ public class BytesUtils {
     return Instant.ofEpochSecond(seconds, nanos);
   }
 
+  public static final int PERIOD_BYTES = 4 + 4 + 4;
+
+  public static byte[] toBytes(Period instant) {
+    int years =  instant.getYears();
+    int months =  instant.getMonths();
+    int days =  instant.getDays();
+
+    byte[] bytes = new byte[PERIOD_BYTES];
+    System.arraycopy(Bytes.fromInt(years), 0, bytes, 0, 4);
+    System.arraycopy(Bytes.fromInt(months), 0, bytes, 4, 4);
+    System.arraycopy(Bytes.fromInt(days), 0, bytes, 8, 4);
+    return bytes;
+  }
+
+  public static Period getPeriod(byte[] bytes) {
+    int years = Bytes.getInt(bytes);
+    int months = Bytes.getInt(bytes, 4);
+    int days = Bytes.getInt(bytes, 8);
+    return Period.of(years, months, days);
+  }
+
+  public static final int DURATION_BYTES = 8 + 4;
+
+  public static byte[] toBytes(Duration duration) {
+    long seconds =  duration.getSeconds();
+    int nano =  duration.getNano();
+    byte[] bytes = new byte[DURATION_BYTES];
+    System.arraycopy(Bytes.fromLong(seconds), 0, bytes, 0, 8);
+    System.arraycopy(Bytes.fromInt(nano), 0, bytes, 8, 4);
+    return bytes;
+  }
+
+  public static Duration getDuration(byte[] bytes) {
+    long seconds = Bytes.getLong(bytes);
+    int nano = Bytes.getInt(bytes, 8);
+    return Duration.ofSeconds(seconds, nano);
+  }
+
+
   public static final int LOCAL_DATE_TIME_BYTES = LOCAL_DATE_BYTES + LOCAL_TIME_BYTES;
 
   public static byte[] writeBytes(LocalDateTime localDateTime) {

@@ -298,11 +298,9 @@ public interface Serializer {
     } else if (type == DataType.INSTANT) {
       return BytesUtils.toBytes((Instant) object);
     } else if (type == DataType.PERIOD) {
-      String string = object.toString();
-      return string.getBytes(charset);
+      return BytesUtils.toBytes((Period) object);
     } else if (type == DataType.DURATION) {
-      String string = object.toString();
-      return string.getBytes(charset);
+      return BytesUtils.toBytes((Duration) object);
     } else {
       throw new IllegalArgumentException("Did not recognize type " + cls);
     }
@@ -330,9 +328,9 @@ public interface Serializer {
     } else if (type == DataType.INSTANT) {
       return BytesUtils.getInstant(value);
     } else if (type == DataType.PERIOD) {
-      return Period.parse(new String(value));
+      return BytesUtils.getPeriod(value);
     } else if (type == DataType.DURATION) {
-      return Duration.parse(new String(value));
+      return BytesUtils.getDuration(value);
     } else {
       throw new IllegalArgumentException("Did not recognize type " + cls);
     }
