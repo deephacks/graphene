@@ -108,7 +108,7 @@ interface Address {
 #### Entity references with referential integrity
 
 References are allowed to be circular and can be single valued, a List or a Map with a string key (the id).
-Referential checks are made to make sure that entities exist, or throw an exception otherwise. 
+Fully transactional referential checks are made to make sure that entities exist, or throw an exception otherwise. 
 The same is true when trying to delete entities already referenced by others.
 
 ```java
