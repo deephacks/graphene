@@ -1,6 +1,5 @@
 package org.deephacks.graphene;
 
-import com.sleepycat.je.ForeignConstraintException;
 import org.deephacks.graphene.internal.RowKey;
 
 public class ForeignKeyConstraintException extends RuntimeException {
@@ -9,8 +8,8 @@ public class ForeignKeyConstraintException extends RuntimeException {
         super(message);
     }
 
-    public ForeignKeyConstraintException(ForeignConstraintException cause) {
-        super("Primary " + new RowKey(cause.getPrimaryKey().getData()) + " Secondary "
-                + new RowKey(cause.getSecondaryKey().getData()), cause);
+    public ForeignKeyConstraintException(byte[] primaryKey, byte[] secondary) {
+        super("Primary " + new RowKey(primaryKey) + " Secondary "
+                + new RowKey(secondary));
     }
 }

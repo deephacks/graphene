@@ -13,20 +13,12 @@
  */
 package org.deephacks.graphene;
 
-import com.sleepycat.je.DatabaseEntry;
-import com.sleepycat.je.ForeignConstraintException;
-import com.sleepycat.je.SecondaryDatabase;
-import com.sleepycat.je.SecondaryMultiKeyCreator;
 import deephacks.streamql.Query;
-import org.deephacks.graphene.internal.BytesUtils.DataType;
 import org.deephacks.graphene.internal.EntityClassWrapper;
-import org.deephacks.graphene.internal.EntityClassWrapper.EntityMethodWrapper;
 import org.deephacks.graphene.internal.EntityValidator;
 import org.deephacks.graphene.internal.FastKeyComparator;
 import org.deephacks.graphene.internal.RowKey;
 import org.deephacks.graphene.internal.Serializer;
-import org.deephacks.graphene.internal.UniqueIds;
-import org.deephacks.graphene.internal.ValueSerialization.ValueReader;
 import org.fusesource.lmdbjni.Constants;
 import org.fusesource.lmdbjni.Cursor;
 import org.fusesource.lmdbjni.Database;
@@ -35,10 +27,8 @@ import org.fusesource.lmdbjni.GetOp;
 import org.fusesource.lmdbjni.SeekOp;
 import org.fusesource.lmdbjni.Transaction;
 
-import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.Spliterator;
 import java.util.Spliterators;
 import java.util.stream.Collectors;
@@ -105,32 +95,26 @@ public class EntityRepository {
    * @return true if writing the instance was successful
    */
   public <E> boolean put(final E entity) {
-    synchronized (WRITE_LOCK) {
-      try {
-        Guavas.checkNotNull(entity);
-        if (validator.isPresent()) {
-          validator.get().validate(entity);
-        }
-        Class<?> entityClass = entity.getClass();
-        byte[][] data = getSerializer(entityClass).serializeEntity(entity);
-        if (data == null || data.length != 2) {
-          throw new IllegalArgumentException("Could not serialize entity");
-        }
-        if (data[0].length == 0 && EntityClassWrapper.get(entityClass).isEmbedded()) {
-          String msg = "Cannot store @Embedded classes " + entityClass.getName();
-          throw new IllegalArgumentException(msg);
-        }
-        Transaction tx = getInternalTx();
-        if (tx == null) {
-          db.get().put(data[0], data[1]);
-        } else {
-          db.get().put(tx, data[0], data[1]);
-        }
-        return true;
-      } catch (ForeignConstraintException e) {
-        throw new ForeignKeyConstraintException(e);
-      }
+    Guavas.checkNotNull(entity);
+    if (validator.isPresent()) {
+      validator.get().validate(entity);
     }
+    Class<?> entityClass = entity.getClass();
+    byte[][] data = getSerializer(entityClass).serializeEntity(entity);
+    if (data == null || data.length != 2) {
+      throw new IllegalArgumentException("Could not serialize entity");
+    }
+    if (data[0].length == 0 && EntityClassWrapper.get(entityClass).isEmbedded()) {
+      String msg = "Cannot store @Embedded classes " + entityClass.getName();
+      throw new IllegalArgumentException(msg);
+    }
+    Transaction tx = getInternalTx();
+    if (tx == null) {
+      db.get().put(data[0], data[1]);
+    } else {
+      db.get().put(tx, data[0], data[1]);
+    }
+    return true;
   }
 
   /**
@@ -141,26 +125,20 @@ public class EntityRepository {
    * @return true if the instance did not exist, false otherwise.
    */
   public <E> boolean putNoOverwrite(E entity) {
-    synchronized (WRITE_LOCK) {
-      try {
-        Guavas.checkNotNull(entity);
-        if (validator.isPresent()) {
-          validator.get().validate(entity);
-        }
-        Class<?> entityClass = entity.getClass();
-        byte[][] data = getSerializer(entityClass).serializeEntity(entity);
-        if (data == null || data.length != 2) {
-          throw new IllegalArgumentException("Could not serialize entity");
-        }
-        if (data[0].length == 0 && EntityClassWrapper.get(entityClass).isEmbedded()) {
-          String msg = "Cannot store @Embedded classes " + entityClass.getName();
-          throw new IllegalArgumentException(msg);
-        }
-        return db.get().put(getInternalTx(), data[0], data[1], Constants.NOOVERWRITE) == null;
-      } catch (ForeignConstraintException e) {
-        throw new ForeignKeyConstraintException(e);
-      }
+    Guavas.checkNotNull(entity);
+    if (validator.isPresent()) {
+      validator.get().validate(entity);
     }
+    Class<?> entityClass = entity.getClass();
+    byte[][] data = getSerializer(entityClass).serializeEntity(entity);
+    if (data == null || data.length != 2) {
+      throw new IllegalArgumentException("Could not serialize entity");
+    }
+    if (data[0].length == 0 && EntityClassWrapper.get(entityClass).isEmbedded()) {
+      String msg = "Cannot store @Embedded classes " + entityClass.getName();
+      throw new IllegalArgumentException(msg);
+    }
+    return db.get().put(getInternalTx(), data[0], data[1], Constants.NOOVERWRITE) == null;
   }
 
   /**
@@ -313,6 +291,7 @@ public class EntityRepository {
     return graphene.get().getSerializer(entityClass);
   }
 
+  /*
   public static class KeyCreator implements SecondaryMultiKeyCreator {
     // private static final SchemaManager schemaManager = SchemaManager.lookup();
     private static final UniqueIds uniqueIds = new UniqueIds();
@@ -352,4 +331,5 @@ public class EntityRepository {
       }
     }
   }
+  */
 }

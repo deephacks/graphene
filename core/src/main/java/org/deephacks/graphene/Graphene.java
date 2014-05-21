@@ -1,7 +1,5 @@
 package org.deephacks.graphene;
 
-import com.sleepycat.je.DatabaseConfig;
-import com.sleepycat.je.SecondaryConfig;
 import org.deephacks.graphene.internal.Bytes;
 import org.deephacks.graphene.internal.EntityValidator;
 import org.deephacks.graphene.internal.Serializer;
@@ -24,11 +22,9 @@ public class Graphene {
   private Env env;
 
   private static final Handle<Database> primary = new Handle<>();
-  private DatabaseConfig primaryConfig;
   private String primaryName = "graphene.primary";
 
   private static final Handle<Database> secondary = new Handle<>();
-  private SecondaryConfig secondaryConfig;
   private String secondaryName = "graphene.secondary";
 
   private static final Handle<Database> sequence = new Handle<>();
@@ -79,23 +75,6 @@ public class Graphene {
     }
   }
 
-  private Graphene(Env env, String primaryName, DatabaseConfig primaryConfig, String secondaryName, SecondaryConfig secondaryConfig) {
-    Guavas.checkNotNull(env);
-    Guavas.checkNotNull(primaryName);
-    Guavas.checkNotNull(secondaryName);
-    this.env = env;
-    this.primaryConfig = primaryConfig;
-    this.primaryName = primaryName;
-    this.secondaryConfig = secondaryConfig;
-    this.secondaryName = secondaryName;
-    TransactionManager.env = env;
-    try {
-      validator = Optional.of(new EntityValidator());
-    } catch (Throwable e) {
-      validator = Optional.empty();
-    }
-  }
-
   public static Handle<Graphene> create() {
     if (INSTANCE.get() != null) {
       throw new IllegalStateException("Graphene have already been created. Close it first.");
@@ -110,15 +89,6 @@ public class Graphene {
       throw new IllegalStateException("Graphene have already been created. Close it first.");
     }
     INSTANCE.set(new Graphene(env, primaryName, secondaryName));
-    init();
-    return INSTANCE;
-  }
-
-  public static Handle<Graphene> create(Env env, String primaryName, DatabaseConfig primaryConfig, String secondaryName, SecondaryConfig secondaryConfig) {
-    if (INSTANCE.get() != null) {
-      throw new IllegalStateException("Graphene have already been created. Close it first.");
-    }
-    INSTANCE.set(new Graphene(env, primaryName, primaryConfig, secondaryName, secondaryConfig));
     init();
     return INSTANCE;
   }
@@ -226,8 +196,6 @@ public class Graphene {
     getPrimary().get().close();
     getSequence().get().close();
     INSTANCE.set(null);
-    primaryConfig = null;
-    secondaryConfig = null;
     primary.set(null);
     secondary.set(null);
     schema.set(null);
