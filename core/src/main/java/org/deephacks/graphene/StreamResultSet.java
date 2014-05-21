@@ -20,19 +20,20 @@ public class StreamResultSet<T> implements Iterable<T>, Closeable {
   private final Serializer serializer;
   private byte[] key;
   private byte[] value;
-  private byte[] first;
-  private byte[] last;
+  private byte[] firstKey;
+  private byte[] lastKey;
   private boolean lastReached = false;
 
   public StreamResultSet(Class<T> entityClass, Cursor cursor) {
     this.serializer = graphene.get().getSerializer(entityClass);
-    this.first = serializer.serializeRowKey(RowKey.getMinId(entityClass));
-    this.key = this.first;
+    this.firstKey = serializer.serializeRowKey(RowKey.getMinId(entityClass));
+    this.lastKey = serializer.serializeRowKey(RowKey.getMaxId(entityClass));
+    this.key = this.firstKey;
     this.cursor = cursor;
-    Entry entry = cursor.seek(SeekOp.KEY, key);
+    Entry entry = cursor.seek(SeekOp.RANGE, key);
     if (entry != null) {
       this.value = entry.getValue();
-      this.last = serializer.serializeRowKey(RowKey.getMaxId(entityClass));
+      this.key = entry.getKey();
     }
   }
 
@@ -55,7 +56,7 @@ public class StreamResultSet<T> implements Iterable<T>, Closeable {
         @Override
         public boolean hasNext() {
           if (matches == 0 && value != null) {
-            // the first value may already be fetched if
+            // the firstKey value may already be fetched if
             // cursor.getSearchKeyRange found a key
             return true;
           }
@@ -65,10 +66,10 @@ public class StreamResultSet<T> implements Iterable<T>, Closeable {
           }
           key = entry.getKey();
           value = entry.getValue();
-          if (!FastKeyComparator.withinKeyRange(key, first, last)) {
+          if (!FastKeyComparator.withinKeyRange(key, firstKey, lastKey)) {
             return false;
           }
-          if (last != null && BytesUtils.compareTo(key, 0, key.length, last, 0, last.length) > 0) {
+          if (lastKey != null && BytesUtils.compareTo(key, 0, key.length, lastKey, 0, lastKey.length) > 0) {
             lastReached = true;
           }
           return matches < maxResult && !lastReached;

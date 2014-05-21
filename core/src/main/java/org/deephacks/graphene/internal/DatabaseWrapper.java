@@ -51,7 +51,7 @@ public class DatabaseWrapper {
     try (Cursor cursor = db.get().openCursor(getInternalTx())) {
       byte[] firstKey = RowKey.getMinId().getKey();
       Entry entry;
-      for (entry = cursor.seek(SeekOp.KEY, firstKey); entry != null; entry = cursor.get(Constants.NEXT)) {
+      for (entry = cursor.seek(SeekOp.RANGE, firstKey); entry != null; entry = cursor.get(Constants.NEXT)) {
         map.put(entry.getKey(), entry.getValue());
       }
     }
@@ -62,7 +62,7 @@ public class DatabaseWrapper {
     try (Cursor cursor = db.get().openCursor(getInternalTx())) {
       byte[] firstKey = RowKey.getMinId().getKey();
 
-      for (Entry entry = cursor.seek(SeekOp.KEY, firstKey); entry != null; entry = cursor.get(Constants.NEXT)) {
+      for (Entry entry = cursor.seek(SeekOp.RANGE, firstKey); entry != null; entry = cursor.get(Constants.NEXT)) {
         cursor.delete();
       }
     }

@@ -233,7 +233,7 @@ public class EntityRepository {
         try (Cursor cursor = openPrimaryCursor()) {
           byte[] firstKey = RowKey.getMinId(entityClass).getKey();
           byte[] lastKey = RowKey.getMaxId(entityClass).getKey();
-          Entry entry = cursor.seek(SeekOp.KEY, firstKey);
+          Entry entry = cursor.seek(SeekOp.RANGE, firstKey);
           if (entry != null) {
             // important; we must respect the class prefix boundaries of the key
             if (!FastKeyComparator.withinKeyRange(entry.getKey(), firstKey, lastKey)) {
