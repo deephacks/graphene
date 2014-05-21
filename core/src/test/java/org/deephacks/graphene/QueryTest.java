@@ -3,6 +3,7 @@ package org.deephacks.graphene;
 import org.deephacks.graphene.internal.UniqueIds;
 import org.deephacks.vals.VirtualValue;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -14,6 +15,7 @@ import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.*;
 import static org.junit.matchers.JUnitMatchers.containsString;
 
+@Ignore
 public class QueryTest extends BaseTest {
   List<Person> persons = new ArrayList<>();
 

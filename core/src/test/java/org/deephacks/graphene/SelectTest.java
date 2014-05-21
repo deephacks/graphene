@@ -1,5 +1,6 @@
 package org.deephacks.graphene;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -12,6 +13,7 @@ import static org.deephacks.graphene.TransactionManager.withTx;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.*;
 
+@Ignore
 public class SelectTest extends BaseTest {
 
   /**

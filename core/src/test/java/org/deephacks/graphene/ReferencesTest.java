@@ -1,5 +1,6 @@
 package org.deephacks.graphene;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.LinkedHashMap;
@@ -8,6 +9,7 @@ import java.util.Optional;
 import static org.deephacks.graphene.TransactionManager.withTx;
 import static org.junit.Assert.*;
 
+@Ignore
 public class ReferencesTest extends BaseTest {
 
   /**

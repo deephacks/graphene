@@ -1,6 +1,7 @@
 package org.deephacks.graphene;
 
 import org.deephacks.graphene.internal.UniqueIds;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.concurrent.CompletableFuture;
@@ -15,6 +16,7 @@ import static org.deephacks.graphene.TransactionManager.withTx;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.*;
 
+@Ignore
 public class TxTest extends BaseTest {
 
   /**
