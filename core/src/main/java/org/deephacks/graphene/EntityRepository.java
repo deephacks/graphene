@@ -13,17 +13,10 @@
  */
 package org.deephacks.graphene;
 
-import com.sleepycat.je.Cursor;
-import com.sleepycat.je.CursorConfig;
-import com.sleepycat.je.Database;
 import com.sleepycat.je.DatabaseEntry;
-import com.sleepycat.je.DeleteConstraintException;
 import com.sleepycat.je.ForeignConstraintException;
-import com.sleepycat.je.LockMode;
-import com.sleepycat.je.OperationStatus;
 import com.sleepycat.je.SecondaryDatabase;
 import com.sleepycat.je.SecondaryMultiKeyCreator;
-import com.sleepycat.je.Transaction;
 import deephacks.streamql.Query;
 import org.deephacks.graphene.internal.BytesUtils.DataType;
 import org.deephacks.graphene.internal.EntityClassWrapper;
@@ -34,6 +27,13 @@ import org.deephacks.graphene.internal.RowKey;
 import org.deephacks.graphene.internal.Serializer;
 import org.deephacks.graphene.internal.UniqueIds;
 import org.deephacks.graphene.internal.ValueSerialization.ValueReader;
+import org.fusesource.lmdbjni.Constants;
+import org.fusesource.lmdbjni.Cursor;
+import org.fusesource.lmdbjni.Database;
+import org.fusesource.lmdbjni.Entry;
+import org.fusesource.lmdbjni.GetOp;
+import org.fusesource.lmdbjni.SeekOp;
+import org.fusesource.lmdbjni.Transaction;
 
 import java.util.Collection;
 import java.util.List;
@@ -46,7 +46,6 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import static org.deephacks.graphene.TransactionManager.*;
-import static org.deephacks.graphene.TransactionManager.getInternalTx;
 
 /**
  * EntityRepository will never commit or rollback a transactions.
@@ -55,7 +54,7 @@ public class EntityRepository {
   private static final Handle<Graphene> graphene = Graphene.get();
   private static final Object WRITE_LOCK = new Object();
   private final Handle<Database> db;
-  private final Handle<SecondaryDatabase> secondary;
+  private final Handle<Database> secondary;
   private final Optional<EntityValidator> validator;
 
   public EntityRepository() {
@@ -74,7 +73,7 @@ public class EntityRepository {
    * @return the instance if it exist, otherwise absent
    */
   public <E> Optional<E> get(Object key, Class<E> entityClass) {
-    Optional<byte[][]> optional = getKv(key, entityClass, LockMode.READ_COMMITTED);
+    Optional<byte[][]> optional = getKv(key, entityClass);
     if (optional.isPresent()) {
       return Optional.ofNullable((E) getSerializer(entityClass).deserializeEntity(optional.get()));
     }
@@ -91,7 +90,7 @@ public class EntityRepository {
    * @return the instance if it exist, otherwise absent
    */
   public <E> Optional<E> getForUpdate(Object key, Class<E> entityClass) {
-    Optional<byte[][]> optional = getKv(key, entityClass, LockMode.RMW);
+    Optional<byte[][]> optional = getKv(key, entityClass);
     if (optional.isPresent()) {
       return Optional.ofNullable((E) getSerializer(entityClass).deserializeEntity(optional.get()));
     }
@@ -121,10 +120,11 @@ public class EntityRepository {
           String msg = "Cannot store @Embedded classes " + entityClass.getName();
           throw new IllegalArgumentException(msg);
         }
-        DatabaseEntry key = new DatabaseEntry(data[0]);
-        DatabaseEntry value = new DatabaseEntry(data[1]);
-        if (OperationStatus.SUCCESS != db.get().put(getInternalTx(), key, value)) {
-          return false;
+        Transaction tx = getInternalTx();
+        if (tx == null) {
+          db.get().put(data[0], data[1]);
+        } else {
+          db.get().put(tx, data[0], data[1]);
         }
         return true;
       } catch (ForeignConstraintException e) {
@@ -156,9 +156,7 @@ public class EntityRepository {
           String msg = "Cannot store @Embedded classes " + entityClass.getName();
           throw new IllegalArgumentException(msg);
         }
-        DatabaseEntry key = new DatabaseEntry(data[0]);
-        DatabaseEntry value = new DatabaseEntry(data[1]);
-        return OperationStatus.SUCCESS == db.get().putNoOverwrite(getInternalTx(), key, value);
+        return db.get().put(getInternalTx(), data[0], data[1], Constants.NOOVERWRITE) == null;
       } catch (ForeignConstraintException e) {
         throw new ForeignKeyConstraintException(e);
       }
@@ -176,19 +174,28 @@ public class EntityRepository {
    */
   public <E> Optional<E> delete(Object key, Class<E> entityClass) throws DeleteConstraintException {
     synchronized (WRITE_LOCK) {
-      final Optional<byte[][]> optional = getKv(key, entityClass, LockMode.RMW);
+      final Optional<byte[][]> optional = getKv(key, entityClass);
       if (!optional.isPresent()) {
         return Optional.empty();
       }
       try {
-        OperationStatus status = db.get().delete(getInternalTx(), new DatabaseEntry(optional.get()[0]));
-        if (status == OperationStatus.NOTFOUND) {
-          return Optional.empty();
+        Transaction tx = getInternalTx();
+        if (tx == null) {
+          if (!db.get().delete(optional.get()[0])) {
+            return Optional.empty();
+          }
+        } else {
+          if (!db.get().delete(tx, optional.get()[0])) {
+            return Optional.empty();
+          }
         }
         return Optional.ofNullable((E) getSerializer(entityClass).deserializeEntity(optional.get()));
       } catch (DeleteConstraintException e) {
+        /* FIXME
         throw new org.deephacks.graphene.DeleteConstraintException(
                 new RowKey(e.getPrimaryKey().getData()) + " have a reference to " + new RowKey(e.getSecondaryKey().getData()), e);
+        */
+        throw new RuntimeException(e);
       }
     }
   }
@@ -235,9 +242,11 @@ public class EntityRepository {
    * @return instances match criteria
    */
   public <E> List<E> selectAll(Class<E> entityClass) {
-    try (Stream<E> stream = stream(entityClass)) {
-      return stream.collect(Collectors.toList());
-    }
+    return withTxReturn(tx -> {
+      try (Stream<E> stream = stream(entityClass)) {
+        return stream.collect(Collectors.toList());
+      }
+    });
   }
 
   public void deleteAll(Class<?> entityClass) {
@@ -246,66 +255,58 @@ public class EntityRepository {
         try (Cursor cursor = openPrimaryCursor()) {
           byte[] firstKey = RowKey.getMinId(entityClass).getKey();
           byte[] lastKey = RowKey.getMaxId(entityClass).getKey();
-          DatabaseEntry keyEntry = new DatabaseEntry(firstKey);
-          if (cursor.getSearchKeyRange(keyEntry, new DatabaseEntry(), LockMode.RMW) == OperationStatus.SUCCESS) {
+          Entry entry = cursor.seek(SeekOp.KEY, firstKey);
+          if (entry != null) {
             // important; we must respect the class prefix boundaries of the key
-            if (!FastKeyComparator.withinKeyRange(keyEntry.getData(), firstKey, lastKey)) {
+            if (!FastKeyComparator.withinKeyRange(entry.getKey(), firstKey, lastKey)) {
               return;
             }
             cursor.delete();
+          } else {
+            return;
           }
-          while (cursor.getNextNoDup(keyEntry, new DatabaseEntry(), LockMode.RMW) == OperationStatus.SUCCESS) {
+          while ((entry = cursor.get(GetOp.NEXT)) != null) {
             // important; we must respect the class prefix boundaries of the key
-            if (!FastKeyComparator.withinKeyRange(keyEntry.getData(), firstKey, lastKey)) {
+            if (!FastKeyComparator.withinKeyRange(entry.getKey(), firstKey, lastKey)) {
               return;
             }
             cursor.delete();
           }
         }
       } catch (DeleteConstraintException e) {
+        /* FIXME
         throw new org.deephacks.graphene.DeleteConstraintException(
                 new RowKey(e.getPrimaryKey().getData()) + " have a reference to " + new RowKey(e.getSecondaryKey().getData()), e);
+                */
       }
     }
   }
 
-  /**
-   * Count all instances that exist in storage. The count may not be
-   * accurate in the face of concurrent update operations in the database.
-   *
-   * @return total number of instance (all types included)
-   */
-  public long countAll() {
-    return db.get().count();
+  public <E> Optional<byte[][]> getKv(Object key, Class<E> entityClass) {
+    return getKv(new RowKey(entityClass, key));
   }
 
-  public <E> Optional<byte[][]> getKv(Object key, Class<E> entityClass, LockMode mode) {
-    return getKv(new RowKey(entityClass, key), mode);
-  }
-
-  public Optional<byte[][]> getKv(RowKey key, LockMode mode) {
+  public Optional<byte[][]> getKv(RowKey key) {
     byte[] dataKey = getSerializer(key.getClass()).serializeRowKey(key);
-    DatabaseEntry entryKey = new DatabaseEntry(dataKey);
-    DatabaseEntry entryValue = new DatabaseEntry();
     Transaction tx = getInternalTx();
-    LockMode lockMode = tx == null ? LockMode.DEFAULT : mode;
-    if (OperationStatus.SUCCESS == db.get().get(tx, entryKey, entryValue, lockMode)) {
-      byte[][] kv = new byte[][]{entryKey.getData(), entryValue.getData()};
-      return Optional.ofNullable(kv);
+    byte[] value;
+    if (tx == null) {
+      if ((value = db.get().get(dataKey)) != null) {
+        byte[][] kv = new byte[][]{dataKey, value};
+        return Optional.ofNullable(kv);
+      }
+      return Optional.empty();
+    } else {
+      if ((value = db.get().get(tx, dataKey)) != null) {
+        byte[][] kv = new byte[][]{dataKey, value};
+        return Optional.ofNullable(kv);
+      }
+      return Optional.empty();
     }
-    return Optional.empty();
   }
 
   Cursor openPrimaryCursor() {
-    CursorConfig config = new CursorConfig();
-    config.setReadCommitted(true);
-    return db.get().openCursor(getInternalTx(), config);
-  }
-
-  Cursor openForeignCursor() {
-    CursorConfig config = new CursorConfig();
-    config.setReadCommitted(true);
-    return secondary.get().openCursor(getInternalTx(), config);
+    return db.get().openCursor(getInternalTx());
   }
 
   private Serializer getSerializer(Class<?> entityClass) {

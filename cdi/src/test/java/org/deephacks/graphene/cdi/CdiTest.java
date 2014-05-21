@@ -4,8 +4,8 @@ import org.deephacks.graphene.EntityRepository;
 import org.deephacks.graphene.cdi.Accounts.Account;
 import org.deephacks.graphene.cdi.Users.User;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 
 import javax.inject.Inject;
 import java.util.concurrent.CountDownLatch;
@@ -17,7 +17,8 @@ import static org.deephacks.graphene.TransactionManager.withTx;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.*;
 
-@RunWith(CdiRunner.class)
+// @RunWith(CdiRunner.class)
+@Ignore
 public class CdiTest {
 
   @Inject

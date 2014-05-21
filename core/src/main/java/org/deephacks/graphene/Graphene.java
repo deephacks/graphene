@@ -1,28 +1,19 @@
 package org.deephacks.graphene;
 
-import com.sleepycat.je.Database;
 import com.sleepycat.je.DatabaseConfig;
-import com.sleepycat.je.DatabaseEntry;
-import com.sleepycat.je.Durability;
-import com.sleepycat.je.Environment;
-import com.sleepycat.je.EnvironmentConfig;
-import com.sleepycat.je.ForeignKeyDeleteAction;
 import com.sleepycat.je.SecondaryConfig;
-import com.sleepycat.je.SecondaryDatabase;
-import com.sleepycat.je.Sequence;
-import com.sleepycat.je.SequenceConfig;
-import org.deephacks.graphene.EntityRepository.KeyCreator;
+import org.deephacks.graphene.internal.Bytes;
 import org.deephacks.graphene.internal.EntityValidator;
-import org.deephacks.graphene.internal.FastKeyComparator;
 import org.deephacks.graphene.internal.Serializer;
 import org.deephacks.graphene.internal.Serializer.UnsafeSerializer;
-import org.deephacks.graphene.internal.UniqueIds;
+import org.fusesource.lmdbjni.Database;
+import org.fusesource.lmdbjni.Env;
+import org.fusesource.lmdbjni.Transaction;
 
 import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 
 public class Graphene {
   private static final Handle<Graphene> INSTANCE = new Handle<>();
@@ -30,28 +21,24 @@ public class Graphene {
   public static final String DEFAULT_GRAPHENE_DIR_NAME = "graphene.env";
   public static File DEFAULT_ENV_FILE = new File(TMP_DIR, DEFAULT_GRAPHENE_DIR_NAME);
 
-  private Environment env;
+  private Env env;
 
   private static final Handle<Database> primary = new Handle<>();
   private DatabaseConfig primaryConfig;
   private String primaryName = "graphene.primary";
 
-  private static final Handle<SecondaryDatabase> secondary = new Handle<>();
+  private static final Handle<Database> secondary = new Handle<>();
   private SecondaryConfig secondaryConfig;
   private String secondaryName = "graphene.secondary";
 
-  private static final Handle<Database> sequenceDatabase = new Handle<>();
-  private DatabaseConfig sequenceConfig;
-  private String sequenceName = "graphene.sequenceDatabase";
-  private static Sequence sequence;
+  private static final Handle<Database> sequence = new Handle<>();
+  private String sequenceName = "graphene.sequence";
 
-  private static final Handle<Database> schemas = new Handle<>();
+  private static final Handle<Database> schema = new Handle<>();
   private static final String schemaName = "graphene.schema";
 
   private static final Handle<Database> instances = new Handle<>();
   private static final String instanceName = "graphene.instance";
-
-  private static final Map<Integer, Handle<Sequence>> sequences = new HashMap<>();
 
   private Serializer defaultSerializer;
   private final Map<Class<?>, Serializer> serializers = new HashMap<>();
@@ -60,29 +47,31 @@ public class Graphene {
 
   private Graphene() {
     DEFAULT_ENV_FILE.mkdirs();
-    EnvironmentConfig envConfig = new EnvironmentConfig();
-    envConfig.setAllowCreate(true);
-    envConfig.setTransactional(true);
-    envConfig.setDurability(Durability.COMMIT_SYNC);
-    envConfig.setLockTimeout(10, TimeUnit.SECONDS);
-    env = new Environment(DEFAULT_ENV_FILE, envConfig);
-    TransactionManager.environment = env;
+    env = new Env();
+    env.setMapSize(4_294_967_296L);
+    env.setMaxDbs(10);
+    env.open(DEFAULT_ENV_FILE.getPath());
+    TransactionManager.env = env;
     try {
       validator = Optional.of(new EntityValidator());
     } catch (Throwable e) {
       validator = Optional.empty();
     }
+    getPrimary();
+    getSecondary();
+    getInstance();
+    getSequence();
+    getSchema();
   }
 
-  private Graphene(Environment env, String primaryName, String secondaryName) {
+  private Graphene(Env env, String primaryName, String secondaryName) {
     Guavas.checkNotNull(env);
     Guavas.checkNotNull(primaryName);
     Guavas.checkNotNull(secondary);
-    Guavas.checkArgument(env.getConfig().getTransactional(), "Environment must be transactional");
     this.env = env;
     this.primaryName = primaryName;
     this.secondaryName = secondaryName;
-    TransactionManager.environment = env;
+    TransactionManager.env = env;
     try {
       validator = Optional.of(new EntityValidator());
     } catch (Throwable e) {
@@ -90,17 +79,16 @@ public class Graphene {
     }
   }
 
-  private Graphene(Environment env, String primaryName, DatabaseConfig primaryConfig, String secondaryName, SecondaryConfig secondaryConfig) {
+  private Graphene(Env env, String primaryName, DatabaseConfig primaryConfig, String secondaryName, SecondaryConfig secondaryConfig) {
     Guavas.checkNotNull(env);
     Guavas.checkNotNull(primaryName);
     Guavas.checkNotNull(secondaryName);
-    Guavas.checkArgument(env.getConfig().getTransactional(), "Environment must be transactional");
     this.env = env;
     this.primaryConfig = primaryConfig;
     this.primaryName = primaryName;
     this.secondaryConfig = secondaryConfig;
     this.secondaryName = secondaryName;
-    TransactionManager.environment = env;
+    TransactionManager.env = env;
     try {
       validator = Optional.of(new EntityValidator());
     } catch (Throwable e) {
@@ -117,7 +105,7 @@ public class Graphene {
     return INSTANCE;
   }
 
-  public static Handle<Graphene> create(Environment env, String primaryName, String secondaryName) {
+  public static Handle<Graphene> create(Env env, String primaryName, String secondaryName) {
     if (INSTANCE.get() != null) {
       throw new IllegalStateException("Graphene have already been created. Close it first.");
     }
@@ -126,7 +114,7 @@ public class Graphene {
     return INSTANCE;
   }
 
-  public static Handle<Graphene> create(Environment env, String primaryName, DatabaseConfig primaryConfig, String secondaryName, SecondaryConfig secondaryConfig) {
+  public static Handle<Graphene> create(Env env, String primaryName, DatabaseConfig primaryConfig, String secondaryName, SecondaryConfig secondaryConfig) {
     if (INSTANCE.get() != null) {
       throw new IllegalStateException("Graphene have already been created. Close it first.");
     }
@@ -146,104 +134,70 @@ public class Graphene {
   static void init() {
     INSTANCE.get().getPrimary();
     INSTANCE.get().getSecondary();
-    INSTANCE.get().getSchemas();
-    INSTANCE.get().getInstances();
+    INSTANCE.get().getSchema();
+    INSTANCE.get().getInstance();
   }
 
-  public Environment getEnv() {
+  public Env getEnv() {
     return env;
   }
 
   public Handle<Database> getPrimary() {
-    Guavas.checkArgument(getPrimaryConfig().getTransactional(), "Primary must be transactional");
     if (primary.get() == null) {
-      primary.set(env.openDatabase(null, primaryName, primaryConfig));
+      primary.set(env.openDatabase(primaryName));
     }
     return primary;
   }
 
-  public DatabaseConfig getPrimaryConfig() {
-    if (primaryConfig == null) {
-      primaryConfig = new DatabaseConfig();
-      primaryConfig.setTransactional(true);
-      primaryConfig.setAllowCreate(true);
-      primaryConfig.setSortedDuplicates(false);
-      primaryConfig.setBtreeComparator(new FastKeyComparator());
-      primaryConfig.setKeyPrefixing(true);
-    }
-    return primaryConfig;
-  }
-
-  public Handle<SecondaryDatabase> getSecondary() {
-    Guavas.checkArgument(getSecondaryConfig().getTransactional(), "Secondary must be transactional");
+  public Handle<Database> getSecondary() {
     if (secondary.get() == null) {
-      SecondaryDatabase db = env.openSecondaryDatabase(null, secondaryName, getPrimary().get(), secondaryConfig);
+      Database db = env.openDatabase(secondaryName);
       secondary.set(db);
     }
     return secondary;
   }
 
-  public SecondaryConfig getSecondaryConfig() {
-    if (secondaryConfig == null) {
-      secondaryConfig = new SecondaryConfig();
-      secondaryConfig.setAllowCreate(true);
-      secondaryConfig.setTransactional(true);
-      secondaryConfig.setKeyPrefixing(true);
-      secondaryConfig.setMultiKeyCreator(new KeyCreator());
-      secondaryConfig.setForeignKeyDatabase(getPrimary().get());
-      secondaryConfig.setForeignKeyDeleteAction(ForeignKeyDeleteAction.ABORT);
-      secondaryConfig.setBtreeComparator(new FastKeyComparator());
-      secondaryConfig.setSortedDuplicates(true);
-    }
-    return secondaryConfig;
-  }
-
   public long increment(byte[] key) {
-    if (sequence == null) {
-      synchronized (INSTANCE) {
-        if (sequence == null) {
-          SequenceConfig config = new SequenceConfig();
-          config.setAllowCreate(true);
-          sequence = getSequenceDatabase().get().openSequence(null, new DatabaseEntry(key), config);
-        }
+    synchronized (INSTANCE) {
+      Transaction tx = TransactionManager.getInternalTx();
+      byte[] seq;
+      if (tx == null) {
+        seq = getSequence().get().get(key);
+      } else {
+        seq = getSequence().get().get(tx, key);
       }
+      long num = 0;
+      if (seq != null) {
+        num = Bytes.getLong(seq) + 1;
+      }
+      if (tx == null) {
+        getSequence().get().put( key, Bytes.fromLong(num));
+      } else {
+        getSequence().get().put(tx, key, Bytes.fromLong(num));
+      }
+      return num;
     }
-    return sequence.get(null, 1);
   }
 
-  public Handle<Database> getSchemas() {
-    if (schemas.get() == null) {
-      DatabaseConfig config = new DatabaseConfig();
-      config.setTransactional(true);
-      config.setAllowCreate(true);
-      config.setSortedDuplicates(false);
-      schemas.set(env.openDatabase(null, schemaName, config));
+  public Handle<Database> getSchema() {
+    if (schema.get() == null) {
+      schema.set(env.openDatabase(schemaName));
     }
-    return schemas;
+    return schema;
   }
 
-  public Handle<Database> getInstances() {
+  public Handle<Database> getInstance() {
     if (instances.get() == null) {
-      DatabaseConfig config = new DatabaseConfig();
-      config.setTransactional(true);
-      config.setAllowCreate(true);
-      config.setSortedDuplicates(false);
-      instances.set(env.openDatabase(null, instanceName, config));
+      instances.set(env.openDatabase(instanceName));
     }
     return instances;
   }
 
-  public Handle<Database> getSequenceDatabase() {
-    if (sequenceDatabase.get() == null) {
-      sequenceConfig = new DatabaseConfig();
-      sequenceConfig.setTransactional(true);
-      sequenceConfig.setAllowCreate(true);
-      sequenceConfig.setSortedDuplicates(false);
-      sequenceConfig.setBtreeComparator(new FastKeyComparator());
-      sequenceConfig.setKeyPrefixing(true);
-      sequenceDatabase.set(env.openDatabase(null, sequenceName, sequenceConfig));
+  public Handle<Database> getSequence() {
+    if (sequence.get() == null) {
+      sequence.set(env.openDatabase(sequenceName));
     }
-    return sequenceDatabase;
+    return sequence;
   }
 
   public Optional<EntityValidator> getValidator() {
@@ -266,34 +220,17 @@ public class Graphene {
   }
 
   public void close() {
-    getSchemas().get().close();
-    getInstances().get().close();
+    getSchema().get().close();
+    getInstance().get().close();
     getSecondary().get().close();
     getPrimary().get().close();
-    getSequenceDatabase().get().close();
+    getSequence().get().close();
     INSTANCE.set(null);
     primaryConfig = null;
     secondaryConfig = null;
     primary.set(null);
     secondary.set(null);
-    schemas.set(null);
+    schema.set(null);
     instances.set(null);
-  }
-
-  public void closeAndDelete() {
-    UniqueIds.clear();
-    close();
-    remove(schemaName);
-    remove(instanceName);
-    remove(secondaryName);
-    remove(primaryName);
-  }
-
-  private void remove(String name) {
-    try {
-      env.removeDatabase(null, name);
-    } catch (Exception e) {
-      e.printStackTrace();
-    }
   }
 }

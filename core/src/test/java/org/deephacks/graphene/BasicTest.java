@@ -33,11 +33,13 @@ public class BasicTest extends BaseTest {
     repository.put(buildA("a3"));
     assertThat(repository.selectAll(A.class).size(), is(3));
 
-    try (Stream<A> stream = repository.stream(A.class)) {
-      List<A> result = stream.filter(a -> a.getId().endsWith("2")).collect(Collectors.toList());
-      assertThat(result.size(), is(1));
-
-    }
+    // FIXME: NO TX HERE!
+    withTx(tx -> {
+      try (Stream<A> stream = repository.stream(A.class)) {
+        List<A> result = stream.filter(a -> a.getId().endsWith("2")).collect(Collectors.toList());
+        assertThat(result.size(), is(1));
+      }
+    });
   }
 
 

@@ -39,8 +39,8 @@ public class UniqueIds {
     private static final ConcurrentHashMap<Integer, String> schemaNameCache = new ConcurrentHashMap<>();
 
     public UniqueIds() {
-        this.schemas = new DatabaseWrapper(graphene.get().getSchemas()) ;
-        this.instances  = new DatabaseWrapper(graphene.get().getInstances()) ;
+        this.schemas = new DatabaseWrapper(graphene.get().getSchema()) ;
+        this.instances  = new DatabaseWrapper(graphene.get().getInstance()) ;
     }
 
     public byte[] getMaxSchemaWidth() {

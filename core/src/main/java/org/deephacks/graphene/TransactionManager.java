@@ -1,8 +1,8 @@
 package org.deephacks.graphene;
 
-import com.sleepycat.je.Cursor;
-import com.sleepycat.je.Environment;
-import com.sleepycat.je.Transaction;
+import org.fusesource.lmdbjni.Cursor;
+import org.fusesource.lmdbjni.Env;
+import org.fusesource.lmdbjni.Transaction;
 
 import java.util.Stack;
 import java.util.function.Function;
@@ -10,27 +10,13 @@ import java.util.function.Supplier;
 
 public class TransactionManager {
   private static ThreadLocal<Stack<Tx>> threadLocal = new ThreadLocal<>();
-  static Environment environment;
+  static Env env;
 
   public static <T> T withTxReturn(Function<Tx, T> function) {
     Tx tx = beginTransaction();
     try {
       T result = function.apply(tx);
-      switch (tx.getTx().getState()) {
-        case OPEN:
-          commit();
-          break;
-        case POSSIBLY_COMMITTED:
-          break;
-        case COMMITTED:
-          break;
-        case MUST_ABORT:
-          rollback();
-          break;
-        case ABORTED:
-          rollback();
-          break;
-      }
+      TransactionManager.commit();
       return result;
     } catch (Throwable e) {
       try {
@@ -89,7 +75,7 @@ public class TransactionManager {
 
 
   static Tx beginTransaction() {
-    Transaction transaction = environment.beginTransaction(null, null);
+    Transaction transaction = env.createTransaction();
     Tx tx = new Tx(transaction);
     push(tx);
     return tx;
@@ -172,9 +158,7 @@ public class TransactionManager {
 
     public void commit() {
       closeCursors();
-      if (tx.isValid()) {
-        tx.commit();
-      }
+      tx.commit();
     }
 
     public void rollback() {

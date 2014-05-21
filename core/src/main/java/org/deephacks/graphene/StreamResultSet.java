@@ -1,13 +1,13 @@
 package org.deephacks.graphene;
 
-import com.sleepycat.je.Cursor;
-import com.sleepycat.je.DatabaseEntry;
-import com.sleepycat.je.LockMode;
-import com.sleepycat.je.OperationStatus;
 import org.deephacks.graphene.internal.BytesUtils;
 import org.deephacks.graphene.internal.FastKeyComparator;
 import org.deephacks.graphene.internal.RowKey;
 import org.deephacks.graphene.internal.Serializer;
+import org.fusesource.lmdbjni.Constants;
+import org.fusesource.lmdbjni.Cursor;
+import org.fusesource.lmdbjni.Entry;
+import org.fusesource.lmdbjni.SeekOp;
 
 import java.io.Closeable;
 import java.util.Iterator;
@@ -18,21 +18,22 @@ public class StreamResultSet<T> implements Iterable<T>, Closeable {
   private int matches = 0;
   private final Cursor cursor;
   private final Serializer serializer;
-  private DatabaseEntry key;
-  private DatabaseEntry value;
+  private byte[] key;
+  private byte[] value;
   private byte[] first;
   private byte[] last;
   private boolean lastReached = false;
 
   public StreamResultSet(Class<T> entityClass, Cursor cursor) {
-    this.key = new DatabaseEntry();
     this.serializer = graphene.get().getSerializer(entityClass);
     this.first = serializer.serializeRowKey(RowKey.getMinId(entityClass));
-    this.key.setData(this.first);
-    this.value = new DatabaseEntry();
-    cursor.getSearchKeyRange(key, value, LockMode.RMW);
-    this.last = serializer.serializeRowKey(RowKey.getMaxId(entityClass));
+    this.key = this.first;
     this.cursor = cursor;
+    Entry entry = cursor.seek(SeekOp.KEY, key);
+    if (entry != null) {
+      this.value = entry.getValue();
+      this.last = serializer.serializeRowKey(RowKey.getMaxId(entityClass));
+    }
   }
 
   @Override
@@ -53,20 +54,21 @@ public class StreamResultSet<T> implements Iterable<T>, Closeable {
       return new Iterator<byte[][]>() {
         @Override
         public boolean hasNext() {
-          if (matches == 0 && value != null && value.getData() != null) {
+          if (matches == 0 && value != null) {
             // the first value may already be fetched if
             // cursor.getSearchKeyRange found a key
             return true;
           }
-          value = new DatabaseEntry();
-          boolean success = cursor.getNextNoDup(key, value, LockMode.RMW) == OperationStatus.SUCCESS;
-          if (!FastKeyComparator.withinKeyRange(key.getData(), first, last)) {
+          Entry entry = cursor.get(Constants.NEXT);
+          if (entry == null) {
             return false;
           }
-          if (!success) {
+          key = entry.getKey();
+          value = entry.getValue();
+          if (!FastKeyComparator.withinKeyRange(key, first, last)) {
             return false;
           }
-          if (last != null && BytesUtils.compareTo(key.getData(), 0, key.getData().length, last, 0, last.length) > 0) {
+          if (last != null && BytesUtils.compareTo(key, 0, key.length, last, 0, last.length) > 0) {
             lastReached = true;
           }
           return matches < maxResult && !lastReached;
@@ -74,10 +76,9 @@ public class StreamResultSet<T> implements Iterable<T>, Closeable {
 
         @Override
         public byte[][] next() {
-          byte[] valueData = value.getData();
-          byte[] keyData = key.getData();
+          byte[][] bytes = { key, value };
           value = null;
-          return new byte[][]{ keyData, valueData };
+          return bytes;
         }
 
         @Override
