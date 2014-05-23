@@ -72,7 +72,8 @@
         <configuration>
           <forkMode>once</forkMode>
           <environmentVariables>
-            <LD_LIBRARY_PATH>${lmdb-home}</LD_LIBRARY_PATH>
+            <LD_LIBRARY_PATH>${lmdb-linux64-home}</LD_LIBRARY_PATH>
+            <DYLD_LIBRARY_PATH>${lmdb-osx64-home}</DYLD_LIBRARY_PATH>
           </environmentVariables>
           <systemProperties>
             <property>
