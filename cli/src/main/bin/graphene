@@ -34,7 +34,7 @@ CONF_DIR=${CONF_DIR-${LAUNCHER_HOME}/conf}
 LIB_DIR=${LIB_DIR-${LAUNCHER_HOME}/lib}
 APP_DIR=${APP_DIR-${LAUNCHER_HOME}/app}
 
-LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/tmp
+export LD_LIBRARY_PATH=/tmp
 
 exec java -classpath "${LIB_DIR}"/launcher-*.jar \
   "-DLAUNCHER_HOME=${LAUNCHER_HOME}"  \
