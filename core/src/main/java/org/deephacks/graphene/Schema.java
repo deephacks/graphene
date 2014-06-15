@@ -17,25 +17,28 @@ import java.util.Map;
 public class Schema<T> {
 
   private KeySchema keySchema;
-  private Class<T> cls;
+  private Class<?> generatedClass;
+  private Class<?> interfaceClass;
   private BufAllocator bufAllocator;
   private UniqueIds uniqueIds;
-  private Constructor<T> constructor;
+  private Constructor<?> constructor;
   private int schemaId;
   private byte[] minKey;
   private byte[] maxKey;
   private KeyWriter keyWriter;
 
-  public Schema(Class<T> cls, KeySchema keySchema, BufAllocator bufAllocator, UniqueIds uniqueIds) {
+  public Schema(Class<?> generatedClass, Class<?> interfaceClass, KeySchema keySchema, BufAllocator bufAllocator, UniqueIds uniqueIds) {
     this.keySchema = keySchema;
     this.uniqueIds = uniqueIds;
-    this.schemaId = uniqueIds.getSchemaId(cls);
-    this.cls = cls;
+    this.schemaId = uniqueIds.getSchemaId(generatedClass);
+    this.generatedClass = generatedClass;
+    this.generatedClass = generatedClass;
+    this.interfaceClass = interfaceClass;
     this.bufAllocator = bufAllocator;
     this.minKey = appendSchemaId(getKeySchema().getMinKey(), getSchemaId());
     this.maxKey = appendSchemaId(getKeySchema().getMaxKey(), getSchemaId());
     try {
-      this.constructor = cls.getDeclaredConstructor(KeyReader.class, ValueReader.class);
+      this.constructor = generatedClass.getDeclaredConstructor(KeyReader.class, ValueReader.class);
       this.constructor.setAccessible(true);
     } catch (NoSuchMethodException e) {
       throw new IllegalArgumentException(e);
@@ -57,8 +60,9 @@ public class Schema<T> {
     return keySchema;
   }
 
-  public Class<T> getClazz() {
-    return cls;
+  @SuppressWarnings("unchecked")
+  public Class<T> getGeneratedClass() {
+    return (Class<T>) generatedClass;
   }
 
   public int getSchemaId() {
@@ -73,11 +77,12 @@ public class Schema<T> {
     return maxKey;
   }
 
+  @SuppressWarnings("unchecked")
   public T getEntity(byte[][] bytes) {
      KeyReader keyReader = new KeyReader(bufAllocator.allocateInput(bytes[0]), keySchema);
     ValueReader valueReader = new ValueReader(bufAllocator.allocateInput(bytes[1]), uniqueIds);
     try {
-      return constructor.newInstance(keyReader, valueReader);
+      return (T) constructor.newInstance(keyReader, valueReader);
     } catch (Exception e) {
       throw new IllegalArgumentException(e);
     }

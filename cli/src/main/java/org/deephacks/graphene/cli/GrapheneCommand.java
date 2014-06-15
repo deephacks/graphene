@@ -84,6 +84,9 @@ public class GrapheneCommand {
         while ((line = console.readLine()) != null) {
           if ("exit".equalsIgnoreCase(line.trim())) {
             return;
+          } else if ("list".equalsIgnoreCase(line.trim())) {
+            graphene.listSchema().forEach(System.out::println);
+            continue;
           }
           String[] split = line.split(" ");
           String query = Arrays.asList(split).stream().limit(split.length - 1).collect(Collectors.joining(" "));

@@ -1,12 +1,14 @@
 package org.deephacks.graphene.internal.processor;
 
+import org.deephacks.graphene.Schema.KeySchema;
 import org.deephacks.graphene.internal.serialization.BytesUtils;
 
 import javax.lang.model.element.Element;
 import javax.lang.model.element.PackageElement;
 import javax.lang.model.element.TypeElement;
+import java.lang.reflect.Method;
 
-class TypeUtil {
+public class TypeUtil {
   public static String packageNameOf(TypeElement type) {
     while (true) {
       Element enclosing = type.getEnclosingElement();
@@ -61,6 +63,34 @@ class TypeUtil {
 
   public static String simpleClassNameOf(TypeElement type) {
     return type.getSimpleName().toString();
+  }
+
+  public static KeySchema getKeySchema(Class<?> cls) {
+    try {
+      Class<?> generatedClass = getGeneratedEntity(cls);
+      Method method = generatedClass.getDeclaredMethod("keySchema");
+      method.setAccessible(true);
+      return (KeySchema) method.invoke(null);
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  @SuppressWarnings("unchecked")
+  public static Class<?> getGeneratedEntity(Class<?> cls) {
+    String generatedClassName;
+    int idx = cls.getName().indexOf('$');
+    if (idx < 0) {
+      generatedClassName = cls.getPackage().getName() + ".Entity_" + cls.getSimpleName();
+    } else {
+      String className = cls.getName().substring(idx + 1, cls.getName().length());
+      generatedClassName = cls.getPackage().getName() + ".Entity_" + className;
+    }
+    try {
+      return Class.forName(generatedClassName);
+    } catch (ClassNotFoundException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   public static String toCapitalizedBufType(String type) {

@@ -73,7 +73,7 @@ public class Transaction {
   @SuppressWarnings("unchecked")
   public <T> List<T> query(String query, Schema<T> schema) {
     final Cursor cursor = graphene.openPrimaryCursor(tx);
-    Query<T> q = Query.parse(query, schema.getClazz());
+    Query<T> q = Query.parse(query, schema.getGeneratedClass());
     StreamResultSet objects = new StreamResultSet<>(schema, cursor);
     Spliterator spliterator = objects.spliterator();
     try (Stream stream = StreamSupport.stream(spliterator, false)) {

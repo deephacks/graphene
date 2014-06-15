@@ -72,7 +72,7 @@ class GrapheneTypeGenerator extends SourceGenerator {
     writer.emitEmptyLine();
 
     // constructor for builder
-    writer.beginConstructor(PACKAGE_PRIVATE, type.getAllFieldsAsStrings(), Collections.emptyList());
+    writer.beginConstructor(PUBLIC, type.getAllFieldsAsStrings(), Collections.emptyList());
     for (GrapheneField field : type.getAllFields()) {
       if (!field.isPrimitive()) {
         if (field.hasDefaultValue()) {
@@ -90,14 +90,14 @@ class GrapheneTypeGenerator extends SourceGenerator {
 
     // constructor for deserializer
     if (type instanceof EntityType) {
-      writer.beginConstructor(PACKAGE_PRIVATE, "KeyReader", "keyReader", "ValueReader", "valueReader");
+      writer.beginConstructor(PUBLIC, "KeyReader", "keyReader", "ValueReader", "valueReader");
       writer.emitStatement("this.keyReader = keyReader");
       writer.emitStatement("this.valueReader = valueReader");
     } else if (type instanceof KeyType) {
-      writer.beginConstructor(PACKAGE_PRIVATE, "KeyReader", "keyReader");
+      writer.beginConstructor(PUBLIC, "KeyReader", "keyReader");
       writer.emitStatement("this.keyReader = keyReader");
     } else if (type instanceof EmbeddedType) {
-      writer.beginConstructor(PACKAGE_PRIVATE, "ValueReader", "valueReader");
+      writer.beginConstructor(PUBLIC, "ValueReader", "valueReader");
       writer.emitStatement("this.valueReader = valueReader");
     }
     writer.endConstructor();

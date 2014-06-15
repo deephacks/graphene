@@ -4,11 +4,12 @@ package org.deephacks.graphene;
 import org.deephacks.graphene.Entities.A;
 import org.deephacks.graphene.Entities.B;
 import org.deephacks.graphene.Entities.C;
+import org.deephacks.graphene.otherpackage.OtherPackageValue;
 import org.junit.Before;
 
 public class BaseTest {
   static {
-    CompilerUtils.compile(Entities.class);
+    CompilerUtils.compile(OtherPackageValue.class, TopEntity.class, Entities.class);
   }
 
   protected static final Graphene graphene = Graphene.builder().build();

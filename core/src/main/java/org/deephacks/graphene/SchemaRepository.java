@@ -1,12 +1,12 @@
 package org.deephacks.graphene;
 
 import org.deephacks.graphene.Schema.KeySchema;
+import org.deephacks.graphene.internal.processor.TypeUtil;
 import org.deephacks.graphene.internal.serialization.BufAllocator;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.lang.reflect.Method;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -15,7 +15,8 @@ import java.util.Map;
 
 public class SchemaRepository {
   public static final String SCHEMA_PATH = "META-INF/graphene/schema";
-  private Map<Class<?>, Schema> schemas = new HashMap<>();
+  private Map<Class<?>, Schema> interfaceSchemas = new HashMap<>();
+  private Map<Class<?>, Schema> generatedSchemas = new HashMap<>();
   private BufAllocator bufAllocator;
   private UniqueIds uniqueIds;
 
@@ -24,35 +25,39 @@ public class SchemaRepository {
     this.uniqueIds = uniqueIds;
     for (Class<?> cls : readEntityClasses()) {
       try {
-        Method method = cls.getDeclaredMethod("keySchema");
-        method.setAccessible(true);
-        Class<?> entityInterface = getEntityInterface(cls);
-        Schema<?> schema = new Schema<>(cls, (KeySchema) method.invoke(null), bufAllocator, uniqueIds);
-        schemas.put(entityInterface, schema);
-        schemas.put(cls, schema);
+        Class<?> generatedClass = TypeUtil.getGeneratedEntity(cls);
+        KeySchema keySchema = TypeUtil.getKeySchema(cls);
+        Schema<?> schema = new Schema<>(generatedClass, cls, keySchema, bufAllocator, uniqueIds);
+        interfaceSchemas.put(cls, schema);
+        generatedSchemas.put(generatedClass, schema);
       } catch (Exception e) {
         throw new RuntimeException(e);
       }
     }
   }
 
-  private Class<?> getEntityInterface(Class<?> cls) {
-    for (Class<?> iface : cls.getInterfaces()) {
-      if (cls.getSimpleName().contains(iface.getSimpleName())) {
-        return iface;
-      }
-    }
-    return null;
-  }
-
   @SuppressWarnings("unchecked")
   public <T> Schema<T> getSchema(Class<T> cls) {
-    Schema<T> schema = schemas.get(cls);
+    Schema<T> schema;
+    if (cls.getName().contains("Entity_")) {
+      schema = generatedSchemas.get(cls);
+    } else {
+      schema = interfaceSchemas.get(cls);
+    }
     if (schema == null) {
       throw new IllegalArgumentException("No schema found for class " + cls.getName());
     }
     return schema;
   }
+
+  public List<String> list() {
+    ArrayList<String> list = new ArrayList<>();
+    for (Class<?> cls : interfaceSchemas.keySet()) {
+      list.add(cls.getName());
+    }
+    return list;
+  }
+
 
   private List<Class<?>> readEntityClasses() {
     try {

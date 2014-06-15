@@ -41,8 +41,8 @@ public class MetainfAnnotationProcessor {
     for (Element e : elements) {
       if (e instanceof  TypeElement){
         TypeElement te = (TypeElement) e;
-        String generatedClassName = TypeUtil.packageNameOf(te) + ".Entity_" + TypeUtil.simpleClassNameOf(te);
-        classes.add(generatedClassName);
+        String binaryName = getBinaryName(te);
+        classes.add(binaryName);
       }
     }
   }

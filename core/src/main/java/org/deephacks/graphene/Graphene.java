@@ -104,17 +104,21 @@ public class Graphene {
   public <E> boolean putAll(final List<E> entities) {
     Guavas.checkNotNull(entities);
     List<byte[][]> kvs = new ArrayList<>();
+    Schema<?> schema = null;
+    Class<?> entityClass = null;
     for (E entity : entities) {
       EntityInterface iface = (EntityInterface) entity;
       if (validator.isPresent()) {
         validator.get().validate(entity);
       }
-      Class<?> entityClass = entity.getClass();
-      Schema<?> schema = SCHEMA_REPOSITORY.getSchema(entityClass);
+      if (schema == null) {
+        entityClass = entity.getClass();
+        schema = SCHEMA_REPOSITORY.getSchema(entityClass);
+      }
       try {
         KeyWriter keyWriter = new KeyWriter(bufAllocator.allocateOutput(schema.getKeySchema().size()), schema.getKeySchema());
         ValueWriter valueWriter = new ValueWriter(bufAllocator.allocateOutput(), bufAllocator.allocateOutput(), uniqueIds);
-        int schemaId = uniqueIds.getSchemaId(schema.getClazz());
+        int schemaId = uniqueIds.getSchemaId(schema.getGeneratedClass());
         final byte[][] data = iface.serialize(keyWriter, valueWriter, schemaId);
         if (data == null || data.length != 2) {
           throw new IllegalArgumentException("Could not serialize type");
@@ -200,7 +204,7 @@ public class Graphene {
       Schema<?> schema = SCHEMA_REPOSITORY.getSchema(entityClass);
       KeyWriter keyWriter = schema.getKeyWriter();
       ValueWriter valueWriter = new ValueWriter(bufAllocator.allocateOutput(), bufAllocator.allocateOutput(), uniqueIds);
-      int schemaId = uniqueIds.getSchemaId(schema.getClazz());
+      int schemaId = uniqueIds.getSchemaId(schema.getGeneratedClass());
       final byte[][] data = iface.serialize(keyWriter, valueWriter, schemaId);
       if (data == null || data.length != 2) {
         throw new IllegalArgumentException("Could not serialize type");
@@ -303,7 +307,6 @@ public class Graphene {
       }
     });
   }
-
 
   private <E> Optional<byte[][]> getKv(Object key, Schema<E> schema) {
     KeyInterface iface = schema.getKey(key);
@@ -415,7 +418,8 @@ public class Graphene {
     return SCHEMA_REPOSITORY.getSchema(cls);
   }
 
-  public void get(String s) {
+  public List<String> listSchema() {
+    return SCHEMA_REPOSITORY.list();
   }
 
   public static class Builder {
