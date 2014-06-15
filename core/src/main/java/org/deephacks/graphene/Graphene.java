@@ -130,7 +130,7 @@ public class Graphene {
     }
     joinTxWrite(tx -> {
       for (byte[][] kv : kvs) {
-        primary.put(tx.getTx(), kv[0], kv[1], Constants.NOOVERWRITE);
+        primary.put(tx.getTx(), kv[0], kv[1]);
       }
     });
     return true;

@@ -26,9 +26,25 @@ public class GrapheneCommand {
 
   private static final DecimalFormat format = new DecimalFormat("#.##");
   private static final Graphene graphene;
-
+  private static final ConsoleReader console;
   static {
     graphene = Graphene.builder().build();
+    try {
+      console = new ConsoleReader();
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+    ShutdownHook.install(new Thread() {
+      @Override
+      public void run() {
+        try {
+          TerminalFactory.get().restore();
+          graphene.close();
+        } catch (Exception e) {
+          // ignore
+        }
+      }
+    });
   }
 
   @CliCmd
@@ -63,22 +79,18 @@ public class GrapheneCommand {
   public void console() {
     while (true) {
       try {
-        ConsoleReader console = new ConsoleReader();
         console.setPrompt("$ ");
-        String line = null;
+        String line;
         while ((line = console.readLine()) != null) {
+          if ("exit".equalsIgnoreCase(line.trim())) {
+            return;
+          }
           String[] split = line.split(" ");
           String query = Arrays.asList(split).stream().limit(split.length - 1).collect(Collectors.joining(" "));
           query(query, split[split.length - 1]);
         }
-      } catch (IOException e) {
+      } catch (Exception e) {
         e.printStackTrace();
-      } finally {
-        try {
-          TerminalFactory.get().restore();
-        } catch (Exception e) {
-          e.printStackTrace();
-        }
       }
     }
   }
