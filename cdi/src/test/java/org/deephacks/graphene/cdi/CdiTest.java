@@ -1,6 +1,6 @@
 package org.deephacks.graphene.cdi;
 
-import org.deephacks.graphene.EntityRepository;
+import org.deephacks.graphene.Graphene;
 import org.deephacks.graphene.cdi.Accounts.Account;
 import org.deephacks.graphene.cdi.Users.User;
 import org.junit.Before;
@@ -13,7 +13,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import static junit.framework.Assert.fail;
-import static org.deephacks.graphene.TransactionManager.withTx;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.*;
 
@@ -22,7 +21,7 @@ import static org.junit.Assert.*;
 public class CdiTest {
 
   @Inject
-  private EntityRepository repository;
+  private Graphene graphene;
 
   @Inject
   private Users users;
@@ -40,16 +39,17 @@ public class CdiTest {
 
   @Before
   public void before() {
-    withTx(tx -> {
-      repository.deleteAll(Account.class);
-      repository.deleteAll(User.class);
+    graphene.withTxWrite(tx -> {
+      tx.deleteAll(Account.class);
+      tx.deleteAll(User.class);
     });
-    withTx(tx -> {
+
+    graphene.withTxWrite(tx -> {
       users.createUser(u1);
       users.createUser(u2);
     });
 
-    withTx(tx -> {
+    graphene.withTxWrite(tx -> {
       u1 = users.get(u1.getSsn());
       u2 = users.get(u2.getSsn());
       a1 = accounts.createAccount(u1);

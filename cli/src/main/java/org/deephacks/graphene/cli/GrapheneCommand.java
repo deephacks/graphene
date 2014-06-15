@@ -4,8 +4,8 @@ package org.deephacks.graphene.cli;
 import deephacks.streamql.IllegalQueryException;
 import jline.TerminalFactory;
 import jline.console.ConsoleReader;
-import org.deephacks.graphene.Entity;
-import org.deephacks.graphene.EntityRepository;
+import org.deephacks.graphene.Graphene;
+import org.deephacks.graphene.Schema;
 import org.deephacks.tools4j.cli.CliCmd;
 
 import java.io.IOException;
@@ -25,40 +25,43 @@ import java.util.stream.Collectors;
 public class GrapheneCommand {
 
   private static final DecimalFormat format = new DecimalFormat("#.##");
+  private static final Graphene graphene;
+
+  static {
+    graphene = Graphene.builder().build();
+  }
 
   @CliCmd
   public void query(String query, String className) {
-    try {
-      EntityRepository repository = new EntityRepository();
-      Class<?> cls = Class.forName(className);
-      if (cls.getDeclaredAnnotation(Entity.class) == null) {
-        System.out.println(cls.getName() + ": not an @Entity");
-        return;
+    graphene.withTxRead(tx -> {
+      try {
+        Class<?> cls = Class.forName(className);
+        Schema<?> schema = graphene.getSchema(cls);
+        long before = System.currentTimeMillis();
+        List<?> result = tx.query(query, schema);
+        long took = System.currentTimeMillis() - before;
+        TablePrinter tp = new TablePrinter();
+        for (String header : getHeaders(cls)) {
+          tp.addHeader(Character.toLowerCase(header.charAt(0)) + header.substring(1, header.length()));
+        }
+        for (Object entity : result) {
+          tp.addRow(getValues(entity));
+        }
+        tp.print();
+        System.out.println(result.size() + " rows in set (" + format.format((double) took / 1000) + " sec)");
+      } catch (IllegalQueryException e) {
+        System.out.println("Illegal query " + query);
+      } catch (ClassNotFoundException e) {
+        System.out.println("Class not recognized " + className);
+      } catch (Throwable e) {
+        e.printStackTrace();
       }
-      long before = System.currentTimeMillis();
-      List<?> result = repository.query(query, cls);
-      long took = System.currentTimeMillis() - before;
-      TablePrinter tp = new TablePrinter();
-      for (String header : getHeaders(cls)) {
-        tp.addHeader(Character.toLowerCase(header.charAt(0)) + header.substring(1, header.length()));
-      }
-      for (Object entity : result) {
-        tp.addRow(getValues(entity));
-      }
-      tp.print();
-      System.out.println(result.size() + " rows in set ("+ format.format((double) took / 1000) +" sec)");
-    } catch (IllegalQueryException e) {
-      System.out.println("Illegal query " + query);
-    } catch (ClassNotFoundException e) {
-      System.out.println("Class not recognized " + className);
-    } catch (Throwable e) {
-      e.printStackTrace();
-    }
+    });
   }
 
   @CliCmd
   public void console() {
-    while(true) {
+    while (true) {
       try {
         ConsoleReader console = new ConsoleReader();
         console.setPrompt("$ ");
@@ -68,18 +71,17 @@ public class GrapheneCommand {
           String query = Arrays.asList(split).stream().limit(split.length - 1).collect(Collectors.joining(" "));
           query(query, split[split.length - 1]);
         }
-      } catch(IOException e) {
+      } catch (IOException e) {
         e.printStackTrace();
       } finally {
         try {
           TerminalFactory.get().restore();
-        } catch(Exception e) {
+        } catch (Exception e) {
           e.printStackTrace();
         }
       }
     }
   }
-
 
   private static List<String> getHeaders(Class<?> cls) throws InvocationTargetException, IllegalAccessException {
     return getMethods(cls).stream()

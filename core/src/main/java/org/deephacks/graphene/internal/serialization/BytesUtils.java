@@ -11,7 +11,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.deephacks.graphene.internal;
+package org.deephacks.graphene.internal.serialization;
 
 import sun.misc.Unsafe;
 
@@ -47,6 +47,7 @@ import java.util.Map;
 public class BytesUtils {
   public static final Charset UTF_8 = Charset.forName("UTF-8");
   public static final int LONG_BYTES = Long.SIZE / Byte.SIZE;
+
   /**
    * Adds a big-endian 4-byte integer to a sorted array of bytes.
    *
@@ -558,6 +559,7 @@ public class BytesUtils {
     System.arraycopy(b, offset, bytes, 0, length);
     return new String(bytes);
   }
+
   public static final int LOCAL_TIME_BYTES = 4 + 4 + 4 + 4;
 
   public static byte[] toBytes(LocalTime localTime) {
@@ -604,7 +606,7 @@ public class BytesUtils {
   public static final int INSTANT_BYTES = 8 + 4;
 
   public static byte[] toBytes(Instant instant) {
-    long seconds =  instant.getLong(ChronoField.INSTANT_SECONDS);
+    long seconds = instant.getLong(ChronoField.INSTANT_SECONDS);
     int nanos = instant.get(ChronoField.NANO_OF_SECOND);
     byte[] bytes = new byte[INSTANT_BYTES];
     System.arraycopy(Bytes.fromLong(seconds), 0, bytes, 0, 8);
@@ -621,9 +623,9 @@ public class BytesUtils {
   public static final int PERIOD_BYTES = 4 + 4 + 4;
 
   public static byte[] toBytes(Period instant) {
-    int years =  instant.getYears();
-    int months =  instant.getMonths();
-    int days =  instant.getDays();
+    int years = instant.getYears();
+    int months = instant.getMonths();
+    int days = instant.getDays();
 
     byte[] bytes = new byte[PERIOD_BYTES];
     System.arraycopy(Bytes.fromInt(years), 0, bytes, 0, 4);
@@ -642,8 +644,8 @@ public class BytesUtils {
   public static final int DURATION_BYTES = 8 + 4;
 
   public static byte[] toBytes(Duration duration) {
-    long seconds =  duration.getSeconds();
-    int nano =  duration.getNano();
+    long seconds = duration.getSeconds();
+    int nano = duration.getNano();
     byte[] bytes = new byte[DURATION_BYTES];
     System.arraycopy(Bytes.fromLong(seconds), 0, bytes, 0, 8);
     System.arraycopy(Bytes.fromInt(nano), 0, bytes, 8, 4);
@@ -759,6 +761,10 @@ public class BytesUtils {
     }
   }
 
+  public static int compareTo(byte[] buffer1, byte[] buffer2) {
+    return compareTo(buffer1, 0, buffer1.length, buffer2, 0, buffer2.length);
+  }
+
   /**
    * Lexicographically compare two arrays.
    *
@@ -843,6 +849,31 @@ public class BytesUtils {
    */
   static boolean lessThanUnsigned(long x1, long x2) {
     return (x1 + Long.MIN_VALUE) < (x2 + Long.MIN_VALUE);
+  }
+
+  public static String toStringBinary(final byte[] b) {
+    if (b == null)
+      return "null";
+    return toStringBinary(b, 0, b.length);
+  }
+
+  public static String toStringBinary(byte[] b, int off, int len) {
+    StringBuilder result = new StringBuilder();
+    // Just in case we are passed a 'len' that is > buffer length...
+    if (off >= b.length) return result.toString();
+    if (off + len > b.length) len = b.length - off;
+    for (int i = off; i < off + len; ++i) {
+      int ch = b[i] & 0xFF;
+      if ((ch >= '0' && ch <= '9')
+              || (ch >= 'A' && ch <= 'Z')
+              || (ch >= 'a' && ch <= 'z')
+              || " `~!@#$%^&*()-_=+[]{}|;:'\",.<>/?".indexOf(ch) >= 0) {
+        result.append((char) ch);
+      } else {
+        result.append(String.format("\\x%02X", ch));
+      }
+    }
+    return result.toString();
   }
 
   public static enum DataType {

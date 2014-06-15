@@ -10,4 +10,5 @@ import java.lang.annotation.Target;
 @Target({ ElementType.TYPE })
 @Inherited
 public @interface Embedded {
+  String builderPrefix() default "with";
 }

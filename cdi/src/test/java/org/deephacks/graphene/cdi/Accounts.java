@@ -1,8 +1,8 @@
 package org.deephacks.graphene.cdi;
 
 import org.deephacks.graphene.Entity;
-import org.deephacks.graphene.EntityRepository;
-import org.deephacks.graphene.Id;
+import org.deephacks.graphene.Graphene;
+import org.deephacks.graphene.Key;
 import org.deephacks.graphene.cdi.Users.User;
 import org.deephacks.vals.VirtualValue;
 
@@ -15,16 +15,17 @@ import java.util.Optional;
 public class Accounts {
 
   @Inject
-  private EntityRepository repository;
+  private Graphene graphene;
 
   public Account lockAccount(User user) {
-    Optional<Account> opt = repository.getForUpdate(user.getSsn(), Account.class);
-    return opt.get();
+    // How to lock?
+    //Optional<Account> opt = graphene.getForUpdate(user.getSsn(), Account.class);
+    return null;//opt.get();
 
   }
 
   public Account getAccount(User user) {
-    Optional<Account> opt = repository.get(user.getSsn(), Account.class);
+    Optional<Account> opt = graphene.get(user.getSsn(), Account.class);
     return opt.get();
   }
 
@@ -33,19 +34,19 @@ public class Accounts {
             .withSsn(user.getSsn())
             .withUser(user)
             .build();
-    repository.put(account);
+    graphene.put(account);
     return getAccount(user);
   }
 
   public void save(Account account) {
-    repository.put(account);
+    graphene.put(account);
   }
 
   @Entity
   @VirtualValue
   public static interface Account {
 
-    @Id
+    @Key
     String getSsn();
 
     User getUser();

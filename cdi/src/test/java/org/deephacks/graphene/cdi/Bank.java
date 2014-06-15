@@ -7,7 +7,7 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
 @ApplicationScoped
-@Transaction
+@Transaction(TransactionAttribute.REQUIRED_WRITE)
 public class Bank {
 
   @Inject

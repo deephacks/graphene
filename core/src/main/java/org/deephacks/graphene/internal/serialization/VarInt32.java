@@ -1,4 +1,4 @@
-package org.deephacks.graphene.internal;
+package org.deephacks.graphene.internal.serialization;
 
 public class VarInt32 {
 

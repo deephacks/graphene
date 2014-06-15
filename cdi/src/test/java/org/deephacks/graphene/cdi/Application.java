@@ -1,6 +1,5 @@
 package org.deephacks.graphene.cdi;
 
-import org.deephacks.graphene.EntityRepository;
 import org.deephacks.graphene.Graphene;
 
 import javax.annotation.PreDestroy;
@@ -18,13 +17,7 @@ public class Application {
   @Produces
   @Singleton
   public static Graphene produceGraphene() {
-    return Graphene.get().get();
-  }
-
-  @Produces
-  @ApplicationScoped
-  public EntityRepository produceRepository() {
-    return new EntityRepository();
+    return Graphene.builder().build();
   }
 
   @PreDestroy

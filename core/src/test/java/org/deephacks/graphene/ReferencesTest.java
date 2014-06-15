@@ -1,24 +1,15 @@
 package org.deephacks.graphene;
 
 import org.junit.Ignore;
-import org.junit.Test;
-
-import java.util.LinkedHashMap;
-import java.util.Optional;
-
-import static org.deephacks.graphene.TransactionManager.withTx;
-import static org.junit.Assert.*;
 
 @Ignore
 public class ReferencesTest extends BaseTest {
-
-  /**
-   * Test that references (single and collection) are fetched eagerly
-   * through multiple levels.
-   */
+/*
+   // Test that references (single and collection) are fetched eagerly
+   // through multiple levels.
   @Test
   public void test_references_with_multiple_levels() {
-    LinkedHashMap<String, StandardProperties> map = defaultReferences();
+    LinkedHashMap<String, StandardFields> map = defaultReferences();
     withTx(tx -> {
       map.values().forEach(repository::put);
       Optional result = repository.get("b1", B.class);
@@ -32,13 +23,11 @@ public class ReferencesTest extends BaseTest {
     });
   }
 
-  /**
-   * Test that instance that have references to non-existing instance cannot
-   * be created.
-   */
+   // Test that instance that have references to non-existing instance cannot
+   // be created.
   @Test
   public void test_missing_references() {
-    LinkedHashMap<String, StandardProperties> map = defaultReferences();
+    LinkedHashMap<String, StandardFields> map = defaultReferences();
     withTx(tx -> {
       try {
         repository.put(map.get("b2"));
@@ -50,13 +39,11 @@ public class ReferencesTest extends BaseTest {
     assertFalse(repository.get(map.get("b2").getId(), B.class).isPresent());
   }
 
-  /**
-   * Test that instances that other have references to cannot be deleted.
-   */
+   // Test that instances that other have references to cannot be deleted.
   @Test
   public void test_referential_integrity_delete_constraint() {
     withTx(tx -> {
-      LinkedHashMap<String, StandardProperties> map = defaultReferences();
+      LinkedHashMap<String, StandardFields> map = defaultReferences();
       map.values().forEach(repository::put);
       try {
         repository.delete(map.get("a2").getId(), A.class);
@@ -67,20 +54,18 @@ public class ReferencesTest extends BaseTest {
     });
   }
 
-  /**
-   * Test that an existing delete constraint can be fixed by deleting instances
-   * that reference others.
-   */
+   // Test that an existing delete constraint can be fixed by deleting instances
+   // that reference others.
   @Test
   public void test_fixing_delete_constraint() {
-    LinkedHashMap<String, StandardProperties> map = defaultReferences();
+    LinkedHashMap<String, StandardFields> map = defaultReferences();
     withTx(tx -> {
       // create instance without references and create
       // instances that reference them afterwards in order
       // to not violate referential integrity
       map.values().forEach(repository::put);
 
-      StandardProperties instance = map.get("c1");
+      StandardFields instance = map.get("c1");
       repository.delete(instance.getId(), instance.getClass());
       // make sure to commit! otherwise the following
       // DeleteConstraintException will rollback this delete
@@ -88,7 +73,7 @@ public class ReferencesTest extends BaseTest {
 
     withTx(tx -> {
       try {
-        StandardProperties instance = map.get("b1");
+        StandardFields instance = map.get("b1");
         repository.delete(instance.getId(), B.class);
         fail("c2 should have a reference to b1");
       } catch (DeleteConstraintException e) {
@@ -96,7 +81,7 @@ public class ReferencesTest extends BaseTest {
       }
     });
     withTx(tx -> {
-      StandardProperties instance = map.get("c2");
+      StandardFields instance = map.get("c2");
       repository.delete(instance.getId(), instance.getClass());
 
       instance = map.get("b1");
@@ -106,7 +91,7 @@ public class ReferencesTest extends BaseTest {
     });
     withTx(tx -> {
       try {
-        StandardProperties instance = map.get("a1");
+        StandardFields instance = map.get("a1");
         repository.delete(instance.getId(), A.class);
         fail("b2 should have a reference to a1");
       } catch (DeleteConstraintException e) {
@@ -114,7 +99,7 @@ public class ReferencesTest extends BaseTest {
       }
     });
     withTx(tx -> {
-      StandardProperties instance = map.get("b2");
+      StandardFields instance = map.get("b2");
       repository.delete(instance.getId(), instance.getClass());
       instance = map.get("a1");
       repository.delete(instance.getId(), instance.getClass());
@@ -125,5 +110,6 @@ public class ReferencesTest extends BaseTest {
       repository.delete(instance.getId(), instance.getClass());
     });
   }
+  */
 
 }

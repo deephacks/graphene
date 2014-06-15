@@ -1,22 +1,28 @@
 package org.deephacks.graphene;
 
+import org.deephacks.graphene.Transaction.Transactional;
 import org.fusesource.lmdbjni.Cursor;
 import org.fusesource.lmdbjni.Env;
-import org.fusesource.lmdbjni.Transaction;
 
 import java.util.Stack;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-public class TransactionManager {
-  private static ThreadLocal<Stack<Tx>> threadLocal = new ThreadLocal<>();
-  static Env env;
+class TransactionManager {
+  private static ThreadLocal<Stack<Transaction>> threadLocal = new ThreadLocal<>();
+  private final Graphene graphene;
+  private final Env env;
 
-  public static <T> T withTxReturn(Function<Tx, T> function) {
-    Tx tx = beginTransaction();
+  TransactionManager(Graphene graphene) {
+    this.graphene = graphene;
+    this.env = graphene.getEnv();
+  }
+
+  <T> T withTxReturn(boolean readOnly, Function<Transaction, T> function) {
+    Transaction tx = beginTransaction(readOnly);
     try {
       T result = function.apply(tx);
-      TransactionManager.commit();
+      commit();
       return result;
     } catch (Throwable e) {
       try {
@@ -31,74 +37,135 @@ public class TransactionManager {
     }
   }
 
-  public static <T> T joinTxReturn(Function<Tx, T> function) {
-    Tx tx = peek();
+  <T> T withTxReadReturn(Function<Transaction, T> function) {
+    return withTxReturn(true, function);
+  }
+
+  <T> T withTxWriteReturn(Function<Transaction, T> function) {
+    return withTxReturn(false, function);
+  }
+
+  <T> T joinTxReadReturn(Function<Transaction, T> function) {
+    Transaction tx = peek();
     if (tx == null) {
-      return withTxReturn(function);
+      return withTxReturn(true, function);
     } else {
       return function.apply(tx);
     }
   }
 
-  public static void withTx(Transactional transactional) {
-    withTxReturn(tx -> {
+  <T> T joinTxWriteReturn(Function<Transaction, T> function) {
+    Transaction tx = peek();
+    if (tx == null) {
+      return withTxWriteReturn(function);
+    } else {
+      if (tx.isReadOnly()) {
+        throw new IllegalStateException("Cannot upgrade a read transaction to be writable.");
+      } else {
+        return function.apply(tx);
+      }
+    }
+  }
+
+  void withTxRead(Transactional transactional) {
+    withTxReturn(true, tx -> {
       transactional.execute(tx);
       return null;
     });
   }
 
-  public static void joinTx(Transactional transactional) {
-    Tx tx = peek();
-    if (tx == null) {
-      withTx(transactional);
-    } else {
+  void withTxWrite(Transactional transactional) {
+    withTxReturn(false, tx -> {
       transactional.execute(tx);
+      return null;
+    });
+  }
+
+  void joinTxRead(Transactional transactional) {
+    Transaction tx = peek();
+    if (tx == null) {
+      withTxRead(transactional);
+    } else {
+      if (!tx.isReadOnly()) {
+        throw new IllegalStateException("Cannot downgrade a write transaction into read only.");
+      } else {
+        transactional.execute(tx);
+      }
     }
   }
 
-  public static <T> T inTx(Supplier<T> supplier) {
-    return withTxReturn(tx -> supplier.get());
+  void joinTxWrite(Transactional transactional) {
+    Transaction tx = peek();
+    if (tx == null) {
+      withTxWrite(transactional);
+    } else {
+      if (tx.isReadOnly()) {
+        throw new IllegalStateException("Cannot upgrade a read transaction to be writable.");
+      } else {
+        transactional.execute(tx);
+      }
+    }
   }
 
-  public static <T> T joinTx(Supplier<T> supplier) {
-    Tx tx = peek();
+  <T> T inTxRead(Supplier<T> supplier) {
+    return withTxReturn(true, tx -> supplier.get());
+  }
+
+  <T> T inTxWrite(Supplier<T> supplier) {
+    return withTxReturn(false, tx -> supplier.get());
+  }
+
+  <T> T joinTxRead(Supplier<T> supplier) {
+    Transaction tx = peek();
     if (tx == null) {
-      return inTx(supplier);
+      return inTxRead(supplier);
     } else {
       return supplier.get();
     }
   }
 
-  public static interface Transactional {
-    void execute(Tx tx);
+  Transaction tx = peek();
+
+  <T> T joinTxWrite(Supplier<T> supplier) {
+    if (tx == null) {
+      return inTxWrite(supplier);
+    } else {
+      return supplier.get();
+    }
   }
 
 
-  static Tx beginTransaction() {
-    Transaction transaction = env.createTransaction();
-    Tx tx = new Tx(transaction);
+  Transaction beginTransaction(boolean readOnly) {
+    Transaction tx = new Transaction(graphene, env.createTransaction(readOnly), readOnly);
     push(tx);
     return tx;
   }
 
-  static void commit() {
-    Tx tx = pop();
+  Transaction joinReadWithWriteTransaction(org.fusesource.lmdbjni.Transaction readTx) {
+    org.fusesource.lmdbjni.Transaction writeTx = env.createTransaction(readTx, false);
+    Transaction tx = new Transaction(graphene, writeTx, false);
+    push(tx);
+    return tx;
+  }
+
+  void commit() {
+    Transaction tx = pop();
     if (tx == null) {
       return;
     }
     tx.commit();
   }
 
-  static void rollback() {
-    Tx tx = pop();
+  void rollback() {
+    Transaction tx = pop();
     if (tx == null) {
       return;
     }
     tx.rollback();
   }
 
-  static void push(Tx value) {
-    Stack<Tx> stack = threadLocal.get();
+  void push(Transaction value) {
+    Stack<Transaction> stack = threadLocal.get();
     if (stack == null) {
       stack = new Stack<>();
     }
@@ -106,78 +173,41 @@ public class TransactionManager {
     threadLocal.set(stack);
   }
 
-  static Tx peek() {
-    Stack<Tx> stack = threadLocal.get();
+  Transaction peek() {
+    Stack<Transaction> stack = threadLocal.get();
     if (stack == null || stack.isEmpty()) {
       return null;
     }
     return stack.peek();
   }
 
-  static Tx pop() {
-    Stack<Tx> stack = threadLocal.get();
+  Transaction pop() {
+    Stack<Transaction> stack = threadLocal.get();
     if (stack == null || stack.isEmpty()) {
       return null;
     }
     return stack.pop();
   }
 
-  static void clear() {
-    Stack<Tx> stack = threadLocal.get();
+  void clear() {
+    Stack<Transaction> stack = threadLocal.get();
     stack.clear();
     threadLocal.set(null);
   }
 
-  static void push(Cursor cursor) {
-    Tx tx = peek();
+  void push(Cursor cursor) {
+    Transaction tx = peek();
     if (tx == null) {
       throw new NullPointerException("No active transaction!");
     }
     tx.push(cursor);
   }
 
-  public static Transaction getInternalTx() {
-    Tx tx = peek();
+  org.fusesource.lmdbjni.Transaction getInternalTx() {
+    Transaction tx = peek();
     if (tx == null) {
       return null;
     }
     return tx.getTx();
-  }
-
-  public static class Tx {
-    private Stack<Cursor> cursors = new Stack<>();
-    private Transaction tx;
-
-    private Tx(Transaction tx) {
-      this.tx = tx;
-    }
-
-    public Transaction getTx() {
-      return tx;
-    }
-
-    public void commit() {
-      closeCursors();
-      tx.commit();
-    }
-
-    public void rollback() {
-      closeCursors();
-      tx.abort();
-    }
-
-    public void push(Cursor cursor) {
-      cursors.push(cursor);
-    }
-
-    private void closeCursors() {
-      for (Cursor cursor : cursors) {
-        try {
-          cursor.close();
-        } catch (Throwable e) {
-          e.printStackTrace();
-        }
-      }
-    }
   }
 }

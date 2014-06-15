@@ -83,9 +83,34 @@
           </systemProperties>
         </configuration>
       </plugin>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>build-helper-maven-plugin</artifactId>
+        <version>1.8</version>
+        <executions>
+          <execution>
+            <id>add-test-source</id>
+            <phase>generate-test-sources</phase>
+            <goals>
+              <goal>add-test-source</goal>
+            </goals>
+            <configuration>
+              <sources>
+                <source>${basedir}/target/generated-test-sources/annotations</source>
+              </sources>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
     </plugins>
   </build>
   <dependencies>
+    <dependency>
+      <groupId>com.google.guava</groupId>
+      <artifactId>guava</artifactId>
+      <version>16.0</version>
+      <scope>test</scope>
+    </dependency>
     <dependency>
       <groupId>org.deephacks.lmdbjni</groupId>
       <artifactId>lmdbjni-linux64</artifactId>
@@ -100,12 +125,11 @@
       <groupId>javax.validation</groupId>
       <artifactId>validation-api</artifactId>
       <version>1.1.0.Final</version>
-      <scope>provided</scope>
     </dependency>
     <dependency>
-      <groupId>org.deephacks.vals</groupId>
-      <artifactId>vals</artifactId>
-      <version>0.5.6</version>
+      <groupId>com.squareup</groupId>
+      <artifactId>javawriter</artifactId>
+      <version>2.3.0</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
@@ -113,18 +137,6 @@
       <artifactId>streamql</artifactId>
       <version>0.5.8</version>
       <scope>compile</scope>
-    </dependency>
-    <dependency>
-      <groupId>com.sun.codemodel</groupId>
-      <artifactId>codemodel</artifactId>
-      <version>2.6</version>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>com.google.code.findbugs</groupId>
-      <artifactId>jsr305</artifactId>
-      <version>2.0.3</version>
-      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>org.hibernate</groupId>

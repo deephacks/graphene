@@ -1,31 +1,32 @@
 package org.deephacks.graphene.cdi;
 
 import org.deephacks.graphene.Entity;
-import org.deephacks.graphene.EntityRepository;
-import org.deephacks.graphene.Id;
+import org.deephacks.graphene.Graphene;
+import org.deephacks.graphene.Key;
 import org.deephacks.vals.VirtualValue;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
-import static org.deephacks.graphene.cdi.TransactionAttribute.REQUIRES_NEW;
+import static org.deephacks.graphene.cdi.TransactionAttribute.REQUIRES_NEW_READ;
 
 @ApplicationScoped
 @Transaction
 public class Users {
 
   @Inject
-  private EntityRepository repository;
+  private Graphene graphene;
 
   public void createUser(User user) {
-    repository.put(user);
+    graphene.put(user);
   }
 
-  @Transaction(REQUIRES_NEW)
+  @Transaction(REQUIRES_NEW_READ)
   public User get(String ssn) {
-    return repository.get(ssn, User.class).get();
+    return graphene.get(ssn, User.class).get();
   }
 
   @Entity @VirtualValue
-  public static interface User { @Id String getSsn(); String getFullName(); }
+  public static interface User { @Key
+                                 String getSsn(); String getFullName(); }
 }

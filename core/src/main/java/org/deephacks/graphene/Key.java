@@ -7,7 +7,10 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 @Retention(RetentionPolicy.RUNTIME)
-@Target({ ElementType.FIELD, ElementType.METHOD })
+@Target({ ElementType.METHOD, ElementType.TYPE })
 @Inherited
-public @interface Id {
+public @interface Key {
+  int position() default 0;
+  int size() default 0;
+  String builderPrefix() default "with";
 }

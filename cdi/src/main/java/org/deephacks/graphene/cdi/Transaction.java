@@ -15,5 +15,5 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
 @Documented
 @InterceptorBinding
 public @interface Transaction {
-  @Nonbinding TransactionAttribute value() default TransactionAttribute.REQUIRED;
+  @Nonbinding TransactionAttribute value() default TransactionAttribute.REQUIRED_READ;
 }

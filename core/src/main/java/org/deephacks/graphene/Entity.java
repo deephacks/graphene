@@ -10,4 +10,6 @@ import java.lang.annotation.Target;
 @Target({ ElementType.TYPE })
 @Inherited
 public @interface Entity {
+  String name() default "";
+  String builderPrefix() default "with";
 }
