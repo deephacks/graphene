@@ -716,7 +716,7 @@ public class BytesUtils {
     return ZonedDateTime.of(localDate, localTime, offset);
   }
 
-  private static boolean getBoolean(byte b) {
+  public static boolean getBoolean(byte b) {
     return b != 0;
   }
 
