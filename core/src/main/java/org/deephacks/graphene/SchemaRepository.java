@@ -3,12 +3,11 @@ package org.deephacks.graphene;
 import org.deephacks.graphene.Schema.KeySchema;
 import org.deephacks.graphene.internal.serialization.BufAllocator;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.lang.reflect.Method;
-import java.net.URISyntaxException;
 import java.net.URL;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -25,7 +24,7 @@ public class SchemaRepository {
     this.uniqueIds = uniqueIds;
     for (Class<?> cls : readEntityClasses()) {
       try {
-        Method method = cls.getDeclaredMethod("getKeySchema");
+        Method method = cls.getDeclaredMethod("keySchema");
         method.setAccessible(true);
         Class<?> entityInterface = getEntityInterface(cls);
         Schema<?> schema = new Schema<>(cls, (KeySchema) method.invoke(null), bufAllocator, uniqueIds);
@@ -61,18 +60,21 @@ public class SchemaRepository {
       if (resource == null) {
         throw new IllegalStateException("No " + SCHEMA_PATH + " found.");
       }
-      List<Class<?>> classes = new ArrayList<>();
-      for (String line : Files.readAllLines(Paths.get(resource.toURI()))) {
-        if (line != null && !line.trim().isEmpty()) {
-          try {
-            classes.add(Class.forName(line.trim()));
-          } catch (ClassNotFoundException e) {
-            // ignore
+      try (BufferedReader reader = new BufferedReader(new InputStreamReader(resource.openStream()))) {
+        List<Class<?>> classes = new ArrayList<>();
+        String line;
+        while ((line = reader.readLine()) != null) {
+          if (!line.trim().isEmpty()) {
+            try {
+              classes.add(Class.forName(line.trim()));
+            } catch (ClassNotFoundException e) {
+              // ignore
+            }
           }
         }
+        return classes;
       }
-      return classes;
-    } catch (URISyntaxException | IOException e) {
+    } catch (IOException e) {
       throw new RuntimeException(e);
     }
   }

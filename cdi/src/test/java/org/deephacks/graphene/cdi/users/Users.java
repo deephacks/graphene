@@ -1,9 +1,9 @@
-package org.deephacks.graphene.cdi;
+package org.deephacks.graphene.cdi.users;
 
 import org.deephacks.graphene.Entity;
 import org.deephacks.graphene.Graphene;
 import org.deephacks.graphene.Key;
-import org.deephacks.vals.VirtualValue;
+import org.deephacks.graphene.cdi.Transaction;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
@@ -26,7 +26,9 @@ public class Users {
     return graphene.get(ssn, User.class).get();
   }
 
-  @Entity @VirtualValue
-  public static interface User { @Key
-                                 String getSsn(); String getFullName(); }
+  @Entity
+  public static interface User {
+    @Key String getSsn();
+    String getFullName();
+  }
 }

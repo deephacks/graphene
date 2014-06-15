@@ -1,7 +1,8 @@
 package org.deephacks.graphene.cdi;
 
-import org.deephacks.graphene.cdi.Accounts.Account;
-import org.deephacks.graphene.cdi.Users.User;
+import org.deephacks.graphene.cdi.accounts.Accounts;
+import org.deephacks.graphene.cdi.accounts.Accounts.Account;
+import org.deephacks.graphene.cdi.users.Users.User;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;

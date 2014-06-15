@@ -10,5 +10,7 @@ public class CompilationTest {
 
   }
 
+  public void test_default_values() {
 
+  }
 }

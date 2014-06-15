@@ -44,7 +44,7 @@ class GrapheneTypeGenerator extends SourceGenerator {
     if (type instanceof EntityType) {
       writer.beginType(type.getGeneratedGrapheneType(), "class", PUBLIC, null, type.getClassName(), EntityInterface.class.getName());
     } else if (type instanceof KeyType) {
-        writer.beginType(type.getGeneratedGrapheneType(), "class", PUBLIC, null, type.getClassName(), KeyInterface.class.getName());
+      writer.beginType(type.getGeneratedGrapheneType(), "class", PUBLIC, null, type.getClassName(), KeyInterface.class.getName());
     } else {
       writer.beginType(type.getGeneratedGrapheneType(), "class", PUBLIC, null, type.getClassName());
     }
@@ -75,11 +75,15 @@ class GrapheneTypeGenerator extends SourceGenerator {
     writer.beginConstructor(PACKAGE_PRIVATE, type.getAllFieldsAsStrings(), Collections.emptyList());
     for (GrapheneField field : type.getAllFields()) {
       if (!field.isPrimitive()) {
-        writer.beginControlFlow("if (" + field.getName() + " == null)");
+        if (field.hasDefaultValue()) {
+          writer.emitStatement("this." + field.getName() + " = java.util.Optional.ofNullable(" + field.getName() + ").orElse(" + type.getClassName() + ".super." + field.getGetMethod() + "())");
+        } else {
+          writer.emitStatement("this." + field.getName() + " = " + field.getName());
+        }
+        writer.beginControlFlow("if (this." + field.getName() + " == null)");
         writer.emitStatement("throw new IllegalArgumentException(\"" + field.getName() + " is null\")");
         writer.endControlFlow();
       }
-      writer.emitStatement("this." + field.getName() + " = " + field.getName());
     }
     writer.endConstructor();
     writer.emitEmptyLine();
@@ -145,10 +149,10 @@ class GrapheneTypeGenerator extends SourceGenerator {
   }
 
   private void writeKeySchema() throws IOException {
-    writer.beginMethod(KeySchema.class.getCanonicalName(), "getKeySchema", PUBLIC_STATIC);
+    writer.beginMethod(KeySchema.class.getCanonicalName(), "keySchema", PUBLIC_STATIC);
     if (type.getKeys().size() == 1 && type.getKeys().get(0).isKeyClass()) {
       KeyField key = type.getKeys().get(0);
-      writer.emitStatement("return " + key.getGeneratedGrapheneType() + ".getKeySchema()");
+      writer.emitStatement("return " + key.getGeneratedGrapheneType() + ".keySchema()");
       writer.endMethod();
       return;
     }
@@ -165,7 +169,7 @@ class GrapheneTypeGenerator extends SourceGenerator {
         writer.emitStatement("bytesPosition += " + field.getSize().orElse(size));
       }
     }
-    writer.emitStatement("keySchema = new " + KeySchema.class.getCanonicalName() +  "(parts)");
+    writer.emitStatement("keySchema = new " + KeySchema.class.getCanonicalName() + "(parts)");
     writer.endControlFlow();
     writer.emitStatement("return keySchema");
     writer.endMethod();

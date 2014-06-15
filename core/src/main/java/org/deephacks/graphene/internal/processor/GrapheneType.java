@@ -80,6 +80,7 @@ abstract class GrapheneType {
         hasPostConstruct = true;
       }
     }
+
     methods = findGetters(methods);
     for (ExecutableElement m : methods) {
       TypeElement returnType = (TypeElement) typeUtils.asElement(m.getReturnType());
@@ -94,6 +95,7 @@ abstract class GrapheneType {
           keySize = m.getAnnotation(Key.class).size();
         }
       }
+
 
       TypeInfo typeInfo = new TypeInfo(returnTypeMirror, returnType, typeUtils);
       String fieldName = m.getSimpleName().toString();

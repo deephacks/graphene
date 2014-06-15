@@ -1,7 +1,9 @@
 package org.deephacks.graphene;
 
 
+import org.deephacks.graphene.BuilderProxy.Builder;
 import org.deephacks.graphene.Entities.A;
+import org.deephacks.graphene.Entities.DefaultValues;
 import org.deephacks.graphene.Entities.Identity;
 import org.junit.Test;
 
@@ -26,6 +28,13 @@ public class BasicTest extends BaseTest {
     //putAndGetAssert(buildC("c"), C.class);
   }
 
+  @Test
+  public void test_default_value() {
+    DefaultValues value = new Builder<>(DefaultValues.class)
+            .set(DefaultValues::getId, "id")
+            .build().get();
+    assertThat(value.getValue(), is("value"));
+  }
 
   @Test
   public void test_select() {

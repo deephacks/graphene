@@ -1,10 +1,10 @@
-package org.deephacks.graphene.cdi;
+package org.deephacks.graphene.cdi.accounts;
 
 import org.deephacks.graphene.Entity;
 import org.deephacks.graphene.Graphene;
 import org.deephacks.graphene.Key;
-import org.deephacks.graphene.cdi.Users.User;
-import org.deephacks.vals.VirtualValue;
+import org.deephacks.graphene.cdi.Transaction;
+import org.deephacks.graphene.cdi.users.Users.User;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
@@ -18,9 +18,8 @@ public class Accounts {
   private Graphene graphene;
 
   public Account lockAccount(User user) {
-    // How to lock?
-    //Optional<Account> opt = graphene.getForUpdate(user.getSsn(), Account.class);
-    return null;//opt.get();
+    Optional<Account> opt = graphene.get(user.getSsn(), Account.class);
+    return opt.get();
 
   }
 
@@ -43,7 +42,6 @@ public class Accounts {
   }
 
   @Entity
-  @VirtualValue
   public static interface Account {
 
     @Key
@@ -62,11 +60,11 @@ public class Accounts {
     }
 
     default Account withdraw(int amount) {
-      return AccountBuilder.builderFrom(this).withBalance(getBalance() - amount).build();
+      return AccountBuilder.copy(this).withBalance(getBalance() - amount).build();
     }
 
     default Account deposit(int amount) {
-      return AccountBuilder.builderFrom(this).withBalance(getBalance() + amount).build();
+      return AccountBuilder.copy(this).withBalance(getBalance() + amount).build();
     }
   }
 }

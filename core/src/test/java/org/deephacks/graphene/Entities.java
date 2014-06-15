@@ -196,6 +196,16 @@ public class Entities {
     String getSureName();
   }
 
+  @Entity
+  public static interface DefaultValues {
+    @Key
+    String getId();
+
+    default String getValue() {
+      return "value";
+    }
+  }
+
   public static A buildA(String id, String... value) {
     return new Builder<>(A.class)
             .set(A::getId, id)

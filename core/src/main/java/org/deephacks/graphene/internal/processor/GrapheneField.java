@@ -14,6 +14,7 @@ abstract class GrapheneField implements Comparable<GrapheneField> {
   public static final String KEY_WRITER = "keyWriter";
   public static final String VALUE_READER = "valueReader";
   public static final String VALUE_WRITER = "valueWriter";
+  private final boolean hasDefaultValue;
 
   protected String name;
   protected String getMethod;
@@ -21,20 +22,22 @@ abstract class GrapheneField implements Comparable<GrapheneField> {
   protected String readBuf = VALUE_READER;
   protected String writeBuf = VALUE_WRITER;
 
-  protected GrapheneField(String name, TypeInfo typeInfo) {
+  protected GrapheneField(String name, TypeInfo typeInfo, boolean hasDefaultValue) {
     this.getMethod = name;
     name = name.substring(3, name.length());
     this.name = Character.toLowerCase(name.charAt(0)) + (name.length() > 1 ? name.substring(1) : "");
     this.typeInfo = typeInfo;
+    this.hasDefaultValue = hasDefaultValue;
   }
 
-  protected GrapheneField(String name, TypeInfo typeInfo, String readBuf, String writeBuf) {
+  protected GrapheneField(String name, TypeInfo typeInfo, boolean hasDefaultValue, String readBuf, String writeBuf) {
     this.getMethod = name;
     name = name.substring(3, name.length());
     this.name = Character.toLowerCase(name.charAt(0)) + (name.length() > 1 ? name.substring(1) : "");
     this.typeInfo = typeInfo;
     this.readBuf = readBuf;
     this.writeBuf = writeBuf;
+    this.hasDefaultValue = hasDefaultValue;
   }
 
   protected GrapheneField(GrapheneField field) {
@@ -43,6 +46,7 @@ abstract class GrapheneField implements Comparable<GrapheneField> {
     this.typeInfo = field.typeInfo;
     this.readBuf = field.readBuf;
     this.writeBuf = field.writeBuf;
+    this.hasDefaultValue = field.hasDefaultValue;
   }
 
   public void startRead(JavaWriter writer) throws IOException {
@@ -232,13 +236,15 @@ abstract class GrapheneField implements Comparable<GrapheneField> {
     return typeInfo.isPrimitive();
   }
 
+  public boolean hasDefaultValue() {
+    return hasDefaultValue;
+  }
+
   public static class ValueField extends GrapheneField {
-    private boolean isDefault;
     private Optional<Integer> size;
 
-    public ValueField(String name, boolean isDefault, TypeInfo typeInfo, Integer size) {
-      super(name, typeInfo, VALUE_READER, VALUE_WRITER);
-      this.isDefault = isDefault;
+    public ValueField(String name, boolean hasDefaultValue, TypeInfo typeInfo, Integer size) {
+      super(name, typeInfo, hasDefaultValue, VALUE_READER, VALUE_WRITER);
       this.size = Optional.ofNullable(size);
     }
 
@@ -264,15 +270,12 @@ abstract class GrapheneField implements Comparable<GrapheneField> {
       writer.emitStatement(stmt);
     }
 
-    public boolean isDefault() {
-      return isDefault;
-    }
   }
 
   public static class EmbeddedField extends GrapheneField {
 
     public EmbeddedField(String name, TypeInfo typeInfo) {
-      super(name, typeInfo);
+      super(name, typeInfo, false);
     }
 
     @Override
@@ -298,7 +301,7 @@ abstract class GrapheneField implements Comparable<GrapheneField> {
   public static class ReferenceField extends GrapheneField {
 
     public ReferenceField(String name, TypeInfo typeInfo) {
-      super(name, typeInfo);
+      super(name, typeInfo, false);
     }
 
     @Override
@@ -319,7 +322,7 @@ abstract class GrapheneField implements Comparable<GrapheneField> {
     private Optional<Integer> size;
 
     public KeyField(String name, TypeInfo typeInfo, ValueField field, Integer position, Integer size) {
-      super(name, typeInfo, KEY_READER, KEY_WRITER);
+      super(name, typeInfo, false, KEY_READER, KEY_WRITER);
       if (typeInfo.isOptional()) {
         throw new IllegalArgumentException("Keys cant be optional.");
       }

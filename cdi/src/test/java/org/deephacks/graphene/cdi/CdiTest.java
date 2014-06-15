@@ -1,8 +1,11 @@
 package org.deephacks.graphene.cdi;
 
 import org.deephacks.graphene.Graphene;
-import org.deephacks.graphene.cdi.Accounts.Account;
-import org.deephacks.graphene.cdi.Users.User;
+import org.deephacks.graphene.cdi.accounts.Accounts;
+import org.deephacks.graphene.cdi.accounts.Accounts.Account;
+import org.deephacks.graphene.cdi.users.UserBuilder;
+import org.deephacks.graphene.cdi.users.Users;
+import org.deephacks.graphene.cdi.users.Users.User;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -16,7 +19,7 @@ import static junit.framework.Assert.fail;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.*;
 
-// @RunWith(CdiRunner.class)
+//@RunWith(CdiRunner.class)
 @Ignore
 public class CdiTest {
 

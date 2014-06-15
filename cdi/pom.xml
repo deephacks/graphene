@@ -12,28 +12,22 @@
   <name>graphene cdi</name>
   <description>graphene cdi</description>
 
+  <properties>
+    <lmdb-version>0.1.1</lmdb-version>
+    <lmdb-linux64-home>${project.build.directory}/lmdb/META-INF/native/lmdb-linux64</lmdb-linux64-home>
+    <lmdb-osx64-home>${project.build.directory}/lmdb/META-INF/native/lmdb-osx64</lmdb-osx64-home>
+  </properties>
+
   <dependencies>
+    <dependency>
+      <groupId>com.squareup</groupId>
+      <artifactId>javawriter</artifactId>
+      <version>2.3.0</version>
+      <scope>provided</scope>
+    </dependency>
     <dependency>
       <groupId>org.deephacks.graphene</groupId>
       <artifactId>graphene-core</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.deephacks.vals</groupId>
-      <artifactId>vals</artifactId>
-      <version>0.5.6</version>
-      <scope>compile</scope>
-    </dependency>
-    <dependency>
-      <groupId>com.google.code.findbugs</groupId>
-      <artifactId>jsr305</artifactId>
-      <version>2.0.3</version>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>com.sun.codemodel</groupId>
-      <artifactId>codemodel</artifactId>
-      <version>2.6</version>
-      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>javax.enterprise</groupId>
@@ -57,24 +51,80 @@
   <build>
     <plugins>
       <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>build-helper-maven-plugin</artifactId>
-        <version>1.8</version>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <groupId>org.apache.maven.plugins</groupId>
+        <version>2.3.2</version>
+        <configuration>
+          <source>1.8</source>
+          <target>1.8</target>
+          <compilerVersion>1.8</compilerVersion>
+          <generatedSourcesDirectory>${basedir}/target/generated-sources/test-annotations</generatedSourcesDirectory>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <version>2.8</version>
         <executions>
           <execution>
-            <id>add-test-source</id>
-            <phase>generate-test-sources</phase>
+            <id>unpack-linux64</id>
+            <phase>validate</phase>
             <goals>
-              <goal>add-test-source</goal>
+              <goal>unpack</goal>
             </goals>
             <configuration>
-              <sources>
-                <source>${basedir}/target/generated-test-sources/annotations</source>
-              </sources>
+              <artifactItems>
+                <artifactItem>
+                  <groupId>org.deephacks.lmdb</groupId>
+                  <artifactId>lmdb-linux64</artifactId>
+                  <version>${lmdb-version}</version>
+                  <type>jar</type>
+                  <overWrite>false</overWrite>
+                  <outputDirectory>${project.build.directory}/lmdb</outputDirectory>
+                  <includes>META-INF/**</includes>
+                </artifactItem>
+              </artifactItems>
+            </configuration>
+          </execution>
+          <execution>
+            <id>unpack-osx64</id>
+            <phase>validate</phase>
+            <goals>
+              <goal>unpack</goal>
+            </goals>
+            <configuration>
+              <artifactItems>
+                <artifactItem>
+                  <groupId>org.deephacks.lmdb</groupId>
+                  <artifactId>lmdb-osx64</artifactId>
+                  <version>${lmdb-version}</version>
+                  <type>jar</type>
+                  <overWrite>false</overWrite>
+                  <outputDirectory>${project.build.directory}/lmdb</outputDirectory>
+                  <includes>META-INF/**</includes>
+                </artifactItem>
+              </artifactItems>
             </configuration>
           </execution>
         </executions>
       </plugin>
+      <plugin>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <configuration>
+          <forkMode>once</forkMode>
+          <environmentVariables>
+            <LD_LIBRARY_PATH>${lmdb-linux64-home}</LD_LIBRARY_PATH>
+            <DYLD_LIBRARY_PATH>${lmdb-osx64-home}</DYLD_LIBRARY_PATH>
+          </environmentVariables>
+          <systemProperties>
+            <property>
+              <name>java.library.tmpdir</name>
+              <value>${lmdb-linux64-home}:${lmdb-osx64-home}</value>
+            </property>
+          </systemProperties>
+        </configuration>
+      </plugin>
+
     </plugins>
   </build>
 </project>

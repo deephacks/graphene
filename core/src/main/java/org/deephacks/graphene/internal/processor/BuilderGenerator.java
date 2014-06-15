@@ -40,9 +40,29 @@ class BuilderGenerator extends SourceGenerator {
 
     writeBuildMethod();
 
+    writeCopyMethod();
+
     writer.endType();
     writer.close();
     return out.toString();
+  }
+
+  private void writeCopyMethod() throws IOException {
+    writer.beginMethod(className, "copy", PUBLIC_STATIC, type.getClassName(), "entity");
+    writer.emitStatement(className + " builder = new " + className + "()");
+    Iterator<GrapheneField> it = type.getAllFields().iterator();
+    while (it.hasNext()) {
+      GrapheneField field = it.next();
+      String methodName = "".equals(prefix.trim()) ? field.getName() : prefix + field.getNameFirstCapitalized();
+      if (field.isOptional()) {
+        writer.emitStatement("builder." + methodName + "(entity." + field.getGetMethod() + "().get())");
+      } else {
+        writer.emitStatement("builder." + methodName + "(entity." + field.getGetMethod() + "())");
+      }
+    }
+    writer.emitStatement("return builder");
+    writer.endMethod();
+    writer.emitEmptyLine();
   }
 
   private void writeBuildMethod() throws IOException {
