@@ -206,6 +206,18 @@ public class Entities {
     }
   }
 
+  @Entity
+  public static interface OptionalValues {
+    @Key
+    String getId();
+
+    Optional<String> getValue();
+    //Optional<byte[]> getValueArray();
+    Optional<List<String>> getListValue();
+    Optional<Map<String, String>> getMapValue();
+    Optional<Set<String>> getSetValue();
+  }
+
   public static A buildA(String id, String... value) {
     return new Builder<>(A.class)
             .set(A::getId, id)

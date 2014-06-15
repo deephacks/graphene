@@ -388,15 +388,29 @@ abstract class GrapheneField implements Comparable<GrapheneField> {
 
     @Override
     public void read(JavaWriter writer, String... name) throws IOException {
-      field.read(writer, getName());
+      if (isPrimitive()) {
+        writer.emitStatement(getFullTypeString() + " _value");
+      } else {
+        writer.emitStatement(getFullTypeString() + " _value = null");
+      }
+
+      field.read(writer, "_value");
+      if (isOptional()) {
+        writer.emitStatement(getName() + " = java.util.Optional.ofNullable(_value)");
+      } else {
+        writer.emitStatement(getName() + " = _value");
+      }
     }
 
     @Override
     public void write(JavaWriter writer, String... name) throws IOException {
       if (isOptional()) {
         writer.beginControlFlow("if (" + getName() + ".isPresent())");
+        field.write(writer, getName() + ".get()");
+      } else {
+        field.write(writer, getName());
       }
-      field.write(writer, getName());
+
       if (isOptional()) {
         writer.endControlFlow();
       }
