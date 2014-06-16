@@ -9,7 +9,7 @@ import org.deephacks.graphene.internal.gql.Query;
 import org.deephacks.graphene.internal.serialization.BufAllocator;
 import org.deephacks.graphene.internal.serialization.Bytes;
 import org.deephacks.graphene.internal.serialization.KeySerialization.KeyWriter;
-import org.deephacks.graphene.internal.serialization.StandardBufAllocator;
+import org.deephacks.graphene.internal.serialization.UnsafeBufAllocator;
 import org.deephacks.graphene.internal.serialization.ValueSerialization.ValueWriter;
 import org.fusesource.lmdbjni.Constants;
 import org.fusesource.lmdbjni.Cursor;
@@ -77,7 +77,7 @@ public class Graphene {
       File dir = builder.dir.orElse(DEFAULT_ENV_FILE);
       dir.mkdirs();
       Long size = builder.dbSizeInBytes.orElse(4_294_967_296L);
-      this.bufAllocator = builder.bufAllocator.orElse(new StandardBufAllocator());
+      this.bufAllocator = builder.bufAllocator.orElse(new UnsafeBufAllocator());
       this.env = new Env();
       this.env.setMapSize(size);
       this.env.setMaxDbs(10);
