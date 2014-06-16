@@ -138,7 +138,7 @@ public class SelectTest extends BaseTest {
   }
 */
 
-  // Test a query with OR predicate
+  // Test a gql with OR predicate
   @Test
   public void test_select_or_predicate() {
     graphene.withTxWrite(tx -> {
@@ -158,7 +158,7 @@ public class SelectTest extends BaseTest {
   }
 
 
-  //Test a query with NOT predicate
+  //Test a gql with NOT predicate
   @Test
   public void test_select_not_predicate() {
     graphene.withTxWrite(tx -> {
@@ -177,7 +177,7 @@ public class SelectTest extends BaseTest {
   }
 
 
-   // Test a query with AND predicate
+   // Test a gql with AND predicate
   @Test
   public void test_select_and_predicate() {
     graphene.withTxWrite(tx -> {

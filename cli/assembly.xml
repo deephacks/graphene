@@ -15,7 +15,6 @@
         <include>**/*treelayout*.jar</include>
         <include>**/*ST4*.jar</include>
         <include>**/*tools4j-cli*.jar</include>
-        <include>**/*streamql*.jar</include>
         <include>**/*jline*.jar</include>
         <include>**/*lmdb*.jar</include>
       </includes>

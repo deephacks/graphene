@@ -1,11 +1,11 @@
 package org.deephacks.graphene;
 
-import deephacks.streamql.Query;
 import org.deephacks.graphene.Transaction.Transactional;
 import org.deephacks.graphene.internal.EntityInterface;
 import org.deephacks.graphene.internal.EntityValidator;
 import org.deephacks.graphene.internal.FastKeyComparator;
 import org.deephacks.graphene.internal.KeyInterface;
+import org.deephacks.graphene.internal.gql.Query;
 import org.deephacks.graphene.internal.serialization.BufAllocator;
 import org.deephacks.graphene.internal.serialization.Bytes;
 import org.deephacks.graphene.internal.serialization.KeySerialization.KeyWriter;

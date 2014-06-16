@@ -1,11 +1,11 @@
 package org.deephacks.graphene.cli;
 
 
-import deephacks.streamql.IllegalQueryException;
 import jline.TerminalFactory;
 import jline.console.ConsoleReader;
 import org.deephacks.graphene.Graphene;
 import org.deephacks.graphene.Schema;
+import org.deephacks.graphene.internal.gql.IllegalQueryException;
 import org.deephacks.tools4j.cli.CliCmd;
 
 import java.io.IOException;
@@ -20,7 +20,7 @@ import java.util.stream.Collectors;
 
 /**
  * Example:
- * graphene query "filter city.name contains 'holm' ordered streetName, streetNumber" 'org.deephacks.graphene.Entities$Street'
+ * graphene gql "filter city.name contains 'holm' ordered streetName, streetNumber" 'org.deephacks.graphene.Entities$Street'
  */
 public class GrapheneCommand {
 
@@ -66,7 +66,7 @@ public class GrapheneCommand {
         tp.print();
         System.out.println(result.size() + " rows in set (" + format.format((double) took / 1000) + " sec)");
       } catch (IllegalQueryException e) {
-        System.out.println("Illegal query " + query);
+        System.out.println("Illegal gql " + query);
       } catch (ClassNotFoundException e) {
         System.out.println("Class not recognized " + className);
       } catch (Throwable e) {

@@ -1,6 +1,6 @@
 package org.deephacks.graphene;
 
-import deephacks.streamql.Query;
+import org.deephacks.graphene.internal.gql.Query;
 import org.fusesource.lmdbjni.Cursor;
 
 import java.util.List;
