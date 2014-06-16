@@ -21,7 +21,7 @@ public class StandardByteArrayInputStream extends ByteArrayInputStream {
   }
 
   public StandardByteArrayInputStream copy() {
-    return new StandardByteArrayInputStream(buf, 0, count);
+    return new StandardByteArrayInputStream(buf, 0, buf.length);
   }
 
   public StandardByteArrayInputStream copy(byte[] bytes) {

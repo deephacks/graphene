@@ -64,7 +64,7 @@ public class StandardByteArrayBuf extends Buf {
 
   @Override
   public Buf writeChar(char c) throws IOException {
-    out.write(Bytes.fromShort((short)c));
+    out.write(Bytes.fromInt(c));
     return this;
   }
 
@@ -185,9 +185,9 @@ public class StandardByteArrayBuf extends Buf {
 
   @Override
   public char readChar() throws IOException {
-    byte[] bytes = new byte[2];
+    byte[] bytes = new byte[4];
     in.read(bytes);
-    return (char) BytesUtils.getShort(bytes, 0);
+    return (char) Bytes.getInt(bytes);
   }
 
   @Override
