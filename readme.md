@@ -145,7 +145,7 @@ List<User> result = graphene.query("filter name == 'James' ordered name", User.c
 ========
 #### Composite keys
 
-A key can be a single basic value like a String, Long or LocalDateTime; or a composite key, consisting of multiple values. Data is stored uniquely, sorted by key value and key position.
+A key can be a single basic value like a String, Long or LocalDateTime; or a composite key, consisting of multiple values. Data is stored uniquely, sorted by key value and key position. Composite keys follow the same builder pattern as regular entities.
 
 ```java
 @Entity
@@ -154,7 +154,7 @@ public interface ObjectKeyEntity {
 }
 
 @Key
-public interface CompositetKey {
+public interface CompositeKey {
   @Key(position = 0)
   String getPartition();
 
