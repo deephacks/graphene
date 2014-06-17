@@ -43,8 +43,8 @@ public class Transaction {
     return graphene.delete(key, entityClass);
   }
 
-  public <E> List<E> selectAll(Class<E> entityClass) {
-    return graphene.selectAll(entityClass);
+  public <E> List<E> list(Class<E> entityClass) {
+    return graphene.list(entityClass);
   }
 
   public void deleteAll(Class<?> entityClass) {

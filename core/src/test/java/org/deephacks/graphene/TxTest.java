@@ -42,17 +42,17 @@ public class TxTest extends BaseTest {
         //tx.put(buildC("c" + i));
       }
 
-      assertThat(tx.selectAll(A.class).size(), is(numInstances));
-      //assertThat(tx.selectAll(B.class).size(), is(numInstances));
-      //assertThat(tx.selectAll(C.class).size(), is(numInstances));
+      assertThat(tx.list(A.class).size(), is(numInstances));
+      //assertThat(tx.list(B.class).size(), is(numInstances));
+      //assertThat(tx.list(C.class).size(), is(numInstances));
 
       tx.rollback();
     });
 
     graphene.withTxRead(tx -> {
-      assertThat(tx.selectAll(A.class).size(), is(0));
-      assertThat(tx.selectAll(B.class).size(), is(0));
-      assertThat(tx.selectAll(C.class).size(), is(0));
+      assertThat(tx.list(A.class).size(), is(0));
+      assertThat(tx.list(B.class).size(), is(0));
+      assertThat(tx.list(C.class).size(), is(0));
     });
   }
 

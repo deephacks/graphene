@@ -41,7 +41,7 @@ public class BasicTest extends BaseTest {
     graphene.put(buildA("a1"));
     graphene.put(buildA("a2"));
     graphene.put(buildA("a3"));
-    assertThat(graphene.selectAll(A.class).size(), is(3));
+    assertThat(graphene.list(A.class).size(), is(3));
 
     graphene.withTxRead(tx -> {
       List<A> result = tx.stream(A.class).filter(a -> a.getId().endsWith("2")).collect(Collectors.toList());

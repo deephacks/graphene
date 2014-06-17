@@ -178,7 +178,7 @@ public class Graphene {
    * @param <E>         instance type
    * @return instances match criteria
    */
-  public <E> List<E> selectAll(Class<E> entityClass) {
+  public <E> List<E> list(Class<E> entityClass) {
     return joinTxReadReturn(tx -> {
       try (Stream<E> stream = tx.stream(entityClass)) {
         return stream.collect(Collectors.toList());

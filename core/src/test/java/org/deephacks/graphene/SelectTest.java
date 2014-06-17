@@ -248,7 +248,7 @@ public class SelectTest extends BaseTest {
 */
 
   private void assertSelectAll(Class<? extends StandardFields> entityClass, String prefix, int numInstances) {
-    final List<? extends StandardFields> resultSet = graphene.selectAll(entityClass);
+    final List<? extends StandardFields> resultSet = graphene.list(entityClass);
     final ArrayList<? extends StandardFields> objects = Guavas.newArrayList(resultSet);
     for (int i = 0; i < objects.size(); i++) {
       StandardFields expected;
