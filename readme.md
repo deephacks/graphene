@@ -143,9 +143,25 @@ List<User> result = graphene.query("filter name == 'James' ordered name", User.c
 ```
 
 ========
-#### Composite Id
+#### Composite keys
 
-TBD
+A key can be a single basic value like a String, Long or LocalDateTime; or a composite key, consisting of multiple values. Data is stored uniquely, sorted by key value and key position.
+
+```java
+@Entity
+public interface ObjectKeyEntity {
+  CompositeKey getKey();
+}
+
+@Key
+public interface CompositetKey {
+  @Key(position = 0)
+  String getPartition();
+
+  @Key(position = 1)
+  LocalDateTime getTime();
+}
+```
 
 ========
 #### Cursor seek and pagination
