@@ -177,6 +177,9 @@ TBD
 ========
 #### Transactions
 
+Graphene is transactional with ACID semantics and MVCC repeatable reads. Readers don't block writers and writers don't block readers. Writes are fully serialized.
+
+
 ```java
 
 graphene.withTxWrite(tx -> {
