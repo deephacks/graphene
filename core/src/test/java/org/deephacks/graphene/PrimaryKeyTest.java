@@ -2,6 +2,7 @@ package org.deephacks.graphene;
 
 import org.deephacks.graphene.BuilderProxy.Builder;
 import org.deephacks.graphene.Entities.ByteArrayKey;
+import org.deephacks.graphene.Entities.LongKey;
 import org.deephacks.graphene.Entities.ObjectKey;
 import org.deephacks.graphene.Entities.ObjectKeyEntity;
 import org.junit.Before;
@@ -33,6 +34,22 @@ public class PrimaryKeyTest extends BaseTest {
     assertThat(result, is(object));
   }
 
+  @Test
+  public void test_long_key_in_sorted_order() {
+    List<LongKey> list = new ArrayList<>();
+    list.add(new Builder<>(LongKey.class)
+            .set(LongKey::getKey, (long) 1).build().get());
+    list.add(new Builder<>(LongKey.class)
+            .set(LongKey::getKey, (long) 3).build().get());
+    list.add(new Builder<>(LongKey.class)
+            .set(LongKey::getKey, (long) 2).build().get());
+
+    graphene.putAll(list);
+    List<LongKey> result = graphene.list(LongKey.class);
+    assertThat(result.get(0), is(list.get(0)));
+    assertThat(result.get(1), is(list.get(2)));
+    assertThat(result.get(2), is(list.get(1)));
+  }
 
   @Test
   public void test_get_object_key_without_values() {

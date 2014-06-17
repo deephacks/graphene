@@ -238,6 +238,12 @@ public class Entities {
     byte[] getKey();
   }
 
+  @Entity
+  public static interface LongKey {
+    @Key
+    Long getKey();
+  }
+
 
   public static A buildA(String id, String... value) {
     return new Builder<>(A.class)
