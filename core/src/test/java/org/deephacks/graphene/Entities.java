@@ -221,11 +221,6 @@ public class Entities {
   @Entity
   public static interface ObjectKeyEntity {
     ObjectKey getKey();
-    Optional<String> getValue();
-    //Optional<byte[]> getValueArray();
-    Optional<List<String>> getListValue();
-    Optional<Map<String, String>> getMapValue();
-    Optional<Set<String>> getSetValue();
   }
 
   @Key
