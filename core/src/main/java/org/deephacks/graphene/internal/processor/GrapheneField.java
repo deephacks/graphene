@@ -168,7 +168,7 @@ abstract class GrapheneField implements Comparable<GrapheneField> {
       case DOUBLE:
         return "Double.doubleToLongBits(this." + getGetMethod() + "()) != Double.doubleToLongBits(that." + getGetMethod() + "())";
       case ARRAY:
-        return "!Arrays.equals(this." + getGetMethod() + "(), that." + getGetMethod() + "())";
+        return "!java.util.Arrays.equals(this." + getGetMethod() + "(), that." + getGetMethod() + "())";
       default:
         if (isOptional()) {
           return "!(this." + getGetMethod() + "() == null ? that." + getGetMethod() + "() == null : this." + getGetMethod() + "().equals(that." + getGetMethod() + "()))";
@@ -195,7 +195,7 @@ abstract class GrapheneField implements Comparable<GrapheneField> {
       case BOOLEAN:
         return getGetMethod() + "() ? 1231 : 1237";
       case ARRAY:
-        return "Arrays.hashCode(" + getGetMethod() + "())";
+        return "java.util.Arrays.hashCode(" + getGetMethod() + "())";
       default:
         if (isOptional()) {
           return "(" + getGetMethod() + "() == null) ? 0 : " + getGetMethod() + "().hashCode()";
@@ -359,7 +359,7 @@ abstract class GrapheneField implements Comparable<GrapheneField> {
       if (isKeyClass()) {
         writer.emitStatement("return ((" + field.getGeneratedGrapheneType() + ") " + getGetMethod() + "()).serializeKey(" + writeBuf + ", schemaId)");
       } else if (typeInfo.isArray() && typeInfo.getFullTypeString().startsWith("byte")) {
-        writer.emitStatement(writeBuf + ".writeBytes(" + field.getName() + ")");
+        writer.emitStatement(writeBuf + ".writeBytes(" + field.getName() + ", " + field.size.get() + ")");
       } else {
         field.write(writer, getName());
       }

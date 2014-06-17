@@ -88,6 +88,16 @@ public class KeySerialization {
       values.writeBytes(value);
     }
 
+    public void writeBytes(byte[] value, int size) throws IOException {
+      if (value.length > keyPartPosition.getSize()) {
+        throw new IllegalArgumentException("Key " + keyPartPosition.getName() + " is to big " + value.length);
+      }
+      values.writeBytes(value);
+      if (value.length < size) {
+        values.writeBytes(new byte[size - value.length]);
+      }
+    }
+
     public void writeStringBytes(String value, int size) throws IOException {
       byte[] bytes = new byte[size];
       byte[] stringBytes = value.getBytes(StandardCharsets.UTF_8);

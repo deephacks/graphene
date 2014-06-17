@@ -1,5 +1,6 @@
 package org.deephacks.graphene;
 
+import org.deephacks.graphene.Schema.KeySchema.KeyPart;
 import org.deephacks.graphene.internal.KeyInterface;
 import org.deephacks.graphene.internal.serialization.Buf;
 import org.deephacks.graphene.internal.serialization.BufAllocator;
@@ -79,7 +80,7 @@ public class Schema<T> {
 
   @SuppressWarnings("unchecked")
   public T getEntity(byte[][] bytes) {
-     KeyReader keyReader = new KeyReader(bufAllocator.allocateInput(bytes[0]), keySchema);
+    KeyReader keyReader = new KeyReader(bufAllocator.allocateInput(bytes[0]), keySchema);
     ValueReader valueReader = new ValueReader(bufAllocator.allocateInput(bytes[1]), uniqueIds);
     try {
       return (T) constructor.newInstance(keyReader, valueReader);
@@ -92,10 +93,16 @@ public class Schema<T> {
     if (key instanceof KeyInterface) {
       return (KeyInterface) key;
     }
-    int size = keySchema.getFirstKeyPart().getSize();
+    final KeyPart keyPart = keySchema.getFirstKeyPart();
+    final int size = keyPart.getSize();
     final Class<?> cls = key.getClass();
     return (keyWriter, schemaId) -> {
       keyWriter.writeInt(schemaId);
+      try {
+        keyWriter.start(keyPart.getName());
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
       if (cls.isAssignableFrom(String.class)) {
         keyWriter.writeStringBytes(key.toString(), size);
       } else if (cls.isAssignableFrom(byte.class) || cls.isAssignableFrom(Byte.class)) {
@@ -115,7 +122,7 @@ public class Schema<T> {
       } else if (cls.isAssignableFrom(char.class) || cls.isAssignableFrom(Character.class)) {
         keyWriter.writeChar((char) key);
       } else if (cls.isAssignableFrom(byte[].class)) {
-        keyWriter.writeBytes((byte[]) key);
+        keyWriter.writeBytes((byte[]) key, size);
       } else {
         keyWriter.writeObject(key);
       }

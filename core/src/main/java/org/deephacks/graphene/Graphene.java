@@ -116,7 +116,7 @@ public class Graphene {
         schema = SCHEMA_REPOSITORY.getSchema(entityClass);
       }
       try {
-        KeyWriter keyWriter = new KeyWriter(bufAllocator.allocateOutput(schema.getKeySchema().size()), schema.getKeySchema());
+        KeyWriter keyWriter = new KeyWriter(bufAllocator.allocateOutput(schema.getKeySchema().size() + 4), schema.getKeySchema());
         ValueWriter valueWriter = new ValueWriter(bufAllocator.allocateOutput(), bufAllocator.allocateOutput(), uniqueIds);
         int schemaId = uniqueIds.getSchemaId(schema.getGeneratedClass());
         final byte[][] data = iface.serialize(keyWriter, valueWriter, schemaId);
@@ -284,13 +284,6 @@ public class Graphene {
               new RowKey(e.getPrimaryKey().getData()) + " have a reference to " + new RowKey(e.getSecondaryKey().getData()), e);
               */
     }
-  }
-
-  private void printKey(String m, byte[] key) {
-    byte[] array = new byte[2];
-    System.arraycopy(key, 4, array, 0, 2);
-    String name = uniqueIds.getSchemaName(key[0]);
-    System.out.println("> " + m + " " + name + " " + new String(array) + " " + Arrays.toString(key));
   }
 
   @SuppressWarnings("unchecked")

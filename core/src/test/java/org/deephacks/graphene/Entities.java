@@ -218,6 +218,32 @@ public class Entities {
     Optional<Set<String>> getSetValue();
   }
 
+  @Entity
+  public static interface ObjectKeyEntity {
+    ObjectKey getKey();
+    Optional<String> getValue();
+    //Optional<byte[]> getValueArray();
+    Optional<List<String>> getListValue();
+    Optional<Map<String, String>> getMapValue();
+    Optional<Set<String>> getSetValue();
+  }
+
+  @Key
+  public static interface ObjectKey {
+    @Key(position = 0)
+    String getPartition();
+
+    @Key(position = 1)
+    LocalDateTime getTime();
+  }
+
+  @Entity
+  public static interface ByteArrayKey {
+    @Key(size = 3)
+    byte[] getKey();
+  }
+
+
   public static A buildA(String id, String... value) {
     return new Builder<>(A.class)
             .set(A::getId, id)

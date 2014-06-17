@@ -255,7 +255,7 @@ class GrapheneTypeGenerator extends SourceGenerator {
     while (it.hasNext()) {
       GrapheneField field = it.next();
       if (field instanceof ArrayField) {
-        s += "+ \"" + field.getName() + "=\" + Arrays.toString(" + field.getGetMethod() + "())";
+        s += "+ \"" + field.getName() + "=\" + java.util.Arrays.toString(" + field.getGetMethod() + "())";
       } else {
         s += "+ \"" + field.getName() + "=\" + " + field.getGetMethod() + "()";
       }
