@@ -23,7 +23,7 @@ public class KeyValueStore {
     return graphene.joinTxReadReturn(tx -> {
       byte[] value;
       if ((value = db.get(tx.getTx(), key)) == null) {
-        return Optional.empty();
+        return Optional.<byte[]>empty();
       }
       return Optional.ofNullable(value);
     });

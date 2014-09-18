@@ -167,7 +167,7 @@ public class Graphene {
       if (optional.isPresent()) {
         return Optional.ofNullable(schema.getEntity(optional.get()));
       }
-      return Optional.empty();
+      return Optional.<E>empty();
     });
   }
 
@@ -235,10 +235,10 @@ public class Graphene {
       return joinTxWriteReturn(tx -> {
         final Optional<byte[][]> optional = getKv(key, schema);
         if (!optional.isPresent()) {
-          return Optional.empty();
+          return Optional.<E>empty();
         }
         if (!primary.delete(tx.getTx(), optional.get()[0])) {
-          return Optional.empty();
+          return Optional.<E>empty();
         }
         return Optional.ofNullable(schema.getEntity(optional.get()));
       });
@@ -312,7 +312,7 @@ public class Graphene {
           byte[][] kv = new byte[][]{dataKey, value};
           return Optional.ofNullable(kv);
         }
-        return Optional.empty();
+        return Optional.<byte[][]>empty();
       });
     } catch (IOException e) {
       // TODO: fix proper exception
