@@ -237,7 +237,7 @@ public class Graphene {
         if (!optional.isPresent()) {
           return Optional.<E>empty();
         }
-        if (!primary.delete(tx.getTx(), optional.get()[0])) {
+        if (!primary.delete(tx.getTx(), optional.get()[0], null)) {
           return Optional.<E>empty();
         }
         return Optional.ofNullable(schema.getEntity(optional.get()));
