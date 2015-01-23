@@ -2,7 +2,6 @@ package org.deephacks.graphene;
 
 import org.deephacks.graphene.Transaction.Transactional;
 import org.deephacks.graphene.internal.EntityInterface;
-import org.deephacks.graphene.internal.EntityValidator;
 import org.deephacks.graphene.internal.FastKeyComparator;
 import org.deephacks.graphene.internal.KeyInterface;
 import org.deephacks.graphene.internal.gql.Query;
@@ -59,7 +58,6 @@ public class Graphene {
   private final Database instances;
 
   private final Env env;
-  private final Optional<EntityValidator> validator;
   private final BufAllocator bufAllocator;
   private final UniqueIds uniqueIds;
   private final TransactionManager txManager;
@@ -83,13 +81,6 @@ public class Graphene {
       this.env.setMaxDbs(10);
       this.env.open(dir.getPath());
       this.txManager = new TransactionManager(this);
-      Optional<EntityValidator> maybeAbsent = Optional.empty();
-      try {
-        maybeAbsent = Optional.of(new EntityValidator());
-      } catch (Throwable e) {
-        // no validator found on classpath
-      }
-      validator = maybeAbsent;
       this.primary = env.openDatabase(primaryName);
       this.secondary = env.openDatabase(secondaryName);
       this.sequence = env.openDatabase(sequenceName);
@@ -108,9 +99,6 @@ public class Graphene {
     Class<?> entityClass = null;
     for (E entity : entities) {
       EntityInterface iface = (EntityInterface) entity;
-      if (validator.isPresent()) {
-        validator.get().validate(entity);
-      }
       if (schema == null) {
         entityClass = entity.getClass();
         schema = SCHEMA_REPOSITORY.getSchema(entityClass);
@@ -196,9 +184,6 @@ public class Graphene {
   public <E> boolean putNoOverwrite(E entity) {
     Guavas.checkNotNull(entity);
     EntityInterface iface = (EntityInterface) entity;
-    if (validator.isPresent()) {
-      validator.get().validate(entity);
-    }
     try {
       Class<?> entityClass = entity.getClass();
       Schema<?> schema = SCHEMA_REPOSITORY.getSchema(entityClass);
@@ -389,10 +374,6 @@ public class Graphene {
 
   TransactionManager getTxManager() {
     return txManager;
-  }
-
-  Optional<EntityValidator> getValidator() {
-    return validator;
   }
 
   UniqueIds getUniqueIds() {
